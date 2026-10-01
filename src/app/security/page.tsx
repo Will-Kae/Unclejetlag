@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { ContextCTA } from "@/components/partners/ContextCTA";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { Wifi, Key, Phone, Lock, Shield, Alert } from "@/components/ui/icons";
+import { goHref } from "@/data/partners";
 import { buildMetadata, faqLd } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
 
@@ -46,7 +48,22 @@ export default function SecurityHub() {
             <Breadcrumbs items={[{ name: "Travel Security", href: "/security" }]} />
           </div>
           <div className="mt-10 max-w-3xl">
-            <p className="label-mono text-[#ffb59e]">Uncle Jetlag Travel Security</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <a
+                href={goHref("nordvpn", { placement: "security-hero" })}
+                target="_blank"
+                rel="sponsored nofollow noopener"
+                aria-label="NordVPN, our security partner"
+                className="inline-flex rounded-2xl bg-white px-5 py-3 shadow-lg shadow-black/20 ring-1 ring-white/20 transition hover:-translate-y-0.5"
+              >
+                <Image src="/brand/nordvpn-logo.webp" alt="NordVPN" width={1452} height={332} priority className="h-9 w-auto sm:h-11" />
+              </a>
+              <p className="text-sm text-paper/70">
+                Our security partner.{" "}
+                <Link href="/affiliate-disclosure" className="underline">Affiliate disclosure</Link>
+              </p>
+            </div>
+            <p className="label-mono mt-8 text-[#ffb59e]">Uncle Jetlag Travel Security</p>
             <h1 className="mt-4 text-[clamp(2.4rem,1.4rem+4.4vw,4.8rem)] font-semibold uppercase leading-[0.95] tracking-[-0.03em]">
               Your passport isn&apos;t the only thing worth protecting.
             </h1>

@@ -52,7 +52,7 @@ export function EsimCompare({ placement = "esim-compare", destination }: { place
                     {d ? (
                       <><span className="font-semibold text-ink">{d.amount}</span><span className="mt-1 block font-mono text-sm text-jet-ink">CODE: {d.code}</span></>
                     ) : (
-                      <span className="text-muted">None confirmed yet</span>
+                      <span className={p.discountNote ? "font-semibold text-ink" : "text-muted"}>{p.discountNote ?? "None confirmed yet"}</span>
                     )}
                   </td>
                 );

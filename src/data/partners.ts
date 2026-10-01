@@ -60,6 +60,8 @@ export type Partner = {
   cta: string;
   /** Default campaign tag appended as a sub-ID when no campaign is given. */
   campaign?: string;
+  /** Shown in the eSIM comparison's "Reader discount" row when there is no code to display (e.g. applied automatically). */
+  discountNote?: string;
   /** Partner-programme rules we must respect (kept here so nobody forgets). */
   complianceNotes?: string[];
 };
@@ -103,6 +105,7 @@ export const partners: Partner[] = [
     subIdParams: ["aff_sub", "aff_sub2", "aff_sub3"],
     discount: { code: SAILY_DISCOUNT_CODE, amount: "10% off", appliesTo: "Saily eSIM plans.", confirmed: false },
     tagline: "Fixed-data and unlimited eSIM plans, managed in one app.",
+    discountNote: "Automatic",
     cta: "View current plans",
     campaign: "uj",
     complianceNotes: ["No PPC bidding on Saily brand terms or misspellings."],
