@@ -8,8 +8,8 @@
    (Or open the folder in Claude Code and ask it to push to your repo.)
 
 ## Where things live
-- Partners, affiliate URLs, discount codes: src/data/partners.ts (Saily code: set
-  NEXT_PUBLIC_SAILY_DISCOUNT_CODE in Vercel, or edit the file, and set confirmed: true)
+- Partners, affiliate URLs, discount codes: src/data/partners.ts (Saily has no discount
+  code: we link to Saily directly, as the affiliate disclosure says)
 - Travel tools registry: src/data/tools.ts
 - eSIM facts and destination notes: src/data/esim.ts
 - Founder / author details and schema: src/data/authors.ts, src/lib/seo.ts
