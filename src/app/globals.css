@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Uncle Jetlag design tokens
+   "A boarding pass designed by a magazine."
+   ========================================================================== */
+@theme {
+  --color-ink: #0e1a24;
+  --color-ink-2: #22313f;
+  --color-muted: #5b6875;
+  --color-paper: #faf7f2;
+  --color-sand: #efe8dc;
+  --color-sand-2: #e4dacb;
+  --color-line: rgb(14 26 36 / 0.1);
+  --color-jet: #cf3d17;          /* brand orange — 4.8:1 with white */
+  --color-jet-ink: #b8340f;      /* orange for small text/links (AA) */
+  --color-jet-soft: #fde5dc;
+  --color-sky: #1c4e80;
+  --color-sky-soft: #e3edf7;
+  --color-palm: #186a52;
+  --color-palm-soft: #dff1e9;
+  --color-amber: #87550e;
+  --color-amber-soft: #fbefd6;
+
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 0 rgb(14 26 36 / 0.04), 0 12px 32px -16px rgb(14 26 36 / 0.25);
+  --shadow-lift: 0 1px 0 rgb(14 26 36 / 0.04), 0 24px 48px -20px rgb(14 26 36 / 0.35);
+
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade: fade 0.4s ease-out both;
+
+  /* Transform-only so hero text still counts as painted immediately (good LCP). */
+  @keyframes rise {
+    from { transform: translateY(12px); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 6.5rem;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Display italics use the separately-loaded italic face */
+  h1 .italic, h2 .italic, blockquote, .font-display.italic, .font-display .italic, .prose-uj blockquote {
+    font-family: var(--font-fraunces-italic), var(--font-fraunces), Georgia, serif;
+  }
+  ::selection { background: var(--color-jet); color: white; }
+  :focus-visible {
+    outline: 2.5px solid var(--color-jet);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-uj {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) { .container-uj { padding-inline: 1.5rem; } }
+  @media (min-width: 1024px) { .container-uj { padding-inline: 2rem; } }
+
+  /* Mono "flight data" label */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Boarding-pass perforation */
+  .perforation {
+    height: 1px;
+    background-image: linear-gradient(to right, var(--color-line) 55%, transparent 0);
+    background-size: 10px 1px;
+    background-repeat: repeat-x;
+  }
+
+  .card-lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+  .card-lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1.5px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.25s ease;
+  }
+  .link-underline:hover { background-size: 100% 1.5px; }
+
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  /* ---------------------------------------------------------------------------
+     Article prose
+     ------------------------------------------------------------------------- */
+  .prose-uj {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--color-ink-2);
+    max-width: 44rem;
+  }
+  @media (min-width: 768px) { .prose-uj { font-size: 1.125rem; } }
+  .prose-uj > * + * { margin-top: 1.25em; }
+  .prose-uj h2 {
+    font-size: clamp(1.55rem, 1.2rem + 1.2vw, 2rem);
+    line-height: 1.2;
+    color: var(--color-ink);
+    margin-top: 2.2em;
+    font-weight: 600;
+  }
+  .prose-uj h3 {
+    font-size: 1.3rem;
+    line-height: 1.3;
+    color: var(--color-ink);
+    margin-top: 1.8em;
+    font-weight: 600;
+  }
+  .prose-uj h2 + *, .prose-uj h3 + * { margin-top: 0.75em; }
+  .prose-uj a:not([data-plain]) {
+    color: var(--color-sky);
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    text-decoration-color: rgb(28 78 128 / 0.35);
+  }
+  .prose-uj a:not([data-plain]):hover { text-decoration-color: currentColor; }
+  .prose-uj strong { color: var(--color-ink); font-weight: 650; }
+  .prose-uj ul, .prose-uj ol { padding-left: 1.3em; }
+  .prose-uj ul { list-style: none; }
+  .prose-uj ul > li { position: relative; }
+  .prose-uj ul > li::before {
+    content: "";
+    position: absolute;
+    left: -1.05em;
+    top: 0.72em;
+    width: 0.42em;
+    height: 0.42em;
+    border-radius: 999px;
+    background: var(--color-jet);
+  }
+  .prose-uj ol { list-style: decimal; }
+  .prose-uj ol > li::marker { font-family: var(--font-mono); color: var(--color-jet-ink); font-size: 0.85em; }
+  .prose-uj li + li { margin-top: 0.45em; }
+  .prose-uj blockquote {
+    border-left: 3px solid var(--color-jet);
+    padding: 0.2em 0 0.2em 1.1em;
+    font-family: var(--font-display);
+    font-size: 1.2em;
+    font-style: italic;
+    color: var(--color-ink);
+  }
+  .prose-uj code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-sand);
+    padding: 0.12em 0.35em;
+    border-radius: 0.35em;
+  }
+  .prose-uj hr { border: 0; height: 1px; background: var(--color-line); margin-block: 2.5em; }
+
+  /* GFM tables in markdown get wrapped by the Table MDX component */
+  .table-uj { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; line-height: 1.5; }
+  .table-uj th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 500;
+    background: var(--color-sand);
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+  .table-uj td { padding: 0.8rem 1rem; border-top: 1px solid var(--color-line); vertical-align: top; min-width: 9rem; }
+  .table-uj tbody tr:nth-child(even) td { background: rgb(239 232 220 / 0.35); }
+  .table-uj td:first-child, .table-uj th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .table-uj td:first-child { background: var(--color-paper); }
+  .table-uj th[scope="row"] {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--color-ink);
+    font-weight: 600;
+    background: white;
+    border-top: 1px solid var(--color-line);
+    white-space: normal;
+    min-width: 9rem;
+    vertical-align: top;
+    padding: 0.8rem 1rem;
+  }
+  .table-uj tbody tr:nth-child(even) td:first-child { background: #f5f0e7; }
+  .table-uj th:first-child { background: var(--color-sand); }
+}

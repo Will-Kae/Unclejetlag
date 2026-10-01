@@ -1,0 +1,29 @@
+{
+  "_about": "Freely licensed photos from Wikimedia Commons. scripts/fetch-photos.mjs downloads each one into public/images/<key>.jpg at build time. Keys are article slugs, destination country slugs, or 'home-hero'. Only CC0, public domain, CC BY or CC BY-SA files.",
+  "photos": {
+    "south-africa": { "file": "View of Table Mountain from Signal Hill 1.jpg", "author": "Mike Peel (www.mikepeel.net)", "licence": "CC BY-SA 4.0", "alt": "Table Mountain's cliff face above Cape Town, seen from Signal Hill" },
+    "united-arab-emirates": { "file": "Burj Khalifa (worlds tallest building) and the Dubai skyline (25781049892).jpg", "author": "imran shahabuddin", "licence": "CC BY 2.0", "alt": "The Dubai skyline and Burj Khalifa at sunset" },
+    "georgia": { "file": "Gergeti Trinity Church and Mt. Kazbeg 01.jpg", "author": "Braveheart", "licence": "CC BY-SA 4.0", "alt": "Gergeti Trinity Church on a hilltop with snow-capped Mount Kazbek behind, Georgia" },
+    "canada": { "file": "Lake Moraine-Banff National Park.jpg", "author": "Florian Fuchs", "licence": "CC BY 3.0", "alt": "Turquoise Moraine Lake below the Valley of the Ten Peaks in Banff National Park, Canada" },
+    "united-kingdom": { "file": "Tower Bridge London Dusk Feb 2006.jpg", "author": "Diliff", "licence": "CC BY-SA 3.0", "alt": "Tower Bridge over the River Thames in London at dusk" },
+    "home-hero": { "file": "Embraer 190 - Wing and winglet at sunset.jpg", "author": "PierreSelim", "licence": "CC BY-SA 3.0", "alt": "An airliner wing and winglet at sunset" },
+
+    "airport-currency-exchange": { "file": "Currency exchange counters at ZBAA T3 International Arrivals (20180723092244).jpg", "author": "N509FZ", "licence": "CC BY-SA 4.0", "alt": "A row of currency exchange counters in an airport international arrivals hall" },
+    "best-esim-options-international-travelers": { "file": "Nano SIM card and tray.jpg", "author": "BwDraco", "licence": "CC BY-SA 3.0", "alt": "A nano SIM card beside a smartphone SIM tray" },
+    "best-ways-to-pay-while-traveling": { "file": "Paying with a Credit Card (28886645201).jpg", "author": "Hloom Templates", "licence": "CC BY 2.0", "alt": "A payment card being used at a card terminal" },
+    "can-tourists-open-bank-account-canada": { "file": "Royal Bank of Canada, Wiarton.jpg", "author": "Jason Zhang", "licence": "CC0", "alt": "A bank branch in Wiarton, Ontario, Canada" },
+    "dukascopy-multi-currency-account-review": { "file": "Jet d'eau, Lake Geneva (Ank Kumar) 01.jpg", "author": "Ank Kumar", "licence": "CC BY-SA 4.0", "alt": "Lake Geneva with the Jet d'Eau fountain rising above the Geneva shoreline" },
+    "etias-launch-status-september-2026": { "file": "Munich Airport T1 L4 passport controls.jpg", "author": "Vasyatka1", "licence": "CC BY-SA 4.0", "alt": "Passport control and automated border gates at Munich Airport" },
+    "first-international-trip-mistakes": { "file": "Departures board at Miami Airport in Florida, US.jpg", "author": "Bobby Hidy", "licence": "CC BY-SA 2.0", "alt": "A flight departures board at an international airport" },
+    "how-foreign-exchange-fees-work": { "file": "2014 Tbilisi, Tablica elektroniczna z kursami walut.jpg", "author": "Marcin Konsek", "licence": "CC BY-SA 4.0", "alt": "An electronic currency exchange rate board in Tbilisi" },
+    "how-to-beat-jet-lag": { "file": "Flying through the sunrise - Flickr - Lenny K Photography.jpg", "author": "Lenny K Photography", "licence": "CC BY 2.0", "alt": "Sunrise seen through an aircraft window on an overnight flight" },
+    "passport-validity-six-month-rule": { "file": "Koh Lipe, Adang-Rawi Archipelago, Thailand 2025 - Stack of passports.jpg", "author": "Sharon Hahn Darlin", "licence": "CC BY 2.0", "alt": "A stack of passports" },
+    "pay-in-local-currency-or-home-currency": { "file": "Card Payment (176811287).jpeg", "author": "Mañico", "licence": "CC0", "alt": "A handheld card payment terminal with a card inserted" },
+    "power-adapters-voltage-explained": { "file": "Two AC Converter Adapters.jpg", "author": "Fructibus", "licence": "CC0", "alt": "Two travel plug adapters for different socket types" },
+    "sarb-single-discretionary-allowance-r2-million": { "file": "Pretoria, uitsig oor middestad.jpg", "author": "JMK", "licence": "CC BY-SA 3.0", "alt": "Pretoria city centre, including the South African Reserve Bank tower" },
+    "south-africa-online-traveller-declaration-r100000-cash-limit": { "file": "Central Terminal area, O.R. Tambo International Airport, Johannesburg, South Africa (52732792653).jpg", "author": "Charles from Port Chester, New York", "licence": "CC BY 2.0", "alt": "The central terminal area of O. R. Tambo International Airport, Johannesburg" },
+    "travel-apps-to-download-before-you-fly": { "file": "Smartphone with navigation map app.jpg", "author": "Santeri Viinamäki", "licence": "CC BY-SA 4.0", "alt": "A smartphone showing a navigation map app" },
+    "two-weeks-in-georgia-cost": { "file": "Old Tbilisi, Street, Georgia.jpg", "author": "Vyacheslav Argenberg", "licence": "CC BY 4.0", "alt": "A street of 19th-century buildings in Old Tbilisi, Georgia" },
+    "visa-vs-mastercard-international-travel": { "file": "Bunch of credit cards (49860171753).jpg", "author": "Yuri Samoilov", "licence": "CC BY 2.0", "alt": "A fanned bunch of Visa and Mastercard payment cards" }
+  }
+}

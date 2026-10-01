@@ -1,0 +1,53 @@
+---
+# Copy to content/articles/<slug>.mdx — filename must equal slug.
+title: "Your Headline Here"
+slug: your-headline-here
+description: "One or two sentences (40–320 chars). Used as the dek and default meta description."
+seoTitle: "Optional: ≤ 55 chars so ' | Uncle Jetlag' fits"   # optional
+seoDescription: "Optional: ≤ 160 chars"                        # optional
+category: money            # money | travel-tech | guides | visas
+subcategory: travel-cards  # must exist in src/data/taxonomy.ts (visas: visa-basics | applications | passports)
+author: uncle-jetlag
+publishedDate: 2026-10-01
+updatedDate: 2026-10-01
+contentStatus: review      # verified (indexed) | review (noindex) | demo (noindex + banner)
+featured: false
+trending: false
+hasAffiliateLinks: false
+countries: []              # e.g. [georgia] — links the article to destination pages
+featuredImage:
+  alt: "Describe the image for screen readers"
+  # src: /images/your-photo.jpg   # omit to use generative cover art
+tags: [tag one, tag two]
+faqs:
+  - q: "A question readers actually search?"
+    a: "A direct, two-to-three sentence answer."
+sources:
+  - { title: "Official source title", url: "https://example.gov", publisher: "Publisher" }
+---
+
+Intro paragraph: answer the headline question in the first two sentences.
+
+## First section
+
+Normal Markdown works: **bold**, [links](/money), lists and tables.
+
+| Column | Column |
+|---|---|
+| Value | Value |
+
+<Callout type="tip">Tips, warnings (type="warning"), info, or verify boxes.</Callout>
+
+<ComparisonTable caption="Title" columns={["Option", "Cost", "Best for"]} rows={[["A", "…", "…"]]} highlight={0} />
+
+<ProsCons pros={["Good thing"]} cons={["Catch"]} />
+
+<PickCard name="Product" partner="demo-esim-a" bestFor="Who it suits" summary="Why it's the pick." pros={["…"]} cons={["…"]} />
+
+<AffiliateButton partner="demo-esim-a">Check prices</AffiliateButton>
+
+<Placeholder>Anything not yet verified.</Placeholder> or inline <TBC>value</TBC>
+
+## Second section
+
+Ad slots are inserted automatically before the first H2 and mid-article.

@@ -1,0 +1,155 @@
+{
+ "_readme": "Deploy manifest for unclejetlag.com (Vercel project prj_8gr6SlZvy8KiHx56JjFksiuQNYu2). To redeploy: create_deployment with every entry in files as {file, sha, size}, plus any new files, plus this manifest inline (updated). Posts added by the daily updates task are listed in posts and their files are appended to files.",
+ "projectSettings": {
+  "framework": "nextjs",
+  "installCommand": "node unbundle.mjs && npm install --no-audit --no-fund",
+  "nodeVersion": "22.x"
+ },
+ "files": [
+  {
+   "file": "bundle/part-00",
+   "sha": "c15209fb08447a1e8f9f7d9aa6533018060c68f5",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-01",
+   "sha": "4011a584923b4b8000fd9ae80c83bb84c29613d2",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-02",
+   "sha": "de4b7e3cccbfcc7926fda8f8707d341e60399c57",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-03",
+   "sha": "6bbed0b8e2302a4a6f91a69dc68addd8e3b5d67f",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-04",
+   "sha": "9f5043ed3088e9545a47af6a0a7f062dd312ef17",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-05",
+   "sha": "b99c6ec6ba99e22b810de05b49469d8d8d43f6a6",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-06",
+   "sha": "aefd4eb76634c70ea73286980a1ffd644fe8c003",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-07",
+   "sha": "1464db42aa221626252e149e40fe1caf499f8310",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-08",
+   "sha": "bdf1118105ecc0fc5fb068c2aa3107417387df73",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-09",
+   "sha": "a29c3ae97a3639834bf807b076ab943665f2ef34",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-10",
+   "sha": "3e095d6d1cf4f28623e98d7e46ded7a6710255b4",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-11",
+   "sha": "dd09a8f7bdb36b242398c7ba517bb3158d955b14",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-12",
+   "sha": "2f67d07d33b1a1f0d0e46936b846c38439e8922f",
+   "size": 18000
+  },
+  {
+   "file": "bundle/part-13",
+   "sha": "1a1f5dc2dc85548c19feba0a8826336748c2ff6c",
+   "size": 2039
+  },
+  {
+   "file": "patch4/s-00",
+   "sha": "3f8ab2812391a29f6c5081aef9c23a82f56053e2",
+   "size": 15000
+  },
+  {
+   "file": "patch4/s-01",
+   "sha": "48365827a8317c20627e20471997cebf0b9076f4",
+   "size": 15000
+  },
+  {
+   "file": "patch4/s-02",
+   "sha": "65d70842f5fe60e24c6058a4d0c71c5873f95f72",
+   "size": 15000
+  },
+  {
+   "file": "patch4/s-03",
+   "sha": "05da6320e944f6c935f2ebe39018fab303dd0e83",
+   "size": 15000
+  },
+  {
+   "file": "patch4/s-04",
+   "sha": "c4a24da4d91759dfd5f48e85a7ce134f45b5da20",
+   "size": 12055
+  },
+  {
+   "file": "patch5/t-00",
+   "sha": "60104bc61de5e9504a69066e50e4f500832034aa",
+   "size": 4607
+  },
+  {
+   "file": "patch6/v-00",
+   "sha": "eb4e678c52b2e1f31faefa787180ed8f79dfa9c6",
+   "size": 20435
+  },
+  {
+   "file": "patch7/w-00",
+   "sha": "23f7fc3a35405ad59b3529686fbe6be99922e616",
+   "size": 18000
+  },
+  {
+   "file": "patch7/w-01",
+   "sha": "c4a701e4cbfe7042894235542e1f3607635b374c",
+   "size": 1939
+  },
+  {
+   "file": "package.json",
+   "sha": "383ae5ff03b7ccb0002106dcdae980b9212ba168",
+   "size": 1111
+  },
+  {
+   "file": "unbundle.mjs",
+   "sha": "c6c02f5bf6e89f5bd63562d74ef3652ab67fef32",
+   "size": 1069
+  }
+ ],
+ "posts": [
+  {
+   "slug": "south-africa-online-traveller-declaration-r100000-cash-limit",
+   "category": "guides",
+   "date": "2026-09-28",
+   "topic": "SARS online traveller declaration; R100,000 cash limit"
+  },
+  {
+   "slug": "sarb-single-discretionary-allowance-r2-million",
+   "category": "money",
+   "date": "2026-09-28",
+   "topic": "SARB SDA doubled to R2m; minors R400k"
+  },
+  {
+   "slug": "etias-launch-status-september-2026",
+   "category": "visas",
+   "date": "2026-09-28",
+   "topic": "ETIAS start date status (not confirmed, target end-2026)"
+  }
+ ]
+}
