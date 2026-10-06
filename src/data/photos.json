@@ -63,6 +63,8 @@
     "malawi": { "file": "Sunset at Cape McLear, Malawi (2498453923).jpg", "author": "Joachim Huber", "licence": "CC BY-SA 2.0", "alt": "Sunset over Lake Malawi at Cape Maclear" },
     "mauritius": { "file": "Le Morne Brabant depuis l'océan.jpg", "author": "Benoît Prieur", "licence": "CC0", "alt": "Le Morne Brabant mountain rising above the sea in south-west Mauritius" },
     "rwanda": { "file": "Kigali.jpg", "author": "Dr Antoine R. Gasasira", "licence": "CC BY-SA 4.0", "alt": "A view over Kigali, the capital of Rwanda" },
-    "uganda": { "file": "Murchison Falls, Uganda (23475021234).jpg", "author": "Rod Waddington", "licence": "CC BY-SA 2.0", "alt": "Murchison Falls on the Nile in Uganda" }
+    "uganda": { "file": "Murchison Falls, Uganda (23475021234).jpg", "author": "Rod Waddington", "licence": "CC BY-SA 2.0", "alt": "Murchison Falls on the Nile in Uganda" },
+    "ethiopia": { "file": "Addis Ababa skyline.jpg", "author": "Simfan34", "licence": "CC BY-SA 3.0", "alt": "The skyline of Addis Ababa, the capital of Ethiopia" },
+    "senegal": { "file": "Côtes de l'île de Gorée au Sénégal 05.jpg", "author": "Fawaz.tairou", "licence": "CC BY-SA 4.0", "alt": "The coast of Gorée Island off Dakar, Senegal" }
   }
 }
