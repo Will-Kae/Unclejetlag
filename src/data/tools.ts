@@ -46,7 +46,7 @@ export const tools: Tool[] = [
   { slug: "nordpass", name: "NordPass", description: "A password manager for the logins you can't afford to lose abroad.", category: "security", status: "live", partner: "nordpass", relationship: "affiliate" },
 
   { slug: "insurance", name: "Travel insurance comparison", description: "", category: "booking", status: "soon" },
-  { slug: "flights", name: "Flight search", description: "", category: "booking", status: "soon" },
+  { slug: "flights", name: "Flight search", description: "Search and compare flights worldwide with Travelpayouts.", category: "booking", status: "live", href: "/guides/topics/flights#flights", relationship: "affiliate" },
   { slug: "hotels", name: "Hotels & stays search", description: "Search hotels, apartments and holiday homes with Expedia.", category: "booking", status: "live", href: "/guides/topics/hotels#hotels-stays", relationship: "affiliate" },
   { slug: "lounges", name: "Airport lounge finder", description: "", category: "booking", status: "soon" },
   { slug: "transfers", name: "Airport transfers", description: "", category: "booking", status: "soon" },

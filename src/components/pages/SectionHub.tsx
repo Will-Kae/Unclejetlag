@@ -4,6 +4,7 @@ import { ArticleCard } from "@/components/cards/ArticleCard";
 import { ConverterCTA } from "@/components/tools/ConverterCTA";
 import { CarRentalsSection } from "@/components/partners/CarRentalsSection";
 import { HotelsStaysSection } from "@/components/partners/HotelsStaysSection";
+import { FlightsSection } from "@/components/partners/FlightsSection";
 import { NewsletterSection } from "@/components/newsletter/NewsletterSection";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { sections, type SectionKey } from "@/data/taxonomy";
@@ -60,6 +61,7 @@ export function SectionHub({ section, topic }: Props) {
       )}
 
       {/* Booking search on the matching Jetlag Guides topic pages, right under the topic header. */}
+      {section === "guides" && t?.slug === "flights" && <FlightsSection className="mt-12" />}
       {section === "guides" && t?.slug === "hotels" && <HotelsStaysSection className="mt-12" />}
       {section === "guides" && t?.slug === "car-rentals" && <CarRentalsSection className="mt-12" />}
 
@@ -85,6 +87,7 @@ export function SectionHub({ section, topic }: Props) {
       {/* Booking widgets: Jetlag Guides hub only, never on topic pages, so each appears once. */}
       {section === "guides" && !t && (
         <>
+          <FlightsSection />
           <HotelsStaysSection />
           <CarRentalsSection />
         </>
