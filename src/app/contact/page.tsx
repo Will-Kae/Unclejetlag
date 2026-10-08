@@ -39,6 +39,10 @@ export default function ContactPage() {
           </li>
         ))}
       </ul>
+      <p className="mt-10 text-muted">
+        <span className="font-semibold text-ink">Postal address:</span> Uncle Jetlag, {site.address.street}, {site.address.locality},{" "}
+        {site.address.region}, {site.address.postalCode}, {site.address.country}
+      </p>
     </section>
   );
 }

@@ -24,6 +24,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // One canonical host: send www to the apex with a permanent 308.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.unclejetlag.com" }],
+        destination: "https://unclejetlag.com/:path*",
+        permanent: true,
+      },
       { source: "/destination/:slug", destination: "/destinations/:slug", permanent: true },
       { source: "/visa", destination: "/visas", permanent: true },
       { source: "/tech", destination: "/travel-tech", permanent: true },

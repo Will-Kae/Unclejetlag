@@ -11,6 +11,14 @@ export const site = {
     "Travel intelligence, destination guides and tools for people who actually go places: visas, money, eSIMs, travel security and country guides, without the fluff.",
   founder: { name: "Willard Munyaradzi Kachere", penName: "Uncle Jetlag", url: "/authors/uncle-jetlag" },
   locale: "en",
+  address: {
+    street: "3 Alice Lane",
+    locality: "Sandton",
+    region: "Johannesburg",
+    postalCode: "2196",
+    country: "South Africa",
+    countryCode: "ZA",
+  },
   socialHandle: "@unclejetlag",
   twitterHandle: "@unclejetlag",
   email: {

@@ -76,6 +76,14 @@ export const organizationLd = () => ({
   logo: { "@type": "ImageObject", url: abs("/brand/avatar-192.png"), width: 192, height: 192 },
   slogan: site.tagline,
   founder: { "@type": "Person", "@id": `${SITE_URL}/authors/uncle-jetlag#person`, name: site.founder.name, alternateName: site.founder.penName },
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: site.address.street,
+    addressLocality: site.address.locality,
+    addressRegion: site.address.region,
+    postalCode: site.address.postalCode,
+    addressCountry: site.address.countryCode,
+  },
   sameAs: Object.values(site.social),
 });
 
