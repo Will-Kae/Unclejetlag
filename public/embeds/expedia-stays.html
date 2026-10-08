@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Expedia stays search</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow-x: hidden; }
+  .eg-widget, .eg-widget iframe { max-width: 100%; }
+</style>
+</head>
+<body>
+<!--
+  Official Expedia Group search widget, exactly as issued. Do not edit the data- attributes.
+  This page is embedded in the Hotels & Stays section of /guides. It exists because
+  eg-widgets.js only initialises on DOMContentLoaded, which never fires again after Next.js
+  client-side navigation. Loading it here gives the widget a fresh document every time.
+-->
+<div
+  class="eg-widget"
+  data-widget="search"
+  data-program="uk-expedia"
+  data-lobs="stays"
+  data-network="pz"
+  data-camref="1011l6tK2n"
+  data-pubref="unclejetlag">
+</div>
+
+<script
+  class="eg-widgets-script"
+  src="https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js">
+</script>
+
+<script>
+  // Report this document's height to the parent page so the frame grows with the widget.
+  (function () {
+    if (window.parent === window) return;
+    var last = 0;
+    function send() {
+      var h = Math.ceil(document.body.getBoundingClientRect().height);
+      if (h !== last) {
+        last = h;
+        window.parent.postMessage({ type: "uj-embed-height", embed: "expedia-stays", height: h }, location.origin);
+      }
+    }
+    if ("ResizeObserver" in window) new ResizeObserver(send).observe(document.body);
+    window.addEventListener("load", send);
+    setInterval(send, 1000);
+  })();
+</script>
+</body>
+</html>

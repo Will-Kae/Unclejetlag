@@ -3,6 +3,7 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { ArticleCard } from "@/components/cards/ArticleCard";
 import { ConverterCTA } from "@/components/tools/ConverterCTA";
 import { CarRentalsSection } from "@/components/partners/CarRentalsSection";
+import { HotelsStaysSection } from "@/components/partners/HotelsStaysSection";
 import { NewsletterSection } from "@/components/newsletter/NewsletterSection";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { sections, type SectionKey } from "@/data/taxonomy";
@@ -77,8 +78,13 @@ export function SectionHub({ section, topic }: Props) {
         )}
       </section>
 
-      {/* DiscoverCars car rental search: Jetlag Guides hub only, never on topic pages, so it appears once. */}
-      {section === "guides" && !t && <CarRentalsSection />}
+      {/* Booking widgets: Jetlag Guides hub only, never on topic pages, so each appears once. */}
+      {section === "guides" && !t && (
+        <>
+          <HotelsStaysSection />
+          <CarRentalsSection />
+        </>
+      )}
 
       <div className="mt-24"><NewsletterSection source={`hub-${section}`} /></div>
       <JsonLd data={collectionLd(t ? `${t.label} | ${s.label}` : s.label, t?.description ?? s.description, url, list.map((a) => ({ name: a.title, url: a.url })))} />

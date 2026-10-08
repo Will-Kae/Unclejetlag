@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useConsent } from "@/components/consent/ConsentProvider";
 
 /**
  * Official DiscoverCars affiliate search widget.
@@ -13,9 +12,8 @@ import { useConsent } from "@/components/consent/ConsentProvider";
  * - The loader script is injected once, into this component's own container, after mount.
  *   It renders an iframe beside the script tag. On unmount the container is emptied, so
  *   client-side navigation back to the page never produces a second widget.
- * - It loads automatically for visitors who accepted advertising cookies, once the section is
- *   near the viewport. Everyone else gets a one-click "Show car search" button, because the
- *   widget is a third-party embed that can set DiscoverCars cookies.
+ * - It loads for every visitor once the section is near the viewport (owner's decision,
+ *   October 2026). The privacy policy says DiscoverCars may set cookies when it loads.
  */
 const WIDGET_SRC = "https://www.discovercars.com/widget.js?v1";
 
@@ -51,12 +49,8 @@ const WIDGET_ATTRS: Record<string, string> = {
 
 export function DiscoverCarsWidget({ fallbackHref }: { fallbackHref: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const { consent, ready } = useConsent();
-  const [requested, setRequested] = useState(false);
   const [nearViewport, setNearViewport] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  const allowed = requested || Boolean(consent?.ads);
 
   // Wait until the section is close to the viewport before fetching anything.
   useEffect(() => {
@@ -82,7 +76,7 @@ export function DiscoverCarsWidget({ fallbackHref }: { fallbackHref: string }) {
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !ready || !allowed || !nearViewport) return;
+    if (!host || !nearViewport) return;
     // Guard against double injection (React Strict Mode, fast refresh, repeat renders).
     if (host.querySelector("#dchwidget") || document.getElementById("dchwidget")) return;
 
@@ -98,31 +92,11 @@ export function DiscoverCarsWidget({ fallbackHref }: { fallbackHref: string }) {
     return () => {
       host.replaceChildren();
     };
-  }, [ready, allowed, nearViewport]);
+  }, [nearViewport]);
 
   return (
     <div className="dc-widget w-full max-w-full overflow-hidden rounded-[var(--radius-card)] bg-white ring-1 ring-line">
       <div ref={hostRef} className="min-h-[1px] w-full" />
-      {!allowed && ready && (
-        <div className="flex flex-col items-start gap-4 p-6 sm:p-8">
-          <p className="font-display text-xl font-semibold text-ink">Uncle&apos;s search and compare car rentals and save up to 70%!</p>
-          <p className="max-w-xl text-muted">
-            The search box is provided by DiscoverCars and may set their cookies. Load it here, or open DiscoverCars in a new tab.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setRequested(true)}
-              className="inline-flex items-center justify-center rounded-full bg-[#101c30] px-6 py-3 font-semibold text-white hover:opacity-90"
-            >
-              Show car search
-            </button>
-            <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-ink ring-1 ring-line hover:bg-sand">
-              Open DiscoverCars
-            </a>
-          </div>
-        </div>
-      )}
       {failed && (
         <p className="p-6 text-muted">
           The car search didn&apos;t load. You can still{" "}
