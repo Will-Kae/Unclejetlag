@@ -20,7 +20,8 @@ export type PartnerCategory =
   | "travel-cards"
   | "money-transfer"
   | "banking"
-  | "products";
+  | "products"
+  | "car-rental";
 
 export type PartnerDiscount = {
   /** Code shown to readers. null = not yet issued or not confirmed: show nothing. */
@@ -74,6 +75,18 @@ export type Partner = {
 export const SAILY_DISCOUNT_CODE: string | null = process.env.NEXT_PUBLIC_SAILY_DISCOUNT_CODE || null;
 
 export const partners: Partner[] = [
+  {
+    slug: "discovercars",
+    name: "DiscoverCars",
+    category: "car-rental",
+    affiliateId: "unclejetlag",
+    network: "direct",
+    // Official affiliate URL from DiscoverCars. No sub-ID params, so the URL is used exactly as issued.
+    url: "https://www.discovercars.com/uk/?a_aid=unclejetlag&chan=code1&currency=usd",
+    active: true,
+    tagline: "Search and compare car rentals from local and global suppliers.",
+    cta: "Compare car hire prices",
+  },
   {
     slug: "holafly",
     name: "Holafly",
