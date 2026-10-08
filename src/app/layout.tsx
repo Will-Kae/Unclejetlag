@@ -79,7 +79,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${fraunces.variable} ${frauncesItalic.variable} ${inter.variable} ${mono.variable}`}>
       <head>
-        {/* Impact.com affiliate network site verification */}
+        {/* Impact.com affiliate network site verification (two Impact verifications: newest first, earlier one kept) */}
+        <meta name="impact-site-verification" {...{ value: "e3f65cdf-b28c-4507-9fd4-e102d360a10e" }} />
         <meta name="impact-site-verification" {...{ value: "2cabb71a-44d5-414f-b1d4-dedb993fc5aa" }} />
         <script id="consent-defaults" dangerouslySetInnerHTML={{ __html: consentDefaultsScript }} />
         {/* Travelpayouts (Drive) site script, as issued. Server-rendered in <head> so Travelpayouts can verify it.
