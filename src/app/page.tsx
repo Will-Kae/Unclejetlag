@@ -201,7 +201,7 @@ export default function HomePage() {
               <ButtonLink href="/esim" variant="dark">Open the eSIM Finder</ButtonLink>
               <CodeCopy code={ESIM_CODE} placement="home-connected" />
             </div>
-            <p className="mt-3 text-sm text-muted">Holafly readers save {ESIM_DISCOUNT} with the code above, and can reuse it.</p>
+            <p className="mt-3 text-sm text-muted">Save 10% on Saily or {ESIM_DISCOUNT} Holafly with the code above. On Saily it applies automatically through our links.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <PartnerCard slug="holafly" placement="home-connected" why={["Unlimited data by the day"]} />

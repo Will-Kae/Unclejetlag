@@ -68,11 +68,9 @@ export type Partner = {
 };
 
 /**
- * Saily coupon: Saily has offered a 10% audience coupon but the code is NOT yet confirmed.
- * When Saily confirms it, set the code here (or via NEXT_PUBLIC_SAILY_DISCOUNT_CODE) and
- * flip `confirmed` to true. Until then the site shows no Saily code anywhere.
+ * Saily coupon: confirmed by Saily (October 2026). UNCLEJETLAG gives readers 10% off, and the
+ * tracking link below carries ?coupon=unclejetlag so it applies automatically at checkout.
  */
-export const SAILY_DISCOUNT_CODE: string | null = process.env.NEXT_PUBLIC_SAILY_DISCOUNT_CODE || null;
 
 export const partners: Partner[] = [
   {
@@ -111,14 +109,13 @@ export const partners: Partner[] = [
     category: "esim",
     affiliateId: "17086",
     network: "hasoffers",
-    url: "https://go.saily.site/aff_c?offer_id=101&aff_id=17086",
+    url: "https://go.saily.site/aff_c?offer_id=101&aff_id=17086&coupon=unclejetlag",
     active: true,
     featured: true,
     links: {},
     subIdParams: ["aff_sub", "aff_sub2", "aff_sub3"],
-    discount: { code: SAILY_DISCOUNT_CODE, amount: "10% off", appliesTo: "Saily eSIM plans.", confirmed: false },
+    discount: { code: "UNCLEJETLAG", amount: "10% off", appliesTo: "Saily eSIM plans. Applied automatically when you use our links.", confirmed: true },
     tagline: "Fixed-data and unlimited eSIM plans, managed in one app.",
-    discountNote: "Automatic",
     cta: "View current plans",
     campaign: "uj",
     complianceNotes: ["No PPC bidding on Saily brand terms or misspellings."],

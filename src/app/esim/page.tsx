@@ -13,7 +13,7 @@ import { buildMetadata, faqLd } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Uncle Jetlag eSIM Finder: Land Connected (Holafly Code UNCLEJETLAG)",
   description:
-    "Work out how much data your trip needs, compare Holafly and Saily travel eSIMs on the features that matter, and save 5% on Holafly with code UNCLEJETLAG.",
+    "Work out how much data your trip needs, compare Holafly and Saily travel eSIMs on the features that matter, and save with code UNCLEJETLAG: 5% off Holafly, 10% off Saily.",
   path: "/esim",
   ogKicker: "eSIM Finder",
 });
@@ -63,7 +63,7 @@ export default function EsimHubPage() {
               Find the right eSIM before your plane touches down. No physical SIM, no surprise roaming bill, no airport SIM-card mission.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3 text-sm text-paper/70">
-              <span>Holafly readers save {ESIM_DISCOUNT}:</span>
+              <span>Save 10% on Saily or {ESIM_DISCOUNT} Holafly:</span>
               <CodeCopy code={ESIM_CODE} dark placement="esim-hero" />
             </div>
           </div>

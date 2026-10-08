@@ -77,7 +77,7 @@ export const footerNav = {
     { label: "Uncle Jetlag Recommends", href: "/recommends" },
   ],
   "Connect & protect": [
-    { label: "Travel eSIM (5% off Holafly)", href: "/esim" },
+    { label: "Travel eSIM (save with UNCLEJETLAG)", href: "/esim" },
     { label: "eSIM for South Africa", href: "/esim/south-africa" },
     { label: "eSIM for Georgia", href: "/esim/georgia" },
     { label: "Travel Security", href: "/security" },
