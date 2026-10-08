@@ -34,6 +34,8 @@ export const site = {
     instagram: "https://www.instagram.com/unclejetlag",
     tiktok: "https://www.tiktok.com/@unclejetlag",
     x: "https://x.com/unclejetlag",
+    facebook: "https://www.facebook.com/UncleJetlag",
+    linkedin: "https://www.linkedin.com/company/unclejetlag",
     whatsapp: "https://whatsapp.com/channel/0029VbDkV6G7IUYWstHfyA2s",
   },
 } as const;

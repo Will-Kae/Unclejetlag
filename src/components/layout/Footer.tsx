@@ -3,13 +3,15 @@ import { Logo } from "@/components/ui/Logo";
 import { footerNav, site } from "@/data/site";
 import { NewsletterForm } from "@/components/newsletter/NewsletterForm";
 import { CookieSettingsButton } from "@/components/consent/CookieBanner";
-import { YouTube, Instagram, TikTok, XLogo, WhatsApp } from "@/components/ui/icons";
+import { YouTube, Instagram, TikTok, XLogo, WhatsApp, Facebook, LinkedIn } from "@/components/ui/icons";
 
 const socials = [
   { label: "YouTube", href: site.social.youtube, Icon: YouTube },
   { label: "Instagram", href: site.social.instagram, Icon: Instagram },
   { label: "TikTok", href: site.social.tiktok, Icon: TikTok },
   { label: "X", href: site.social.x, Icon: XLogo },
+  { label: "Facebook", href: site.social.facebook, Icon: Facebook },
+  { label: "LinkedIn", href: site.social.linkedin, Icon: LinkedIn },
   { label: "WhatsApp", href: site.social.whatsapp, Icon: WhatsApp },
 ];
 
@@ -59,9 +61,9 @@ export function Footer() {
             <p>© {new Date().getFullYear()} Uncle Jetlag. All rights reserved.</p>
             <p className="mt-1 font-display italic text-paper/80">World Wide Will.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
           <span className="font-mono text-sm text-paper/70">{site.socialHandle}</span>
-          <ul className="flex items-center gap-2" aria-label="Social media">
+          <ul className="flex flex-wrap items-center gap-2" aria-label="Social media">
             {socials.map(({ label, href, Icon }) => (
               <li key={label}>
                 <a href={href} target="_blank" rel="noopener noreferrer me" aria-label={`Uncle Jetlag on ${label}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/8 transition hover:bg-jet">
