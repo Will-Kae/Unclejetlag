@@ -28,12 +28,13 @@ export const site = {
     partnerships: "partnerships@unclejetlag.com",
     newsletter: "jetlagged@unclejetlag.com",
   },
-  // Official profiles — every platform uses the handle @unclejetlag.
+  // Official profiles — every platform uses the handle @unclejetlag (the WhatsApp Channel has its own link).
   social: {
     youtube: "https://www.youtube.com/@unclejetlag",
     instagram: "https://www.instagram.com/unclejetlag",
     tiktok: "https://www.tiktok.com/@unclejetlag",
     x: "https://x.com/unclejetlag",
+    whatsapp: "https://whatsapp.com/channel/0029VbDkV6G7IUYWstHfyA2s",
   },
 } as const;
 

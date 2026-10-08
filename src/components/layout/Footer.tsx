@@ -3,13 +3,14 @@ import { Logo } from "@/components/ui/Logo";
 import { footerNav, site } from "@/data/site";
 import { NewsletterForm } from "@/components/newsletter/NewsletterForm";
 import { CookieSettingsButton } from "@/components/consent/CookieBanner";
-import { YouTube, Instagram, TikTok, XLogo } from "@/components/ui/icons";
+import { YouTube, Instagram, TikTok, XLogo, WhatsApp } from "@/components/ui/icons";
 
 const socials = [
   { label: "YouTube", href: site.social.youtube, Icon: YouTube },
   { label: "Instagram", href: site.social.instagram, Icon: Instagram },
   { label: "TikTok", href: site.social.tiktok, Icon: TikTok },
   { label: "X", href: site.social.x, Icon: XLogo },
+  { label: "WhatsApp", href: site.social.whatsapp, Icon: WhatsApp },
 ];
 
 export function Footer() {
