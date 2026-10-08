@@ -10,8 +10,9 @@ import { ArticleCard } from "@/components/cards/ArticleCard";
 import { CountryCard } from "@/components/cards/CountryCard";
 import { IntelPass } from "@/components/ui/IntelPass";
 import { NewsletterSection } from "@/components/newsletter/NewsletterSection";
-import { Passport, Wallet, Signal, Compass, Shield, Refresh, Globe, ListCheck, Lock, Arrow, Bed, Car } from "@/components/ui/icons";
+import { Passport, Wallet, Signal, Compass, Shield, Refresh, Globe, ListCheck, Lock, Arrow, Plane, Bed, Car } from "@/components/ui/icons";
 import { PartnerCard } from "@/components/partners/PartnerCard";
+import { BookingTabs } from "@/components/partners/BookingTabs";
 import { CodeCopy } from "@/components/esim/CodeCopy";
 import { ESIM_CODE, ESIM_DISCOUNT } from "@/data/esim";
 import { getAllDestinations, getAllVisaBriefs, getArticlesBySection, getFeaturedArticle, getTrendingArticles, getUpdates, toSummary, visaBriefCard } from "@/lib/content";
@@ -38,10 +39,6 @@ const dashboard = [
   { step: "06 · Pay", title: "Money Abroad", body: "Cards, cash and the fees nobody mentions.", href: "/money", Icon: Wallet },
 ];
 
-const booking = [
-  { title: "Book a hotel", body: "Hotels, apartments and holiday homes.", partner: "Expedia", href: "/guides/topics/hotels#hotels-stays", Icon: Bed },
-  { title: "Hire a car", body: "Compare rental cars worldwide.", partner: "DiscoverCars", href: "/guides#car-rentals", Icon: Car },
-];
 
 export default function HomePage() {
   const featured = getFeaturedArticle();
@@ -82,6 +79,23 @@ export default function HomePage() {
               Travel intelligence, destination guides and tools for people who actually go places.
             </p>
             <HeroSearch className="mt-8 max-w-2xl" />
+            <nav aria-label="Book your trip" className="mt-5 flex flex-wrap gap-2">
+              {[
+                { label: "Book a flight", hash: "#book-flights", Icon: Plane },
+                { label: "Book a hotel", hash: "#book-hotels", Icon: Bed },
+                { label: "Book a car", hash: "#book-cars", Icon: Car },
+              ].map(({ label, hash, Icon }) => (
+                <a
+                  key={hash}
+                  href={hash}
+                  data-track="booking_shortcut"
+                  data-tool={label}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#101c30] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1a2a44]"
+                >
+                  <Icon className="h-4 w-4" /> {label}
+                </a>
+              ))}
+            </nav>
             <p className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold">
               <Link href="/tools/before-you-fly" className="link-underline text-ink">Before You Fly checklist →</Link>
               <Link href="/esim" className="link-underline text-ink">eSIM Finder →</Link>
@@ -104,6 +118,12 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* BOOK YOUR TRIP */}
+      <section aria-labelledby="book" className="container-uj -mt-4 mb-14 scroll-mt-24 sm:-mt-6">
+        <h2 id="book" className="label-mono mb-3 scroll-mt-28 text-muted">Book your trip</h2>
+        <BookingTabs />
+      </section>
+
       {/* DASHBOARD */}
       <section aria-labelledby="dash" className="container-uj">
         <h2 id="dash" className="label-mono text-muted">Plan the trip in the right order</h2>
@@ -121,38 +141,6 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
-      </section>
-
-      {/* BOOK YOUR TRIP */}
-      <section aria-labelledby="book" className="container-uj mt-14">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="book" className="label-mono text-muted">Book your trip</h2>
-          <p className="text-xs text-muted">
-            Partner searches. We may earn a commission, at no extra cost to you. <Link href="/affiliate-disclosure" className="underline">How this works</Link>
-          </p>
-        </div>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {booking.map(({ title, body, partner, href, Icon }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                data-track="booking_cta"
-                data-tool={title}
-                className="group flex h-full items-center gap-4 rounded-[var(--radius-card)] bg-[#101c30] p-5 text-white transition hover:bg-[#1a2a44]"
-              >
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10">
-                  <Icon className="h-6 w-6" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-display text-lg font-semibold leading-tight">{title}</span>
-                  <span className="mt-0.5 block text-sm text-white/70">{body}</span>
-                  <span className="mt-1 block font-mono text-[0.65rem] uppercase tracking-wider text-white/50">with {partner}</span>
-                </span>
-                <Arrow className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </li>
-          ))}
-        </ul>
       </section>
 
       {/* FEATURED */}

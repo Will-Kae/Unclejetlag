@@ -71,6 +71,7 @@ export const sections: Record<SectionKey, Section> = {
       { slug: "flights", label: "Flights", description: "Booking, routing and surviving flights." },
       { slug: "airports", label: "Airports", description: "Transits, lounges and airport logistics." },
       { slug: "hotels", label: "Hotels", description: "Choosing and booking accommodation." },
+      { slug: "car-rentals", label: "Car Rentals", description: "Hiring a car abroad: comparing, booking and driving." },
       { slug: "packing", label: "Packing", description: "What to bring and what to leave." },
       { slug: "long-haul", label: "Long-haul Flights", description: "Staying sane on 12+ hour journeys." },
       { slug: "jet-lag", label: "Jet Lag", description: "Resetting your body clock." },

@@ -1,11 +1,11 @@
 import { DiscoverCarsWidget } from "@/components/partners/DiscoverCarsWidget";
 import { goHref } from "@/data/partners";
 
-/** Car Rentals block on the Jetlag Guides hub: DiscoverCars search widget plus a plain affiliate link. */
-export function CarRentalsSection() {
+/** Car Rentals block (Jetlag Guides hub and Car Rentals topic page): DiscoverCars search plus a plain affiliate link. */
+export function CarRentalsSection({ className = "mt-20" }: { className?: string }) {
   const href = goHref("discovercars", { placement: "guides-car-rentals" });
   return (
-    <section id="car-rentals" aria-labelledby="car-rentals-heading" className="container-uj mt-20 scroll-mt-24">
+    <section id="car-rentals" aria-labelledby="car-rentals-heading" className={`container-uj scroll-mt-24 ${className}`}>
       <p className="label-mono mb-3 text-jet-ink">Book &amp; go</p>
       <h2 id="car-rentals-heading" className="text-[clamp(1.75rem,1.2rem+2vw,2.6rem)] font-semibold leading-[1.08] text-ink">
         Car Rentals

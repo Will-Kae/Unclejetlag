@@ -50,7 +50,7 @@ export const tools: Tool[] = [
   { slug: "hotels", name: "Hotels & stays search", description: "Search hotels, apartments and holiday homes with Expedia.", category: "booking", status: "live", href: "/guides/topics/hotels#hotels-stays", relationship: "affiliate" },
   { slug: "lounges", name: "Airport lounge finder", description: "", category: "booking", status: "soon" },
   { slug: "transfers", name: "Airport transfers", description: "", category: "booking", status: "soon" },
-  { slug: "car-rental", name: "Car rental search", description: "Compare rental cars from local and global suppliers with DiscoverCars.", category: "booking", status: "live", href: "/guides#car-rentals", relationship: "affiliate" },
+  { slug: "car-rental", name: "Car rental search", description: "Compare rental cars from local and global suppliers with DiscoverCars.", category: "booking", status: "live", href: "/guides/topics/car-rentals#car-rentals", relationship: "affiliate" },
   { slug: "activities", name: "Activities", description: "", category: "booking", status: "soon" },
   { slug: "gear", name: "Luggage & travel gear", description: "", category: "booking", status: "soon" },
 ];
