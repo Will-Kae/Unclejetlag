@@ -59,6 +59,9 @@ export function SectionHub({ section, topic }: Props) {
         </div>
       )}
 
+      {/* Booking search on the matching Jetlag Guides topic pages, right under the topic header. */}
+      {section === "guides" && t?.slug === "hotels" && <HotelsStaysSection className="mt-12" />}
+
       <section className="container-uj mt-12" aria-label="Articles">
         {list.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-ink/20 p-10 text-center">

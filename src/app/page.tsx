@@ -10,7 +10,7 @@ import { ArticleCard } from "@/components/cards/ArticleCard";
 import { CountryCard } from "@/components/cards/CountryCard";
 import { IntelPass } from "@/components/ui/IntelPass";
 import { NewsletterSection } from "@/components/newsletter/NewsletterSection";
-import { Passport, Wallet, Signal, Compass, Shield, Refresh, Globe, ListCheck, Lock, Arrow } from "@/components/ui/icons";
+import { Passport, Wallet, Signal, Compass, Shield, Refresh, Globe, ListCheck, Lock, Arrow, Bed, Car } from "@/components/ui/icons";
 import { PartnerCard } from "@/components/partners/PartnerCard";
 import { CodeCopy } from "@/components/esim/CodeCopy";
 import { ESIM_CODE, ESIM_DISCOUNT } from "@/data/esim";
@@ -38,7 +38,10 @@ const dashboard = [
   { step: "06 · Pay", title: "Money Abroad", body: "Cards, cash and the fees nobody mentions.", href: "/money", Icon: Wallet },
 ];
 
-
+const booking = [
+  { title: "Book a hotel", body: "Hotels, apartments and holiday homes.", partner: "Expedia", href: "/guides/topics/hotels#hotels-stays", Icon: Bed },
+  { title: "Hire a car", body: "Compare rental cars worldwide.", partner: "DiscoverCars", href: "/guides#car-rentals", Icon: Car },
+];
 
 export default function HomePage() {
   const featured = getFeaturedArticle();
@@ -118,6 +121,38 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
+      </section>
+
+      {/* BOOK YOUR TRIP */}
+      <section aria-labelledby="book" className="container-uj mt-14">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="book" className="label-mono text-muted">Book your trip</h2>
+          <p className="text-xs text-muted">
+            Partner searches. We may earn a commission, at no extra cost to you. <Link href="/affiliate-disclosure" className="underline">How this works</Link>
+          </p>
+        </div>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {booking.map(({ title, body, partner, href, Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                data-track="booking_cta"
+                data-tool={title}
+                className="group flex h-full items-center gap-4 rounded-[var(--radius-card)] bg-[#101c30] p-5 text-white transition hover:bg-[#1a2a44]"
+              >
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-lg font-semibold leading-tight">{title}</span>
+                  <span className="mt-0.5 block text-sm text-white/70">{body}</span>
+                  <span className="mt-1 block font-mono text-[0.65rem] uppercase tracking-wider text-white/50">with {partner}</span>
+                </span>
+                <Arrow className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* FEATURED */}

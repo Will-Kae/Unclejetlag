@@ -47,7 +47,7 @@ export const tools: Tool[] = [
 
   { slug: "insurance", name: "Travel insurance comparison", description: "", category: "booking", status: "soon" },
   { slug: "flights", name: "Flight search", description: "", category: "booking", status: "soon" },
-  { slug: "hotels", name: "Hotels & stays search", description: "Search hotels, apartments and holiday homes with Expedia.", category: "booking", status: "live", href: "/guides#hotels-stays", relationship: "affiliate" },
+  { slug: "hotels", name: "Hotels & stays search", description: "Search hotels, apartments and holiday homes with Expedia.", category: "booking", status: "live", href: "/guides/topics/hotels#hotels-stays", relationship: "affiliate" },
   { slug: "lounges", name: "Airport lounge finder", description: "", category: "booking", status: "soon" },
   { slug: "transfers", name: "Airport transfers", description: "", category: "booking", status: "soon" },
   { slug: "car-rental", name: "Car rental search", description: "Compare rental cars from local and global suppliers with DiscoverCars.", category: "booking", status: "live", href: "/guides#car-rentals", relationship: "affiliate" },
