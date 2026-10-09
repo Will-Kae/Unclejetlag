@@ -5,7 +5,10 @@ import { ContextCTA } from "@/components/partners/ContextCTA";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { Wallet, Globe, Shield, Alert, ArrowUpRight, Check } from "@/components/ui/icons";
 import { goHref } from "@/data/partners";
-import { swiftCodes, swiftLookups, SWIFT_CHECKED } from "@/data/swift-codes";
+import { InstitutionTable } from "@/components/banking/InstitutionTable";
+import { countryHref } from "@/components/banking/countrySlug";
+import { institutionsIn } from "@/lib/banking/directory";
+import { countryName, flag } from "@/lib/banking/iso-countries";
 import { buildMetadata, faqLd } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
 
@@ -41,7 +44,7 @@ const faqs = [
 ];
 
 export default function BankingHub() {
-  const countries = Array.from(new Set(swiftCodes.map((s) => s.country)));
+  const countries = ["ZA", "ZW", "KE", "NG", "ZM"];
   return (
     <>
       <section className="bg-ink text-paper">
@@ -191,44 +194,34 @@ export default function BankingHub() {
           <section id="codes" className="scroll-mt-28">
             <h2 className="text-[clamp(1.6rem,1.2rem+1.4vw,2.2rem)] font-semibold text-ink">SWIFT codes for major banks</h2>
             <p className="mt-4">
-              Each code below was taken from the bank&apos;s own website on {formatDate(SWIFT_CHECKED)}. Follow the link to see it at the source.
+              Each code below was read on the bank&apos;s own website or an official central-bank list. Follow the link to see it at the source.
+              For more countries, search the <Link href="/tools/bank-directory" className="text-sky underline">full bank directory</Link> or use
+              our <Link href="/tools/swift-code-checker" className="text-sky underline">SWIFT/BIC checker</Link>.
             </p>
             <div className="mt-5 rounded-2xl border border-jet/30 bg-jet-soft/50 p-5 text-[0.95rem]">
               <p className="flex items-start gap-3"><Alert className="mt-0.5 h-5 w-5 shrink-0 text-jet" /><span><strong className="text-ink">Always confirm with your own bank before sending money.</strong> Some banks use a different code for specific currencies or branches, and codes can change after mergers. A wrong code can delay or misdirect a payment.</span></p>
             </div>
             <div className="mt-6 space-y-8">
-              {countries.map((c) => (
-                <div key={c}>
-                  <h3 className="text-xl font-semibold text-ink">{c}</h3>
-                  <div className="mt-3 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
-                    <table className="w-full min-w-[30rem] text-left text-[0.95rem]">
-                      <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted">
-                        <tr><th scope="col" className="px-4 py-3 font-semibold">Bank</th><th scope="col" className="px-4 py-3 font-semibold">SWIFT/BIC</th><th scope="col" className="px-4 py-3 font-semibold">Source</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {swiftCodes.filter((s) => s.country === c).map((s) => (
-                          <tr key={s.bank}>
-                            <td className="px-4 py-3 text-ink">{s.bank}{s.note && <span className="block text-xs text-muted">{s.note}</span>}</td>
-                            <td className="px-4 py-3 font-mono font-semibold tracking-wide text-ink">{s.code}</td>
-                            <td className="px-4 py-3"><a href={s.source} target="_blank" rel="noopener nofollow" className="text-sky underline">Bank website</a></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {countries.map((c) => {
+                const href = countryHref(c);
+                return (
+                  <div key={c}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-3">
+                      <h3 className="text-xl font-semibold text-ink">{flag(c)} {countryName(c)}</h3>
+                      {href && <Link href={href} className="text-sm font-semibold text-sky underline">Banking in {countryName(c)}</Link>}
+                    </div>
+                    <div className="mt-3"><InstitutionTable items={institutionsIn(c)} /></div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="mt-8 rounded-2xl bg-white p-6 ring-1 ring-line">
               <p className="font-display text-xl font-semibold text-ink">Bank not listed?</p>
-              <p className="mt-2 text-[0.95rem]">We only list codes we&apos;ve checked on the bank&apos;s own website. For any other bank, use these lookup tools, then confirm with the bank:</p>
+              <p className="mt-2 text-[0.95rem]">We only list codes we can trace to an official source. For any other bank:</p>
               <ul className="mt-4 space-y-3">
-                {swiftLookups.map((l) => (
-                  <li key={l.href}>
-                    <a href={l.href} target="_blank" rel="noopener nofollow" className="inline-flex items-center gap-1.5 font-semibold text-sky underline">{l.name}<ArrowUpRight className="h-4 w-4" /></a>
-                    <span className="block text-sm text-muted">{l.detail}</span>
-                  </li>
-                ))}
+                <li><Link href="/tools/global-banking" className="font-semibold text-sky underline">Uncle Jetlag Global Banking</Link><span className="block text-sm text-muted">Our directory for 15 countries, plus the SWIFT/BIC checker and IBAN validator.</span></li>
+                <li><a href="https://www2.swift.com/bsl/index.faces" target="_blank" rel="noopener nofollow" className="inline-flex items-center gap-1.5 font-semibold text-sky underline">SWIFT&apos;s official BIC search<ArrowUpRight className="h-4 w-4" /></a><span className="block text-sm text-muted">The official lookup from SWIFT itself.</span></li>
+                <li><span className="font-semibold text-ink">Your bank&apos;s app or statement</span><span className="block text-sm text-muted">The most reliable source for your own account&apos;s details.</span></li>
               </ul>
             </div>
           </section>

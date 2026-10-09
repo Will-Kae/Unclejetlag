@@ -77,6 +77,8 @@ export const footerNav = {
     { label: "eSIM Finder", href: "/esim" },
     { label: "Visa finder", href: "/visas#finder" },
     { label: "Currency converter (QeFX)", href: "https://converter.qefxmoney.com" },
+    { label: "SWIFT/BIC checker", href: "/tools/swift-code-checker" },
+    { label: "IBAN validator", href: "/tools/iban-validator" },
     { label: "Uncle Jetlag Recommends", href: "/recommends" },
   ],
   "Connect & protect": [

@@ -5,6 +5,8 @@ import { sectionList } from "@/data/taxonomy";
 import { regions } from "@/data/countries";
 import { routes } from "@/lib/routes";
 import { esimDestinations } from "@/data/esim";
+import { countryGuides } from "@/lib/banking/countries";
+import { institutionsIn } from "@/lib/banking/directory";
 
 /** Only indexable (editor-verified) content is listed. Hubs are always listed. */
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -25,6 +27,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     hub("/security", 0.8),
     hub("/insurance", 0.8),
     hub("/banking", 0.8),
+    ...["/tools/global-banking", "/tools/swift-code-checker", "/tools/iban-validator", "/tools/bank-directory"].map((p) => ({ url: u(p), changeFrequency: "monthly" as const, priority: 0.7 })),
+    ...countryGuides.map((g) => ({ url: u(`/banks/${g.slug}`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...countryGuides.flatMap((g) => institutionsIn(g.code).map((i) => ({ url: u(`/banks/${g.slug}/${i.slug}`), changeFrequency: "monthly" as const, priority: 0.5 }))),
     hub("/recommends", 0.6),
     ...esimDestinations.filter((e) => e.guide).map((e) => hub(`/esim/${e.slug}`, 0.7)),
     ...sectionList.filter((s) => s.key !== "visas").flatMap((s) => [hub(s.path), ...s.topics.filter((t) => getArticlesByTopic(s.key, t.slug).length > 0).map((t) => hub(routes.topic(s.key, t.slug), 0.5))]),

@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
       { source: "/founder", destination: "/authors/uncle-jetlag", permanent: true },
       { source: "/travel-tools", destination: "/tools", permanent: true },
       { source: "/travel-security", destination: "/security", permanent: true },
+      { source: "/tools/bank-code-finder", destination: "/tools/bank-directory", permanent: true },
+      { source: "/banks", destination: "/tools/global-banking#countries", permanent: true },
     ];
   },
 };

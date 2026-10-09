@@ -38,6 +38,10 @@ export const tools: Tool[] = [
   { slug: "saily", name: "Saily", description: "Fixed-data and unlimited eSIM plans with in-app top-ups.", category: "connectivity", status: "live", partner: "saily", relationship: "affiliate" },
 
   { slug: "currency-converter", name: "QeFX currency converter", description: "Mid-market reference rates, with a travel mode for home and destination currencies.", category: "money", status: "live", href: "https://converter.qefxmoney.com", relationship: "related" },
+  { slug: "global-banking", name: "Global Banking", description: "Search verified bank codes, check a SWIFT/BIC code and validate an IBAN in one place.", category: "money", status: "live", href: "/tools/global-banking" },
+  { slug: "swift-code-checker", name: "SWIFT/BIC checker", description: "Decode any SWIFT/BIC code and see if it matches a bank verified on an official source.", category: "money", status: "live", href: "/tools/swift-code-checker" },
+  { slug: "iban-validator", name: "IBAN validator", description: "Check an IBAN's country, length, format and checksum in your browser. Nothing is stored.", category: "money", status: "live", href: "/tools/iban-validator" },
+  { slug: "bank-directory", name: "Bank directory", description: "SWIFT/BIC codes for banks in 15 countries, each with its source and check date.", category: "money", status: "live", href: "/tools/bank-directory" },
   { slug: "cost-calculator", name: "Cost-of-travel calculator", description: "What a day costs at budget, mid-range and comfortable levels.", category: "money", status: "soon" },
   { slug: "travel-cards", name: "Travel card comparison", description: "Cards and accounts compared on fees that actually hit travellers.", category: "money", status: "soon" },
 
@@ -45,7 +49,7 @@ export const tools: Tool[] = [
   { slug: "nordvpn", name: "NordVPN", description: "Encrypts your connection on hotel, airport and café Wi-Fi.", category: "security", status: "live", partner: "nordvpn", relationship: "affiliate" },
   { slug: "nordpass", name: "NordPass", description: "A password manager for the logins you can't afford to lose abroad.", category: "security", status: "live", partner: "nordpass", relationship: "affiliate" },
 
-  { slug: "insurance", name: "Travel insurance comparison", description: "", category: "booking", status: "soon" },
+  { slug: "insurance", name: "Travel insurance", description: "World Nomads and Genki compared, with a live Genki price calculator and visa insurance rules.", category: "booking", status: "live", href: "/insurance", relationship: "affiliate" },
   { slug: "flights", name: "Flight search", description: "Search and compare flights worldwide with Travelpayouts.", category: "booking", status: "live", href: "/guides/topics/flights#flights", relationship: "affiliate" },
   { slug: "hotels", name: "Hotels & stays search", description: "Search hotels, apartments and holiday homes with Expedia.", category: "booking", status: "live", href: "/guides/topics/hotels#hotels-stays", relationship: "affiliate" },
   { slug: "lounges", name: "Airport lounge finder", description: "", category: "booking", status: "soon" },
