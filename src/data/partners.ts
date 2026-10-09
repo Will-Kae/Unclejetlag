@@ -151,12 +151,14 @@ export const partners: Partner[] = [
     complianceNotes: ["No PPC bidding on NordVPN, NordPass, Nord or variants/misspellings."],
   },
   {
-    // Referral code goes after ref= (empty = clicks are not credited).
+    // Referral link issued by Dukascopy (October 2026). ref=4YU-J8E credits sign-ups to Uncle Jetlag.
+    // No sub-ID params: the URL is passed through /go/dukascopy unchanged.
     slug: "dukascopy",
     name: "Dukascopy Bank",
     category: "banking",
+    affiliateId: "4YU-J8E",
     network: "direct",
-    url: "https://www.dukascopy.bank/swiss/open-mca-account/?ref=&lang=en",
+    url: "https://www.dukascopy.bank/swiss/open-mca-account/?ref=4YU-J8E&lang=en",
     active: true,
     tagline: "Swiss multi-currency account opened by video call.",
     cta: "Open an account",
