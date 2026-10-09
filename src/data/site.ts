@@ -83,6 +83,8 @@ export const footerNav = {
     { label: "Travel eSIM (save with UNCLEJETLAG)", href: "/esim" },
     { label: "eSIM for South Africa", href: "/esim/south-africa" },
     { label: "eSIM for Georgia", href: "/esim/georgia" },
+    { label: "Travel Insurance", href: "/insurance" },
+    { label: "Banking & SWIFT codes", href: "/banking" },
     { label: "Travel Security", href: "/security" },
     { label: "Public Wi-Fi & VPNs", href: "/security#vpn" },
   ],

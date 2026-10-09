@@ -71,6 +71,8 @@ export function SiteHeader() {
           title: "Connect & protect",
           links: [
             { label: "eSIMs by destination", href: "/esim#dest" },
+            { label: "Travel Insurance", href: "/insurance" },
+            { label: "Banking & SWIFT codes", href: "/banking" },
             { label: "Travel Security", href: "/security" },
             { label: "Public Wi-Fi & VPNs", href: "/security#vpn" },
             { label: "Uncle Jetlag Recommends", href: "/recommends" },
@@ -93,5 +95,5 @@ export function SiteHeader() {
   ];
   panels[1] = { ...panels[1], label: "Visas" };
 
-  return <Header panels={panels} links={[{ label: "eSIM", href: "/esim" }, { label: "Security", href: "/security" }]} />;
+  return <Header panels={panels} links={[{ label: "eSIM", href: "/esim" }, { label: "Insurance", href: "/insurance" }, { label: "Banking", href: "/banking" }, { label: "Security", href: "/security" }]} />;
 }

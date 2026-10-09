@@ -34,9 +34,11 @@ const dashboard = [
   { step: "01 · Dream", title: "Destinations", body: "Country briefs: costs, data, customs.", href: "/destinations", Icon: Compass },
   { step: "02 · Research", title: "Where can I go?", body: "Entry rules by the passport you hold.", href: "/visas#finder", Icon: Passport },
   { step: "03 · Prepare", title: "Before You Fly", body: "Your trip checklist, linked to official sources.", href: "/tools/before-you-fly", Icon: ListCheck },
-  { step: "04 · Connect", title: "eSIM Finder", body: "Land connected, not roaming.", href: "/esim", Icon: Signal },
-  { step: "05 · Protect", title: "Travel Security", body: "Wi-Fi, passwords and lost phones.", href: "/security", Icon: Lock },
-  { step: "06 · Pay", title: "Money Abroad", body: "Cards, cash and the fees nobody mentions.", href: "/money", Icon: Wallet },
+  { step: "04 · Insure", title: "Travel Insurance", body: "What's covered, and where it's required.", href: "/insurance", Icon: Shield },
+  { step: "05 · Connect", title: "eSIM Finder", body: "Land connected, not roaming.", href: "/esim", Icon: Signal },
+  { step: "06 · Protect", title: "Travel Security", body: "Wi-Fi, passwords and lost phones.", href: "/security", Icon: Lock },
+  { step: "07 · Pay", title: "Money Abroad", body: "Cards, cash and the fees nobody mentions.", href: "/money", Icon: Wallet },
+  { step: "08 · Bank", title: "Banking", body: "A backup account and SWIFT codes.", href: "/banking", Icon: Globe },
 ];
 
 
@@ -127,7 +129,7 @@ export default function HomePage() {
       {/* DASHBOARD */}
       <section aria-labelledby="dash" className="container-uj">
         <h2 id="dash" className="label-mono text-muted">Plan the trip in the right order</h2>
-        <ol className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] bg-line ring-1 ring-line sm:grid-cols-3 lg:grid-cols-6">
+        <ol className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] bg-line ring-1 ring-line sm:grid-cols-4">
           {dashboard.map(({ step, title, body, href, Icon }) => (
             <li key={href} className="bg-white">
               <Link href={href} data-track="travel_tool_open" data-tool={title} className="group flex h-full flex-col p-4 transition hover:bg-paper sm:p-5">

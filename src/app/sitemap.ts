@@ -23,6 +23,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     hub("/tools", 0.8),
     hub("/tools/before-you-fly", 0.8),
     hub("/security", 0.8),
+    hub("/insurance", 0.8),
+    hub("/banking", 0.8),
     hub("/recommends", 0.6),
     ...esimDestinations.filter((e) => e.guide).map((e) => hub(`/esim/${e.slug}`, 0.7)),
     ...sectionList.filter((s) => s.key !== "visas").flatMap((s) => [hub(s.path), ...s.topics.filter((t) => getArticlesByTopic(s.key, t.slug).length > 0).map((t) => hub(routes.topic(s.key, t.slug), 0.5))]),
