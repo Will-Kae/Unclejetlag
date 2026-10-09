@@ -40,7 +40,7 @@ export type Partner = {
   category: PartnerCategory;
   /** Network / programme affiliate ID, for reference and reporting. */
   affiliateId?: string;
-  network?: "impact" | "hasoffers" | "direct";
+  network?: "impact" | "hasoffers" | "cj" | "direct";
   /** Default tracked URL. */
   url: string;
   active: boolean;
@@ -162,6 +162,41 @@ export const partners: Partner[] = [
     active: true,
     tagline: "Swiss multi-currency account opened by video call.",
     cta: "Open an account",
+  },
+  {
+    // Official CJ link supplied by World Nomads (October 2026). Used exactly as issued: no sub-IDs added.
+    slug: "worldnomads",
+    name: "World Nomads",
+    category: "insurance",
+    affiliateId: "101899765-15403748",
+    network: "cj",
+    url: "https://www.jdoqocy.com/click-101899765-15403748",
+    active: true,
+    tagline: "Travel insurance for international holidays, backpacking and adventure travel.",
+    cta: "Explore Travel Insurance",
+  },
+  {
+    // Genki referral: with=unclejetlag must stay on every Genki link and on the calculator embed.
+    slug: "genki-traveler",
+    name: "Genki Traveler",
+    category: "insurance",
+    affiliateId: "unclejetlag",
+    network: "direct",
+    url: "https://genki.world/products/traveler?with=unclejetlag",
+    active: true,
+    tagline: "International travel health insurance.",
+    cta: "Explore Genki Traveler",
+  },
+  {
+    slug: "genki-native",
+    name: "Genki Native",
+    category: "insurance",
+    affiliateId: "unclejetlag",
+    network: "direct",
+    url: "https://genki.world/products/native?with=unclejetlag",
+    active: true,
+    tagline: "Longer-term international health insurance.",
+    cta: "Explore Genki Native",
   },
   // Demo entries kept so older MDX that references them keeps building. Inactive = no outbound link.
   { slug: "demo-esim-a", name: "eSIM Provider A (demo)", category: "esim", url: "https://example.com/", active: false, tagline: "", cta: "" },

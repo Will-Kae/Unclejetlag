@@ -5,6 +5,7 @@ import { ConverterCTA } from "@/components/tools/ConverterCTA";
 import { CarRentalsSection } from "@/components/partners/CarRentalsSection";
 import { HotelsStaysSection } from "@/components/partners/HotelsStaysSection";
 import { FlightsSection } from "@/components/partners/FlightsSection";
+import { TravelInsuranceSection } from "@/components/partners/TravelInsuranceSection";
 import { NewsletterSection } from "@/components/newsletter/NewsletterSection";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { sections, type SectionKey } from "@/data/taxonomy";
@@ -90,6 +91,7 @@ export function SectionHub({ section, topic }: Props) {
           <FlightsSection />
           <HotelsStaysSection />
           <CarRentalsSection />
+          <TravelInsuranceSection />
         </>
       )}
 
