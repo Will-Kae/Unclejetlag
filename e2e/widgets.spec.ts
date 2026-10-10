@@ -9,13 +9,41 @@ import { blockThirdParty } from "./helpers";
 
 test.beforeEach(async ({ page }) => blockThirdParty(page));
 
-test("site-wide <head> integrations: Travelpayouts site script, Impact verification, consent defaults", async ({ request }) => {
+test("site-wide head integrations: Impact verification and consent defaults (no pre-consent Drive)", async ({ request }) => {
   const html = await (await request.get("/")).text();
-  expect(html).toContain("https://emrldtp.cc/NTgyNzYz.js?t=582763");
-  expect(html).toContain('id="travelpayouts"');
+  expect(html).not.toContain('id="travelpayouts"');
   expect(html).toContain("e3f65cdf-b28c-4507-9fd4-e102d360a10e");
   expect(html).toContain("2cabb71a-44d5-414f-b1d4-dedb993fc5aa");
   expect(html).toContain('id="consent-defaults"');
+});
+
+
+test("Travelpayouts Drive loads only after advertising consent, not before", async ({ page }) => {
+  await page.goto("/");
+  const drive = page.locator('script[src="https://emrldtp.cc/NTgyNzYz.js?t=582763"]');
+  await expect(drive).toHaveCount(0);
+  await page.getByRole("button", { name: "Essential only" }).click();
+  await expect(drive).toHaveCount(0);
+  await page.getByRole("button", { name: "Cookie settings" }).first().click();
+  await page.getByRole("button", { name: "Accept all" }).click();
+  await expect(drive).toHaveCount(1);
+});
+
+test("Travelpayouts Drive remains absent for analytics-only consent", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "uj_consent", value: encodeURIComponent(JSON.stringify({ v: 1, ts: Date.now(), analytics: true, ads: false })), url: baseURL! }]);
+  await page.goto("/");
+  await expect(page.locator('script[src="https://emrldtp.cc/NTgyNzYz.js?t=582763"]')).toHaveCount(0);
+});
+
+test("Travelpayouts Drive is not loaded after ads consent withdrawal and reload", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "uj_consent", value: encodeURIComponent(JSON.stringify({ v: 1, ts: Date.now(), analytics: false, ads: true })), url: baseURL! }]);
+  await page.goto("/");
+  const drive = page.locator('script[src="https://emrldtp.cc/NTgyNzYz.js?t=582763"]');
+  await expect(drive).toHaveCount(1);
+  await page.getByRole("button", { name: "Cookie settings" }).first().click();
+  await page.getByRole("button", { name: "Essential only" }).click();
+  await page.waitForLoadState("load");
+  await expect(drive).toHaveCount(0);
 });
 
 test("Travelpayouts flights widget keeps its tracking parameters", async ({ page }) => {
