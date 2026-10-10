@@ -22,7 +22,7 @@
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "ibantools": "4.5.4",
-    "next": "^16.3.6",
+    "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "rehype-slug": "^6.0.0",
@@ -42,6 +42,6 @@
     "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "3.2.7"
   }
 }
