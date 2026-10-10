@@ -233,6 +233,30 @@ export function getEsimDestination(slug: string) {
   return esimDestinations.find((d) => d.slug === slug);
 }
 
+/**
+ * Destination-guide slugs whose eSIM page has a different slug. Only pages that genuinely cover the
+ * destination: the US page is /esim/usa, and the Europe regional page covers these EU countries.
+ */
+const ESIM_PAGE_FOR_DESTINATION: Record<string, string> = {
+  "united-states": "usa",
+  france: "europe",
+  germany: "europe",
+  italy: "europe",
+  portugal: "europe",
+  spain: "europe",
+};
+
+/**
+ * Where a destination guide's "Compare Holafly and Saily" link should point: the destination's own
+ * eSIM page when one exists, a regional eSIM page that covers it, otherwise the provider comparison
+ * on the eSIM hub. Never links to an eSIM page that doesn't exist.
+ */
+export function esimCompareHref(destinationSlug?: string): string {
+  if (!destinationSlug) return "/esim#compare";
+  const slug = getEsimDestination(destinationSlug)?.slug ?? ESIM_PAGE_FOR_DESTINATION[destinationSlug];
+  return slug && getEsimDestination(slug) ? `/esim/${slug}` : "/esim#compare";
+}
+
 /* ------------------------------ Future: live offers ------------------------------ */
 
 /** Shape a live pricing API would return. Not implemented: no reliable live feed exists yet. */
