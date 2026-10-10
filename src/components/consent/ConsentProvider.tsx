@@ -69,7 +69,10 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     setConsent(full);
     applyToGoogle(full);
     setSettingsOpen(false);
-  }, []);
+    // Previously loaded third-party scripts can retain cookies/listeners after consent is revoked.
+    // Reload to ensure the page starts with the new denied consent state.
+    if (consent?.ads && !full.ads) window.location.reload();
+  }, [consent]);
 
   return (
     <ConsentContext.Provider
