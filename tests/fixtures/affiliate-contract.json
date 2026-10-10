@@ -1,0 +1,296 @@
+{
+  "note": "Generated from src/data/partners.ts via the real /go route handler. Same values as the source file; do not edit by hand.",
+  "activeSlugs": [
+    "discovercars",
+    "dukascopy",
+    "genki-native",
+    "genki-traveler",
+    "holafly",
+    "nordpass",
+    "nordvpn",
+    "saily",
+    "worldnomads"
+  ],
+  "partners": {
+    "discovercars": {
+      "(none)": {
+        "status": 302,
+        "location": "https://www.discovercars.com/uk/?a_aid=unclejetlag&chan=code1&currency=usd",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://www.discovercars.com/uk/?a_aid=unclejetlag&chan=code1&currency=usd",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://www.discovercars.com/uk/?a_aid=unclejetlag&chan=code1&currency=usd",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "holafly": {
+      "(none)": {
+        "status": 302,
+        "location": "https://holafly.sjv.io/c/7864825/3856277/24764?subId3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://holafly.sjv.io/c/7864825/3856277/24764?subId1=harness-placement&subId3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://holafly.sjv.io/c/7864825/3856277/24764?subId1=harness-placement&subId2=harness-destination&subId3=harness-campaign",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "saily": {
+      "(none)": {
+        "status": 302,
+        "location": "https://go.saily.site/aff_c?offer_id=101&aff_id=17086&coupon=unclejetlag&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://go.saily.site/aff_c?offer_id=101&aff_id=17086&coupon=unclejetlag&aff_sub=harness-placement&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://go.saily.site/aff_c?offer_id=101&aff_id=17086&coupon=unclejetlag&aff_sub=harness-placement&aff_sub2=harness-destination&aff_sub3=harness-campaign",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "nordvpn": {
+      "(none)": {
+        "status": 302,
+        "location": "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=157733&url_id=902&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=157733&url_id=902&aff_sub=harness-placement&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=157733&url_id=902&aff_sub=harness-placement&aff_sub2=harness-destination&aff_sub3=harness-campaign",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "nordpass": {
+      "(none)": {
+        "status": 302,
+        "location": "https://go.nordpass.io/aff_c?offer_id=488&aff_id=157733&url_id=9356&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://go.nordpass.io/aff_c?offer_id=488&aff_id=157733&url_id=9356&aff_sub=harness-placement&aff_sub3=uj",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://go.nordpass.io/aff_c?offer_id=488&aff_id=157733&url_id=9356&aff_sub=harness-placement&aff_sub2=harness-destination&aff_sub3=harness-campaign",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "dukascopy": {
+      "(none)": {
+        "status": 302,
+        "location": "https://www.dukascopy.bank/swiss/open-mca-account/?ref=4YU-J8E&lang=en",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://www.dukascopy.bank/swiss/open-mca-account/?ref=4YU-J8E&lang=en",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://www.dukascopy.bank/swiss/open-mca-account/?ref=4YU-J8E&lang=en",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "worldnomads": {
+      "(none)": {
+        "status": 302,
+        "location": "https://www.jdoqocy.com/click-101899765-15403748",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://www.jdoqocy.com/click-101899765-15403748",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://www.jdoqocy.com/click-101899765-15403748",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "genki-traveler": {
+      "(none)": {
+        "status": 302,
+        "location": "https://genki.world/products/traveler?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://genki.world/products/traveler?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://genki.world/products/traveler?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "genki-native": {
+      "(none)": {
+        "status": 302,
+        "location": "https://genki.world/products/native?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://genki.world/products/native?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://genki.world/products/native?with=unclejetlag",
+        "robots": "noindex, nofollow",
+        "cacheControl": "no-store"
+      }
+    },
+    "demo-esim-a": {
+      "(none)": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      }
+    },
+    "demo-esim-b": {
+      "(none)": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      }
+    },
+    "demo-esim-c": {
+      "(none)": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      }
+    },
+    "demo-card-a": {
+      "(none)": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      }
+    },
+    "demo-insurance-a": {
+      "(none)": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      },
+      "?p=harness-placement&d=harness-destination&c=harness-campaign": {
+        "status": 302,
+        "location": "https://unclejetlag.com/affiliate-disclosure?demo=1",
+        "robots": "noindex, nofollow",
+        "cacheControl": null
+      }
+    }
+  }
+}

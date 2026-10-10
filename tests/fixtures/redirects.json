@@ -1,0 +1,66 @@
+{
+ "note": "Redirects from next.config.ts as served by `next start` (2026-10-10). Status and Location must not change without an approved migration.",
+ "redirects": [
+  {
+   "from": "/destination/kenya",
+   "status": 308,
+   "location": "/destinations/kenya"
+  },
+  {
+   "from": "/visa",
+   "status": 308,
+   "location": "/visas"
+  },
+  {
+   "from": "/tech",
+   "status": 308,
+   "location": "/travel-tech"
+  },
+  {
+   "from": "/visas/guides",
+   "status": 307,
+   "location": "/visas#guides"
+  },
+  {
+   "from": "/willard-munyaradzi-kachere",
+   "status": 308,
+   "location": "/authors/uncle-jetlag"
+  },
+  {
+   "from": "/willard-kachere",
+   "status": 308,
+   "location": "/authors/uncle-jetlag"
+  },
+  {
+   "from": "/founder",
+   "status": 308,
+   "location": "/authors/uncle-jetlag"
+  },
+  {
+   "from": "/travel-tools",
+   "status": 308,
+   "location": "/tools"
+  },
+  {
+   "from": "/travel-security",
+   "status": 308,
+   "location": "/security"
+  },
+  {
+   "from": "/tools/bank-code-finder",
+   "status": 308,
+   "location": "/tools/bank-directory"
+  },
+  {
+   "from": "/banks",
+   "status": 308,
+   "location": "/tools/global-banking#countries"
+  },
+  {
+   "from": "/visas",
+   "host": "www.unclejetlag.com",
+   "status": 308,
+   "location": "https://unclejetlag.com/visas"
+  }
+ ]
+}

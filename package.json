@@ -10,7 +10,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "prebuild": "node scripts/copy-fonts.mjs && node scripts/fetch-photos.mjs",
     "predev": "node scripts/copy-fonts.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "harness:baseline": "UPDATE_BASELINE=1 vitest run tests/harness && UPDATE_BASELINE=1 playwright test e2e/baseline.spec.ts e2e/routes.spec.ts -g \"matches the reviewed baseline|write tests\""
   },
   "engines": {
     "node": ">=20.9.0"
@@ -32,6 +34,7 @@
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@playwright/test": "1.56.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
     "@types/node": "^22.20.4",
