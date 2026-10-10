@@ -11,6 +11,7 @@ import { institutionsIn } from "@/lib/banking/directory";
 import { ibanCountryUsage } from "@/lib/banking/iban";
 import { countryName, flag } from "@/lib/banking/iso-countries";
 import { buildMetadata } from "@/lib/seo";
+import { ScrollRegion } from "@/components/ui/ScrollRegion";
 
 export const dynamicParams = false;
 
@@ -73,7 +74,7 @@ export default async function CountryBankingPage({ params }: PageProps<"/banks/[
 
           <section aria-labelledby="domestic">
             <h2 id="domestic" className={h2}>Domestic bank identifiers</h2>
-            <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+            <ScrollRegion label="Domestic bank identifiers table" className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
               <table className="w-full min-w-[30rem] text-left text-[0.95rem]">
                 <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted">
                   <tr><th scope="col" className="px-4 py-3 font-semibold">Identifier</th><th scope="col" className="px-4 py-3 font-semibold">Format</th><th scope="col" className="px-4 py-3 font-semibold">Used for</th></tr>
@@ -85,7 +86,7 @@ export default async function CountryBankingPage({ params }: PageProps<"/banks/[
                   <tr className="align-top"><td className="px-4 py-3 font-semibold text-ink">IBAN</td><td className="px-4 py-3">{iban.usesIban ? `${iban.length} characters, starts with ${g.code}` : "Not used"}</td><td className="px-4 py-3">{iban.usesIban ? "International and SEPA payments into an account." : `Payments into ${name} use the account number and SWIFT/BIC instead.`}</td></tr>
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </section>
 
           <section aria-labelledby="codes">

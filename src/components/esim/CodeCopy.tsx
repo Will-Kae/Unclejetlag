@@ -33,7 +33,6 @@ export function CodeCopy({
         dark ? "border-white/40 text-white hover:bg-white/10" : "border-ink/30 text-ink hover:bg-ink/5",
         className,
       )}
-      aria-label={`Copy discount code ${code}`}
     >
       USE CODE: {code}
       <span className={cn("text-xs font-normal", dark ? "text-white/70" : "text-muted")} aria-live="polite">

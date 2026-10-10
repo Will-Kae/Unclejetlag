@@ -8,15 +8,19 @@ export type AccessCategory =
   | "restricted"
   | "unknown";
 
+/**
+ * Category colours carry white 12px label text, so every colour must reach WCAG 2.2 AA 4.5:1 against
+ * white (checked by tests/accessibility-tokens.test.ts). Shape/short codes back up colour for meaning.
+ */
 export const categoryMeta: Record<AccessCategory, { label: string; short: string; colour: string; noAdvanceVisa: boolean }> = {
-  "visa-free": { label: "Visa-free", short: "VF", colour: "#1f8a4c", noAdvanceVisa: true },
+  "visa-free": { label: "Visa-free", short: "VF", colour: "#15803d", noAdvanceVisa: true },
   "visa-on-arrival": { label: "Visa on arrival", short: "VOA", colour: "#2563eb", noAdvanceVisa: true },
-  eta: { label: "Electronic travel authorisation", short: "ETA", colour: "#0d9488", noAdvanceVisa: true },
-  evisa: { label: "eVisa", short: "eV", colour: "#b7791f", noAdvanceVisa: false },
+  eta: { label: "Electronic travel authorisation", short: "ETA", colour: "#0f766e", noAdvanceVisa: true },
+  evisa: { label: "eVisa", short: "eV", colour: "#a16207", noAdvanceVisa: false },
   "visa-required": { label: "Visa required", short: "VR", colour: "#c2410c", noAdvanceVisa: false },
   conditional: { label: "Conditional", short: "C", colour: "#7c3aed", noAdvanceVisa: false },
   restricted: { label: "Entry restricted", short: "R", colour: "#7f1d1d", noAdvanceVisa: false },
-  unknown: { label: "Not yet verified", short: "?", colour: "#9ca3af", noAdvanceVisa: false },
+  unknown: { label: "Not yet verified", short: "?", colour: "#6b7280", noAdvanceVisa: false },
 };
 
 export type SourceType = "legislation" | "government" | "official-portal" | "embassy";
