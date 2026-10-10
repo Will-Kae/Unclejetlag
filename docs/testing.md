@@ -34,6 +34,7 @@ CI (`.github/workflows/preservation-harness.yml`) runs both on every pull reques
 | Passport data integrity (Phase 2A): canonical identifiers, rule uniqueness and conflicts, source references, dates and freshness, verification transitions, publication gate, unknown vs restricted, monitoring decisions | `tests/passport-provenance.test.ts` | validators in `src/lib/passport/validation.ts` |
 | Passport scores and ranking gate reproducible for the dataset version and methodology; methodology weights and thresholds unchanged | `tests/passport-provenance.test.ts` | `tests/fixtures/passport-index-snapshot.json` |
 | Passport coverage report is current | `tests/passport-provenance.test.ts` | `reports/passport-coverage.json` (`npm run passport:coverage`) |
+| Passport source monitor (Phase 2B-A): SSRF and URL safety, redirects, robots.txt, conditional requests, retries, size limits, HTML/PDF extraction and failures, cosmetic vs substantive changes, review items, hash-chained audit, run lock, no writes to sources/rules, isolation from the public site | `tests/passport-monitor.test.ts` | mocked transport; PDFs in `tests/fixtures/monitor/` |
 
 No third-party service is contacted: e2e tests abort every non-local request, and the affiliate
 contract is checked by calling the `/go` route handler in-process.

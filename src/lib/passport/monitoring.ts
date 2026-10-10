@@ -1,8 +1,9 @@
 /**
  * Official-source monitoring: architecture and decision logic (Phase 2A).
  *
- * This module decides what a monitor should do; it does not fetch anything. No runner, schedule or
- * storage exists yet: those need a separate architecture decision (Phase 2B). The rules it encodes:
+ * This module holds the Phase 2A policy and decision logic. The Phase 2B-A implementation (safe
+ * fetcher, extraction, store, runner) lives in ./monitor/ and reuses MONITOR_POLICY. No schedule exists
+ * yet (Phase 2B-D). The rules it encodes:
  *
  * 1. A change detected on a source page never changes a rule. It creates a review task.
  * 2. Only sources whose terms and robots.txt have been reviewed are checked automatically; everything

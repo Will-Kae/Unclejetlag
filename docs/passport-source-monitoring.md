@@ -1,10 +1,11 @@
 # World Passport Index: official-source monitoring (design)
 
-**Status: design and decision logic only (Phase 2A).**
+**Status:**
 
-- Nothing fetches, schedules or stores anything yet.
-- `src/lib/passport/monitoring.ts` holds the pure decision functions, which are tested in `tests/passport-provenance.test.ts`.
-- A runner needs a separate architecture decision. It would need a schedule host, storage for snapshots and the audit log, and a review queue.
+- **Phase 2A:** design and decision logic (`src/lib/passport/monitoring.ts`).
+- **Phase 2B-A:** the monitoring foundation is implemented in `src/lib/passport/monitor/`: safe fetcher, robots.txt, HTML/PDF extraction, fingerprints, store, runner.
+- **Nothing runs on a schedule yet.** Every source is disabled until its terms and robots.txt are reviewed.
+- Architecture and remaining decisions are in [`passport-intelligence-architecture.md`](./passport-intelligence-architecture.md).
 
 ## Principles
 
