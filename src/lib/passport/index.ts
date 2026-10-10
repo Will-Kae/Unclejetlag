@@ -1,4 +1,4 @@
-import { rules, sources } from "./data";
+import { DATASET, rules, sources } from "./data";
 import { jurisdictions } from "./jurisdictions";
 import { scorePassport } from "./engine";
 
@@ -6,7 +6,8 @@ export * from "./types";
 export * from "./jurisdictions";
 export * from "./engine";
 export * from "./methodology";
-export { rules, sources, policyChanges, SPRINT_1_PASSPORTS, EU_VISA_LIST_STATES } from "./data";
+export * from "./verification";
+export { rules, ruleRecords, sources, policyChanges, DATASET, SPRINT_1_PASSPORTS, EU_VISA_LIST_STATES } from "./data";
 
 const sourceMap = new Map(sources.map((s) => [s.id, s]));
 export const getSource = (id: string) => sourceMap.get(id);
@@ -23,7 +24,7 @@ export function datasetStats() {
     destinationsWithData: destinationsWithData.size,
     sources: sources.length,
     lastChecked: checked.at(-1)!,
-    datasetVersion: `2026.10-s2`,
+    datasetVersion: DATASET.version,
   };
 }
 

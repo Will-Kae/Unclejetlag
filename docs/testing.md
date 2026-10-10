@@ -31,6 +31,9 @@ CI (`.github/workflows/preservation-harness.yml`) runs both on every pull reques
 | Visa briefs agree with the Passport Index; every rule cites a registered source | `tests/data-consistency.test.ts` | — |
 | Accessibility: axe-core WCAG 2.0/2.1/2.2 A+AA on 13 representative pages + result states, desktop and mobile; cookie banner; skip link; visible focus on the first 30 tab stops | `e2e/accessibility.spec.ts` | zero violations |
 | Colour tokens: Passport Index category colours >= 4.5:1 with white; text tokens >= 4.5:1 on white and paper; focus ring >= 3:1 | `tests/accessibility-tokens.test.ts` | values in `globals.css` / `src/lib/passport/types.ts` |
+| Passport data integrity (Phase 2A): canonical identifiers, rule uniqueness and conflicts, source references, dates and freshness, verification transitions, publication gate, unknown vs restricted, monitoring decisions | `tests/passport-provenance.test.ts` | validators in `src/lib/passport/validation.ts` |
+| Passport scores and ranking gate reproducible for the dataset version and methodology; methodology weights and thresholds unchanged | `tests/passport-provenance.test.ts` | `tests/fixtures/passport-index-snapshot.json` |
+| Passport coverage report is current | `tests/passport-provenance.test.ts` | `reports/passport-coverage.json` (`npm run passport:coverage`) |
 
 No third-party service is contacted: e2e tests abort every non-local request, and the affiliate
 contract is checked by calling the `/go` route handler in-process.

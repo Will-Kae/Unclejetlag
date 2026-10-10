@@ -17,7 +17,9 @@ Status: **Phase A, free, monetisation off.** Methodology v0.1 (draft). Worldwide
 | `/passport-index/changes` | Verified policy changes only |
 | `/passport-index/methodology`, `/data-sources`, `/faq` | Documentation |
 
-Code: `src/lib/passport/` (registry, data, engine, methodology), `src/components/passport/`, `tests/passport.test.ts`.
+Code: `src/lib/passport/` (registry, data, engine, methodology, verification, provenance, validation, coverage, monitoring), `src/components/passport/`, `tests/passport.test.ts`, `tests/passport-provenance.test.ts`.
+
+Provenance, verification workflow, publication safeguards, coverage and migration: [`passport-data-provenance.md`](./passport-data-provenance.md). Source monitoring design: [`passport-source-monitoring.md`](./passport-source-monitoring.md).
 
 ## Not built yet (and why)
 
@@ -36,6 +38,8 @@ Code: `src/lib/passport/` (registry, data, engine, methodology), `src/components
 5. Regional membership (SADC, EAC, ECOWAS, AU) is never evidence of visa-free entry.
 6. Conflicting official sources → hold for review. Never pick the favourable answer.
 7. Re-verify every 180 days; update `checked` only after actually reading the source.
+8. Only `verified` (or review-due) records that pass the publication gate reach pages and scores. New records start as `discovered` or `pending-verification`.
+9. Leads (commercial indexes, agencies, press) are never stored as sources.
 
 ## Research method
 
