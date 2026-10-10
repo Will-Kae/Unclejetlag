@@ -6,6 +6,7 @@ import { CategoryPill, CoverageBar, NotRanked, PI, SubNav, h2, profileHref } fro
 import { accessFor, categoryMeta, flagOf, getJurisdiction, getJurisdictionBySlug, getSource, jName, jurisdictions, regions, rules, SPRINT_1_PASSPORTS, scorePassport, type AccessCategory } from "@/lib/passport";
 import { buildMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
+import { ScrollRegion } from "@/components/ui/ScrollRegion";
 
 export const dynamicParams = false;
 
@@ -78,7 +79,7 @@ export default async function PassportProfile({ params }: PageProps<"/passport-i
         {access.length > 0 && (
           <section aria-labelledby="destinations">
             <h2 id="destinations" className={h2}>Verified destinations</h2>
-            <div className="mt-5 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+            <ScrollRegion label="Verified destinations table" className="mt-5 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
               <table className="w-full min-w-[40rem] text-left text-[0.95rem]">
                 <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted">
                   <tr><th scope="col" className="px-4 py-3">Destination</th><th scope="col" className="px-4 py-3">Access</th><th scope="col" className="px-4 py-3">Stay</th><th scope="col" className="px-4 py-3">Source</th></tr>
@@ -97,13 +98,13 @@ export default async function PassportProfile({ params }: PageProps<"/passport-i
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </section>
         )}
 
         <section aria-labelledby="regions">
           <h2 id="regions" className={h2}>By region</h2>
-          <div className="mt-5 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+          <ScrollRegion label="Access by region table" className="mt-5 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
             <table className="w-full min-w-[30rem] text-left text-[0.95rem]">
               <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted"><tr><th scope="col" className="px-4 py-3">Region</th><th scope="col" className="px-4 py-3">Verified</th><th scope="col" className="px-4 py-3">No visa needed in advance</th></tr></thead>
               <tbody className="divide-y divide-line">
@@ -116,7 +117,7 @@ export default async function PassportProfile({ params }: PageProps<"/passport-i
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         </section>
 
         {compareWith.length > 0 && (

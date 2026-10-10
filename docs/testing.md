@@ -29,6 +29,8 @@ CI (`.github/workflows/preservation-harness.yml`) runs both on every pull reques
 | Partner integrations: Travelpayouts site script + flights widget params, Expedia embed IDs, DiscoverCars attributes, Genki iframe + links, World Nomads CJ link, CJ pixel consent gating, Impact verification, booking tabs, hub partner links | `e2e/widgets.spec.ts` | values in the spec |
 | Country identifiers: destination registry, Passport Index jurisdictions, banking ISO set and guides, bank slugs, eSIM slugs, region keys, content files | `tests/data-consistency.test.ts` | `tests/fixtures/registry-snapshot.json` |
 | Visa briefs agree with the Passport Index; every rule cites a registered source | `tests/data-consistency.test.ts` | — |
+| Accessibility: axe-core WCAG 2.0/2.1/2.2 A+AA on 13 representative pages + result states, desktop and mobile; cookie banner; skip link; visible focus on the first 30 tab stops | `e2e/accessibility.spec.ts` | zero violations |
+| Colour tokens: Passport Index category colours >= 4.5:1 with white; text tokens >= 4.5:1 on white and paper; focus ring >= 3:1 | `tests/accessibility-tokens.test.ts` | values in `globals.css` / `src/lib/passport/types.ts` |
 
 No third-party service is contacted: e2e tests abort every non-local request, and the affiliate
 contract is checked by calling the `/go` route handler in-process.

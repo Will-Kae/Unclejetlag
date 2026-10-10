@@ -4,6 +4,7 @@ import { CategoryPill, PI, SubNav, h2 } from "@/components/passport/shared";
 import { categoryMeta, currentMethodology as m, jurisdictions, type AccessCategory } from "@/lib/passport";
 import { buildMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
+import { ScrollRegion } from "@/components/ui/ScrollRegion";
 
 export const metadata: Metadata = buildMetadata({
   title: "Passport Index Methodology: How We Score and Rank Passports",
@@ -44,7 +45,7 @@ export default function MethodologyPage() {
         </section>
         <section>
           <h2 className={h2}>B. Passport Power Score (0–100)</h2>
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+          <ScrollRegion label="Passport Power Score components table" className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
             <table className="w-full min-w-[30rem] text-left text-[0.95rem]">
               <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted"><tr><th scope="col" className="px-4 py-3">Component</th><th scope="col" className="px-4 py-3">Weight</th><th scope="col" className="px-4 py-3">Measured as</th></tr></thead>
               <tbody className="divide-y divide-line">
@@ -55,7 +56,7 @@ export default function MethodologyPage() {
                 <tr><td className="px-4 py-3">Regional mobility</td><td className="px-4 py-3">{w.regional}%</td><td className="px-4 py-3">Share of the passport&apos;s own region reachable with no advance visa</td></tr>
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           <p className="mt-4">These are starting weights. Before the first ranking we&apos;ll publish a sensitivity test showing how ranks move when weights change. Any change creates a new methodology version; old scores keep the version they were calculated under.</p>
         </section>
         <section>

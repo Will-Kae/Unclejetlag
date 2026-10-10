@@ -5,6 +5,7 @@ import Link from "next/link";
 import { comparePassports, scorePassport, type ComparisonFilter } from "@/lib/passport/engine";
 import { flagOf, jName, jurisdictions } from "@/lib/passport/jurisdictions";
 import { categoryMeta } from "@/lib/passport/types";
+import { ScrollRegion } from "@/components/ui/ScrollRegion";
 
 const FILTERS: { key: ComparisonFilter; label: string }[] = [
   { key: "no-advance-visa", label: "No visa needed in advance" },
@@ -68,7 +69,7 @@ export function CompareTool({ withData }: { withData: string[] }) {
 
       {a === b ? <p className="mt-6 text-ink-2">Choose two different passports.</p> : result && (
         <div className="mt-8 space-y-6" aria-live="polite">
-          <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+          <ScrollRegion label="Passport comparison table" className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
             <table className="w-full min-w-[30rem] text-left text-[0.95rem]">
               <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted"><tr><th scope="col" className="px-4 py-3">Measure</th><th scope="col" className="px-4 py-3">{flagOf(a)} {jName(a)}</th><th scope="col" className="px-4 py-3">{flagOf(b)} {jName(b)}</th></tr></thead>
               <tbody className="divide-y divide-line">
@@ -79,7 +80,7 @@ export function CompareTool({ withData }: { withData: string[] }) {
                 <tr><td className="px-4 py-3">Global rank</td><td className="px-4 py-3 text-muted">Not yet ranked</td><td className="px-4 py-3 text-muted">Not yet ranked</td></tr>
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           <p className="text-sm text-muted">{(() => { const n = result.both.length + result.onlyA.length + result.onlyB.length; return `Compared only where both passports have a verified rule: ${n} ${n === 1 ? "destination" : "destinations"} reachable by at least one; ${result.unverified.length} not yet verified for one or both.`; })()}</p>
           <div className="grid gap-4 lg:grid-cols-3">
             <List title="Both passports" codes={result.both} />
