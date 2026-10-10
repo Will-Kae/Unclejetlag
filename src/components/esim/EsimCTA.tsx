@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { goHref } from "@/data/partners";
-import { ESIM_CODE, ESIM_DISCOUNT, ESIM_PARTNER } from "@/data/esim";
+import { ESIM_CODE, ESIM_DISCOUNT, ESIM_PARTNER, esimCompareHref } from "@/data/esim";
 import { CodeCopy } from "./CodeCopy";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,7 @@ export function EsimCTA({ place, destKey, className }: { place?: string; destKey
       </div>
       <p className="mt-3 text-xs text-muted">
         Affiliate link: Uncle Jetlag may earn a commission at no extra cost to you.{" "}
-        <Link href={destKey ? `/esim/${destKey}` : "/esim#compare"} className="underline">Compare Holafly and Saily</Link>
+        <Link href={esimCompareHref(destKey)} className="underline">Compare Holafly and Saily</Link>
       </p>
     </aside>
   );

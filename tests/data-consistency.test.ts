@@ -12,6 +12,7 @@ import { accessFor } from "@/lib/passport/engine";
 import { rules, sources } from "@/lib/passport/data";
 import { countryGuides } from "@/lib/banking/countries";
 import { institutions } from "@/lib/banking/directory";
+import { esimCompareHref, getEsimDestination } from "@/data/esim";
 import { categoryMeta, type AccessCategory } from "@/lib/passport/types";
 import { registrySnapshot } from "./harness/registry";
 
@@ -50,6 +51,14 @@ describe("identifiers", () => {
       expect(jur.has(r.destination), r.destination).toBe(true);
       expect(ids.has(r.sourceId), r.sourceId).toBe(true);
       expect(r.evidence.trim().length).toBeGreaterThan(0);
+    }
+  });
+  it("every destination guide's eSIM compare link points to a page that exists", () => {
+    for (const s of baseline.destinationFiles as string[]) {
+      const href = esimCompareHref(s);
+      if (href === "/esim#compare") continue;
+      const slug = href.replace(/^\/esim\//, "");
+      expect(getEsimDestination(slug), `${s} -> ${href}`).toBeDefined();
     }
   });
   it("every source has an https URL, a publisher and a checked date", () => {

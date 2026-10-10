@@ -1,248 +1,50 @@
 {
  "recorded": "2026-10-10",
- "source": "Phase 0 Completion Report, section A2",
- "reason": "Destination profiles link to /esim/<country> for every destination, but only countries in src/data/esim.ts have eSIM pages (and the US page is /esim/usa). Fix is a separate, authorised change.",
- "owner": "founder approval required to fix",
- "reviewBy": "next authorised change after Phase 1A",
- "count": 34,
- "links": [
+ "reason": "No known broken internal links. Add an entry here only with a date, the source pages and a reason, and remove it when fixed.",
+ "count": 0,
+ "links": [],
+ "history": [
   {
-   "target": "/esim/australia",
-   "foundOn": [
-    "/destinations/australia"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/botswana",
-   "foundOn": [
-    "/destinations/botswana"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/brazil",
-   "foundOn": [
-    "/destinations/brazil"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/canada",
-   "foundOn": [
-    "/destinations/canada"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/egypt",
-   "foundOn": [
-    "/destinations/egypt"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/ethiopia",
-   "foundOn": [
-    "/destinations/ethiopia"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/france",
-   "foundOn": [
-    "/destinations/france"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/germany",
-   "foundOn": [
-    "/destinations/germany"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/ghana",
-   "foundOn": [
-    "/destinations/ghana"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/india",
-   "foundOn": [
-    "/destinations/india"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/italy",
-   "foundOn": [
-    "/destinations/italy"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/jamaica",
-   "foundOn": [
-    "/destinations/jamaica"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/kenya",
-   "foundOn": [
-    "/destinations/kenya"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/malawi",
-   "foundOn": [
-    "/destinations/malawi"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/mauritius",
-   "foundOn": [
-    "/destinations/mauritius"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/mexico",
-   "foundOn": [
-    "/destinations/mexico"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/morocco",
-   "foundOn": [
-    "/destinations/morocco"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/mozambique",
-   "foundOn": [
-    "/destinations/mozambique"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/namibia",
-   "foundOn": [
-    "/destinations/namibia"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/new-zealand",
-   "foundOn": [
-    "/destinations/new-zealand"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/nigeria",
-   "foundOn": [
-    "/destinations/nigeria"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/peru",
-   "foundOn": [
-    "/destinations/peru"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/portugal",
-   "foundOn": [
-    "/destinations/portugal"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/qatar",
-   "foundOn": [
-    "/destinations/qatar"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/rwanda",
-   "foundOn": [
-    "/destinations/rwanda"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/senegal",
-   "foundOn": [
-    "/destinations/senegal"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/singapore",
-   "foundOn": [
-    "/destinations/singapore"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/spain",
-   "foundOn": [
-    "/destinations/spain"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/tanzania",
-   "foundOn": [
-    "/destinations/tanzania"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/turkey",
-   "foundOn": [
-    "/destinations/turkey"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/uganda",
-   "foundOn": [
-    "/destinations/uganda"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/united-states",
-   "foundOn": [
-    "/destinations/united-states"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/zambia",
-   "foundOn": [
-    "/destinations/zambia"
-   ],
-   "status": 404
-  },
-  {
-   "target": "/esim/zimbabwe",
-   "foundOn": [
-    "/destinations/zimbabwe"
-   ],
-   "status": 404
+   "recorded": "2026-10-10",
+   "count": 34,
+   "resolved": "2026-10-10",
+   "resolvedBy": "Phase 1B (phase-1b/esim-link-remediation)",
+   "targets": [
+    "/esim/australia",
+    "/esim/botswana",
+    "/esim/brazil",
+    "/esim/canada",
+    "/esim/egypt",
+    "/esim/ethiopia",
+    "/esim/france",
+    "/esim/germany",
+    "/esim/ghana",
+    "/esim/india",
+    "/esim/italy",
+    "/esim/jamaica",
+    "/esim/kenya",
+    "/esim/malawi",
+    "/esim/mauritius",
+    "/esim/mexico",
+    "/esim/morocco",
+    "/esim/mozambique",
+    "/esim/namibia",
+    "/esim/new-zealand",
+    "/esim/nigeria",
+    "/esim/peru",
+    "/esim/portugal",
+    "/esim/qatar",
+    "/esim/rwanda",
+    "/esim/senegal",
+    "/esim/singapore",
+    "/esim/spain",
+    "/esim/tanzania",
+    "/esim/turkey",
+    "/esim/uganda",
+    "/esim/united-states",
+    "/esim/zambia",
+    "/esim/zimbabwe"
+   ]
   }
  ]
 }
