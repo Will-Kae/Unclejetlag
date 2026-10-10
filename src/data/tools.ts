@@ -29,7 +29,7 @@ export const tools: Tool[] = [
   { slug: "before-you-fly", name: "Before You Fly", description: "A preparation checklist for your destination, passport and trip length, linked to official sources.", category: "plan", status: "live", href: "/tools/before-you-fly" },
   { slug: "visa-finder", name: "Visa finder", description: "Entry briefs by the passport you hold, each linked to the official source.", category: "plan", status: "live", href: "/visas#finder" },
   { slug: "where-can-i-go", name: "Where can I go?", description: "Destinations your passport can reach without a visa.", category: "plan", status: "soon" },
-  { slug: "passport-index", name: "Passport index", description: "How your passport compares on travel freedom.", category: "plan", status: "soon" },
+  { slug: "passport-index", name: "World Passport Index", description: "Verified visa rules for your passport, passport comparison and policy changes, from official sources only.", category: "plan", status: "live", href: "/passport-index" },
   { slug: "packing-list", name: "Packing list generator", description: "A packing list built from your destination and season.", category: "plan", status: "soon" },
   { slug: "jetlag-calculator", name: "Jetlag calculator", description: "A sleep and light plan for crossing time zones.", category: "plan", status: "soon" },
 

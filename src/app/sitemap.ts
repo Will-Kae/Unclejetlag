@@ -7,6 +7,8 @@ import { routes } from "@/lib/routes";
 import { esimDestinations } from "@/data/esim";
 import { countryGuides } from "@/lib/banking/countries";
 import { institutionsIn } from "@/lib/banking/directory";
+import { jurisdictions as pJur } from "@/lib/passport/jurisdictions";
+import { scorePassport } from "@/lib/passport/engine";
 
 /** Only indexable (editor-verified) content is listed. Hubs are always listed. */
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -27,6 +29,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     hub("/security", 0.8),
     hub("/insurance", 0.8),
     hub("/banking", 0.8),
+    ...["", "/passports", "/rankings", "/compare", "/africa", "/changes", "/methodology", "/data-sources", "/faq"].map((p) => ({ url: u(`/passport-index${p}`), changeFrequency: "weekly" as const, priority: p ? 0.6 : 0.8 })),
+    ...pJur.filter((j) => scorePassport(j.code).verified > 0).map((j) => ({ url: u(`/passport-index/passports/${j.slug}`), changeFrequency: "weekly" as const, priority: 0.6 })),
     ...["/tools/global-banking", "/tools/swift-code-checker", "/tools/iban-validator", "/tools/bank-directory"].map((p) => ({ url: u(p), changeFrequency: "monthly" as const, priority: 0.7 })),
     ...countryGuides.map((g) => ({ url: u(`/banks/${g.slug}`), changeFrequency: "monthly" as const, priority: 0.6 })),
     ...countryGuides.flatMap((g) => institutionsIn(g.code).map((i) => ({ url: u(`/banks/${g.slug}/${i.slug}`), changeFrequency: "monthly" as const, priority: 0.5 }))),

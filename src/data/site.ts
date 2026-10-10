@@ -76,6 +76,7 @@ export const footerNav = {
     { label: "Before You Fly checklist", href: "/tools/before-you-fly" },
     { label: "eSIM Finder", href: "/esim" },
     { label: "Visa finder", href: "/visas#finder" },
+    { label: "World Passport Index", href: "/passport-index" },
     { label: "Currency converter (QeFX)", href: "https://converter.qefxmoney.com" },
     { label: "SWIFT/BIC checker", href: "/tools/swift-code-checker" },
     { label: "IBAN validator", href: "/tools/iban-validator" },
