@@ -13,7 +13,7 @@ export const metadata: Metadata = buildMetadata({
 });
 
 /** Destinations shown in the matrix: those verified for every sprint-1 passport. */
-const MATRIX_DESTS = ["ZA", "GB", "US", "CA", "IE", "FR"];
+const MATRIX_DESTS = ["ZA", "ZW", "ZM", "BW", "KE", "TZ", "UG", "RW", "SC", "GB", "FR", "US"];
 
 export default function AfricaPage() {
   const sprint = SPRINT_1_PASSPORTS.map((c) => getJurisdiction(c)!).sort((a, b) => a.name.localeCompare(b.name));
@@ -24,9 +24,10 @@ export default function AfricaPage() {
       <div className="container-uj mt-12 space-y-14">
         <section aria-labelledby="matrix">
           <h2 id="matrix" className={h2}>At a glance: key destinations</h2>
+          <p className="mt-3 max-w-2xl text-ink-2">An empty cell means we haven&apos;t verified that pair on an official source yet.</p>
           <p className="mt-3 max-w-2xl text-ink-2">France stands for all 29 Schengen states plus Bulgaria, Romania and Cyprus, which share the EU visa list.</p>
           <div className="mt-5 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
-            <table className="w-full min-w-[56rem] text-left text-sm">
+            <table className="w-full min-w-[80rem] text-left text-sm">
               <thead className="bg-sand/60 text-xs uppercase tracking-wide text-muted">
                 <tr><th scope="col" className="px-3 py-3">Passport</th>{MATRIX_DESTS.map((d) => <th key={d} scope="col" className="px-3 py-3">{flagOf(d)} {d === "FR" ? "Schengen" : jName(d)}</th>)}</tr>
               </thead>
@@ -67,7 +68,7 @@ export default function AfricaPage() {
 
         <section aria-labelledby="next" className="max-w-[48rem] text-[1.05rem] leading-relaxed text-ink-2">
           <h2 id="next" className={h2}>What we&apos;re verifying next</h2>
-          <p className="mt-3">Intra-African travel first: Botswana, Namibia, Zambia, Zimbabwe, Mozambique, Kenya, Tanzania, Rwanda, Ghana, Nigeria, Mauritius and Seychelles as destinations, then the Gulf and Asia. Many African governments publish their rules only as PDFs or on portals that are hard to read, so we add each one when we can confirm it.</p>
+          <p className="mt-3">Next: Namibia, Mozambique, Malawi, Lesotho, Eswatini, Ghana, Nigeria and Mauritius as destinations, then the Gulf and Asia. Many African governments publish their rules only as PDFs or on portals that are hard to read, so we add each one when we can confirm it.</p>
         </section>
       </div>
     </>

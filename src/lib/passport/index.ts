@@ -23,7 +23,7 @@ export function datasetStats() {
     destinationsWithData: destinationsWithData.size,
     sources: sources.length,
     lastChecked: checked.at(-1)!,
-    datasetVersion: `2026.10-s1`,
+    datasetVersion: `2026.10-s2`,
   };
 }
 

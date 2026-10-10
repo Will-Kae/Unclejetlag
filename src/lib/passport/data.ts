@@ -10,6 +10,7 @@ import type { AccessCategory, AccessRule, PolicyChange, Source } from "./types";
 export const SPRINT_1_PASSPORTS = ["ZA", "ZW", "BW", "NA", "ZM", "MW", "MZ", "LS", "SZ", "KE", "TZ", "UG", "RW", "NG", "GH"];
 
 const C = "2026-10-10";
+const C2 = "2026-10-10";
 
 export const sources: Source[] = [
   { id: "za-dirco-exempt", title: "Passport holders exempt from South African visas", publisher: "Department of International Relations and Cooperation (South Africa)", url: "https://dirco.gov.za/uk/?p=1541", type: "embassy", sourceUpdated: "2024-03-11", checked: C, note: "Published by the South African High Commission in London. The page says the list is subject to change without notice." },
@@ -22,6 +23,19 @@ export const sources: Source[] = [
   { id: "ge-visa-permit-list", title: "List of countries whose visa and/or residence permit holders may enter Georgia without a visa", publisher: "Legislative Herald of Georgia", url: "https://matsne.gov.ge/en/document/view/2867377", type: "legislation", checked: "2026-09-24" },
   { id: "ge-evisa", title: "Georgia e-Visa portal", publisher: "Ministry of Foreign Affairs of Georgia", url: "https://www.evisa.gov.ge/GeoVisa/", type: "official-portal", checked: "2026-09-24" },
   { id: "ae-gdrfa-tourist", title: "Issuance of a single-entry tourist visa", publisher: "General Directorate of Residency and Foreigners Affairs, Dubai", url: "https://www.gdrfad.gov.ae/en/services/f9e586fe-0642-11ec-0320-0050569629e8", type: "official-portal", checked: "2026-09-24" },
+  { id: "zm-no-visa", title: "Nationals who do not require visa", publisher: "Department of Immigration (Zambia)", url: "https://www.zambiaimmigration.gov.zm/nationals-who-dont-require-visa/", type: "government", checked: C2, note: "Reflects Statutory Instrument No. 78 of 2024, in force from 1 January 2025." },
+  { id: "zm-voa", title: "Nationals requiring visas on arrival or from Zambian missions abroad", publisher: "Department of Immigration (Zambia)", url: "https://www.zambiaimmigration.gov.zm/nationals-who-require-visa/", type: "government", checked: C2 },
+  { id: "zm-prior", title: "Nationals requiring visa prior to travel", publisher: "Department of Immigration (Zambia)", url: "https://www.zambiaimmigration.gov.zm/nationals-requiring-visa-prior-to-travel/", type: "government", checked: C2 },
+  { id: "zw-cat-a", title: "Visa regime: Category A countries", publisher: "Department of Immigration Zimbabwe", url: "https://www.zimimmigration.gov.zw/?p=7176", type: "government", sourceUpdated: "2025-06-10", checked: C2 },
+  { id: "zw-cat-b", title: "Visa regime: Category B countries", publisher: "Department of Immigration Zimbabwe", url: "https://www.zimimmigration.gov.zw/?p=7186", type: "government", sourceUpdated: "2025-06-10", checked: C2 },
+  { id: "zw-cat-c", title: "Visa regime: Category C countries", publisher: "Department of Immigration Zimbabwe", url: "https://www.zimimmigration.gov.zw/?p=7196", type: "government", sourceUpdated: "2025-06-10", checked: C2 },
+  { id: "ke-eta-exempt", title: "Kenya eTA: general information and exemptions (Kenya Citizenship and Immigration (Amendment) Rules, 2025)", publisher: "Directorate of Immigration Services (Kenya)", url: "https://etakenya.go.ke/general-information", type: "official-portal", checked: C2 },
+  { id: "rw-visa-general", title: "Visa: general information", publisher: "Directorate General of Immigration and Emigration (Rwanda)", url: "https://www.migration.gov.rw/our-services/visa-issued-under-special-arrangement", type: "government", checked: C2 },
+  { id: "ug-exempt", title: "Visa exempt countries or regions", publisher: "Directorate of Citizenship and Immigration Control (Uganda)", url: "https://immigration.go.ug/node/194", type: "government", checked: C2, note: "Lists countries with which Uganda has visa abolition agreements. No stay period or date is shown." },
+  { id: "bw-embassy-us", title: "Guidelines for completing a visa application (visa-exempt and visa-required countries)", publisher: "Embassy of the Republic of Botswana, Washington DC", url: "https://botswanaembassy.org/node/1682", type: "embassy", checked: C2, note: "No date shown on the lists." },
+  { id: "tz-hc-namibia", title: "Visa information", publisher: "High Commission of the United Republic of Tanzania, Windhoek", url: "https://www.na.tzembassy.go.tz/services/category/visa-information", type: "embassy", checked: C2, note: "No date shown on the lists." },
+  { id: "na-mha-2025", title: "Fact sheet: operationalisation of visa reciprocity (visa on arrival), from 1 April 2025", publisher: "Ministry of Home Affairs, Immigration, Safety and Security (Namibia)", url: "https://www.na.emb-japan.go.jp/files/100807710.pdf", type: "government", sourceUpdated: "2025-04-01", checked: C2, note: "Ministry fact sheet republished by the Embassy of Japan in Namibia." },
+  { id: "sc-ics", title: "Visiting Seychelles", publisher: "Immigration and Civil Status (Seychelles)", url: "https://ics.gov.sc/visa-and-travel/visiting-seychelles", type: "government", checked: C2 },
 ];
 
 type Spec = { cat: AccessCategory; days?: number; cond?: string; ev: string; conf?: "high" | "medium"; from?: string };
@@ -58,6 +72,46 @@ export const rules: AccessRule[] = [
   ...group(["US"], "us-suspension-2026", Object.fromEntries(["MW", "NG", "TZ", "ZM", "ZW"].map((p) => [p, { cat: "restricted" as const, cond: "Issuance of B-1/B-2 visitor visas is partially suspended under a presidential proclamation. Limited exceptions apply; check with the U.S. embassy.", ev: "Listed under partial suspension, effective 1 January 2026", from: "2026-01-01" }]))),
   // Canada
   ...group(["CA"], "ca-entry", all({ cat: "visa-required", ev: "Listed under \"Visa-required countries or territories\"" })),
+  // ── Sprint 2: African destinations ──
+  // Zambia
+  ...group(["ZM"], "zm-no-visa", Object.fromEntries(["ZA","ZW","BW","NA","MW","MZ","LS","SZ","KE","TZ","UG"].map((p) => [p, { cat: "visa-free" as const, ev: "\"Nationals of the countries listed below do not require visas to enter Zambia\"" }]))),
+  ...group(["ZM"], "zm-voa", { RW: { cat: "visa-on-arrival", ev: "Listed: visas \"on arrival, at any port of entry or from selected Zambian Missions Abroad\"" }, GH: { cat: "visa-on-arrival", ev: "Listed: visas \"on arrival, at any port of entry or from selected Zambian Missions Abroad\"" } }),
+  ...group(["ZM"], "zm-prior", { NG: { cat: "evisa", cond: "Advance clearance required: apply online through the Zambia eServices portal and receive an approval letter before travel.", ev: "Listed: \"require advance clearance by the Zambian Authorities\"" } }),
+  // Zimbabwe
+  ...group(["ZW"], "zw-cat-a", Object.fromEntries(["ZA","BW","NA","ZM","MW","MZ","LS","SZ","KE","TZ","UG","GH"].map((p) => [p, { cat: "visa-free" as const, ev: "Category A: \"do not require a visa to enter the country\"" }]))),
+  ...group(["ZW"], "zw-cat-b", { RW: { cat: "visa-on-arrival", cond: "Can also be applied for online at evisa.gov.zw.", ev: "Category B: visa \"may also be obtained at the port of entry\"" } }),
+  ...group(["ZW"], "zw-cat-c", { NG: { cat: "evisa", ev: "Category C: \"apply, make payment online and obtain a visa prior to travelling\"" } }),
+  // Kenya (ETA-exempt)
+  ...group(["KE"], "ke-eta-exempt", {
+    ...Object.fromEntries(["RW","TZ","UG"].map((p) => [p, { cat: "visa-free" as const, days: 180, cond: "East African Community citizens: no eTA needed.", ev: "eTA exempt: EAC citizens \"for a period not exceeding 180 days\"" }])),
+    ...Object.fromEntries(["ZA","ZW","BW","NA","ZM","MW","MZ","LS","SZ","GH"].map((p) => [p, { cat: "visa-free" as const, days: 90, cond: "No eTA needed.", ev: "eTA exempt \"for a period not exceeding ninety (90) days\"" }])),
+    NG: { cat: "visa-free", days: 60, cond: "No eTA needed.", ev: "eTA exempt \"for a period not exceeding sixty (60) days\"" },
+  }),
+  // Rwanda
+  ...group(["RW"], "rw-visa-general", {
+    ...Object.fromEntries(["ZA","ZW","BW","NA","ZM","MW","MZ","LS","SZ","NG"].map((p) => [p, { cat: "visa-on-arrival" as const, days: 30, cond: "African Union and Commonwealth citizens: visa issued on arrival with the fee waived.", ev: "\"get visa upon arrival and are waived visa fees for a visit of 30 days\"" }])),
+    ...Object.fromEntries(["KE","TZ","UG"].map((p) => [p, { cat: "visa-on-arrival" as const, days: 180, cond: "East African Community citizens: free entry pass on arrival.", ev: "EAC: \"pass/entry visa free of charge upon arrival to stay for the period of six months\"" }])),
+    GH: { cat: "visa-on-arrival", days: 90, cond: "Visa issued free of charge on arrival.", ev: "\"90 days valid visa free of charge upon arrival\"" },
+  }),
+  // Uganda
+  ...group(["UG"], "ug-exempt", {
+    ...Object.fromEntries(["ZW","BW","ZM","MW","MZ","LS","SZ","KE","TZ","RW","GH"].map((p) => [p, { cat: "visa-free" as const, ev: "Listed under \"Visa Exempt Countries or Regions\"", conf: "medium" as const }])),
+    ...Object.fromEntries(["ZA","NA","NG"].map((p) => [p, { cat: "visa-required" as const, cond: "Not on Uganda's visa-exempt list for ordinary passports. Uganda issues visas online.", ev: "Not listed under \"Visa Exempt Countries or Regions\"", conf: "medium" as const }])),
+  }),
+  // Botswana
+  ...group(["BW"], "bw-embassy-us", {
+    ...Object.fromEntries(["ZA","ZW","NA","ZM","MW","MZ","LS","SZ","KE","TZ","UG"].map((p) => [p, { cat: "visa-free" as const, ev: "\"Countries Whose Citizens Do NOT Require a Visa to Enter Botswana\"", conf: "medium" as const }])),
+    ...Object.fromEntries(["RW","NG","GH"].map((p) => [p, { cat: "visa-required" as const, ev: "\"Countries Which Require a Visa to Enter Botswana\"", conf: "medium" as const }])),
+  }),
+  // Tanzania
+  ...group(["TZ"], "tz-hc-namibia", {
+    ...Object.fromEntries(["ZA","BW","NA","ZM","MW","MZ","LS","SZ","GH"].map((p) => [p, { cat: "visa-free" as const, days: 90, ev: "\"Countries which their nationals do not require visa\"; visitor's pass up to three months", conf: "medium" as const }])),
+    ...Object.fromEntries(["KE","UG","RW"].map((p) => [p, { cat: "visa-free" as const, days: 180, cond: "East African Community citizens: visitor's pass up to six months.", ev: "\"Countries which their nationals do not require visa\"", conf: "medium" as const }])),
+  }),
+  // Namibia: only the three named in the 2025 fact sheet
+  ...group(["NA"], "na-mha-2025", Object.fromEntries(["UG","RW","GH"].map((p) => [p, { cat: "visa-on-arrival" as const, from: "2025-04-01", ev: "Named for visa on arrival from 1 April 2025", conf: "medium" as const }]))),
+  // Seychelles
+  ...group(["SC"], "sc-ics", all({ cat: "eta", cond: "No visa needed. Complete the online travel authorisation at seychelles.govtas.com before travel; a visitor's permit is issued on arrival. Return ticket and funds required.", ev: "\"a visa is not required to enter Seychelles\"; online portal before arrival" })),
   // Individual briefs (see /visas)
   { passport: "ZW", destination: "GE", category: "evisa", maxStayDays: 30, conditions: "Holders of a valid visa or residence permit from a country on Georgia's official list can enter visa-free for 90 days in any 180.", evidence: "Zimbabwe is not on Georgia's visa-free list; e-visa via evisa.gov.ge", sourceId: "ge-evisa", verification: "verified", confidence: "high" },
   { passport: "NG", destination: "AE", category: "visa-required", conditions: "Visit visa issued before travel through a UAE sponsor (hotel, licensed tourism company, airline or resident relative).", evidence: "Single-entry tourist visa issued through a UAE sponsor", sourceId: "ae-gdrfa-tourist", verification: "verified", confidence: "medium" },

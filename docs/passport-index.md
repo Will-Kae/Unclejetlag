@@ -43,6 +43,10 @@ Work destination-first: one official list (e.g. South Africa's exemption list, t
 national list) settles that destination for every passport at once. Sprint 1 passports: ZA ZW BW NA ZM MW MZ
 LS SZ KE TZ UG RW NG GH.
 
+Sprint 2 (10 Oct 2026) added Zambia, Zimbabwe, Kenya, Rwanda, Uganda, Botswana, Tanzania, Seychelles and part of
+Namibia as destinations, read in the browser on official sites. Still unverified: Ghana (MFA list only reported in
+the press), Namibia (other passports), Mozambique, Malawi, Lesotho, Eswatini, Nigeria, Mauritius.
+
 Known gaps: many African immigration portals are JavaScript-only or blocked from automated readers; these need
 manual reading. EU Annex I is cited from the 2018 adopted text; re-read the consolidated text when accessible.
 
