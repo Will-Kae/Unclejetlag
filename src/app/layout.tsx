@@ -83,21 +83,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="impact-site-verification" {...{ value: "e3f65cdf-b28c-4507-9fd4-e102d360a10e" }} />
         <meta name="impact-site-verification" {...{ value: "2cabb71a-44d5-414f-b1d4-dedb993fc5aa" }} />
         <script id="consent-defaults" dangerouslySetInnerHTML={{ __html: consentDefaultsScript }} />
-        {/* Travelpayouts (Drive) site script, as issued. Server-rendered in <head> so Travelpayouts can verify it.
-            The WordPress optimiser hints from the original snippet (nowprocket, data-noptimize, etc.) are omitted: they do nothing on Next.js. */}
-        <script
-          id="travelpayouts"
-          data-cmp-ab="2"
-          dangerouslySetInnerHTML={{
-            __html: `(function () {
-      var script = document.createElement("script");
-      script.async = 1;
-      script.setAttribute("data-cmp-ab","2");
-      script.src = 'https://emrldtp.cc/NTgyNzYz.js?t=582763';
-      document.head.appendChild(script);
-  })();`,
-          }}
-        />
+        {/* Travelpayouts Drive is loaded by ThirdPartyScripts only after advertising consent.
+            Do not place its executable loader in server-rendered head markup. */}
         {ADSENSE_CLIENT && (
           // AdSense code in <head> (site verification + Auto ads). Consent Mode defaults above load first,
           // so Google only uses cookies/personalisation after the visitor opts in.
