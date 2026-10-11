@@ -24,7 +24,8 @@ begin
     select 1 from public.passport_research_profiles
     where user_id = v_actor and active and role in ('researcher', 'admin')
   ) then raise exception 'Unauthorized researcher'; end if;
-  if p_source_url !~ '^https://' or length(trim(p_rationale)) < 20
+  if p_source_url is null or p_rationale is null
+     or p_source_url !~ '^https://' or length(trim(p_rationale)) < 20
      or p_passport_code !~ '^[A-Z]{3}$' or p_destination_code !~ '^[A-Z]{3}$'
      or p_rule_id is null or length(trim(p_rule_id)) = 0
      or p_source_id is null or length(trim(p_source_id)) = 0
@@ -72,7 +73,6 @@ begin
   end if;
   if v_actor is null then raise exception 'Authentication required'; end if;
   if v_actor = v_submitter then raise exception 'Self-review prohibited'; end if;
-  if v_actor is null then raise exception 'Authentication required'; end if;
   if not exists (
     select 1 from public.passport_research_profiles
     where user_id = v_actor and active and role in ('reviewer', 'admin')
@@ -93,7 +93,7 @@ begin
 
   insert into public.passport_verification_audit(actor_id, action, object_type, object_id, payload)
   values (v_actor, 'evidence_reviewed', 'evidence_submission', p_submission_id,
-    jsonb_build_object('decision', p_decision, 'revision', p_revision));
+    pg_catalog.jsonb_build_object('decision', p_decision, 'revision', p_revision));
 end;
 $$;
 
