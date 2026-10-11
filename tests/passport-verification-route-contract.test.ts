@@ -13,7 +13,7 @@ describe("private passport identity endpoint contract", () => {
     expect(source).toContain("status: 404");
   });
   it("rejects missing or malformed bearer credentials", () => {
-    expect(source).toContain('authorization?.startsWith("Bearer ")');
+    expect(source).toContain('extractPassportBearer(request.headers.get("authorization"))');
     expect(source).toContain("verifyPassportBearer(token)");
     expect(source).toContain("status: 401");
   });
