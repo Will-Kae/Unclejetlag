@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassportBearer } from "@/lib/passport/verification/auth";
+import { extractPassportBearer } from "@/lib/passport/verification/session-token";
 import { isVerificationEnabled, verificationConfig } from "@/lib/passport/verification/server-config";
 
 export const dynamic = "force-dynamic";
