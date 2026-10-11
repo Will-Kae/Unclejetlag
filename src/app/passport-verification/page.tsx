@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { PassportSignIn } from "@/components/passport/verification/PassportSignIn";
 
 /**
- * Fail-closed placeholder. Never show submission or review data here
- * until authenticated Supabase sessions and role authorization are wired.
+ * The parent server layout fails closed unless the private workspace flag is
+ * explicitly enabled. This page never receives or renders service credentials.
+ * Supabase Auth and /me authorize the role before any dashboard is shown.
  */
 export default function PassportVerificationPage() {
-  notFound();
+  return <PassportSignIn />;
 }
