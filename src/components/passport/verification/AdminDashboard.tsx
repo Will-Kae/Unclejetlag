@@ -16,8 +16,8 @@ export type AdminAuditEntry = {
 export type AdminReleaseCandidate = {
   id: string;
   label: string;
-  status: "draft" | "under_review" | "ready" | "blocked" | "released";
-  evidenceCount: number;
+  status: "draft" | "ready_for_pr" | "withdrawn";
+  evidenceCount: number | null;
 };
 
 type Props = {
@@ -59,7 +59,7 @@ export function AdminDashboard({ summary, audit, releases, preview = false }: Pr
             <tbody>{releases.map((candidate) => (
               <tr key={candidate.id}>
                 <th scope="row">{candidate.label}</th>
-                <td>{candidate.evidenceCount}</td>
+                <td>{candidate.evidenceCount ?? "Not calculated"}</td>
                 <td>{candidate.status.replaceAll("_", " ")}</td>
               </tr>
             ))}</tbody>
