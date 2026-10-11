@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassportBearer } from "@/lib/passport/verification/auth";
+import { extractPassportBearer } from "@/lib/passport/verification/session-token";
 import { isVerificationEnabled } from "@/lib/passport/verification/server-config";
 
 export const dynamic = "force-dynamic";
@@ -15,14 +16,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers });
   }
 
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
-  }
-  const token = authorization.slice(7);
-  if (!token || token.includes(" ") || token.length > 8192) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
-  }
+  const token = extractPassportBearer(request.headers.get("authorization"));
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
 
   const identity = await verifyPassportBearer(token);
   if (!identity) {
