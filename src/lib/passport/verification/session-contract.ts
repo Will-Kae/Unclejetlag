@@ -1,4 +1,3 @@
-import "server-only";
 import type { PassportRole } from "./auth";
 
 export type WorkspaceRoute = "researcher" | "reviewer" | "admin";
