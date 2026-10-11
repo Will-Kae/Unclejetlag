@@ -9,7 +9,8 @@ export function verificationConfig() {
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error("Passport verification backend is not configured");
   const parsed = new URL(url);
-  if (parsed.protocol !== "https:") throw new Error("Supabase URL must be HTTPS");
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== "/" && parsed.pathname !== "")) throw new Error("Invalid Supabase project URL");
+  if (!/^[a-z0-9-]+\\.supabase\\.co$/i.test(parsed.hostname)) throw new Error("Unexpected Supabase project host");
   return { url: parsed.origin, key };
 }
 
