@@ -7,6 +7,8 @@
  * - No compression (Accept-Encoding: identity), so a small response cannot expand into a large one.
  * - Conditional requests (If-None-Match / If-Modified-Since); 304 means unchanged.
  * - Allowed content types only: HTML, XHTML, plain text and PDF.
+ * - An optional per-request gate (beforeRequest) runs before EVERY request, including each redirect hop
+ *   to another path on the same host; the runner uses it to enforce robots.txt and rate limits.
  * - Retries with back-off for timeouts, network errors, 429 and 5xx; never for 4xx or blocked hosts.
  * The transport is injectable, so tests never touch the network.
  */
@@ -62,6 +64,7 @@ export type FetchResult =
   | { kind: "too-large" }
   | { kind: "network-error"; message: string }
   | { kind: "redirect-rejected"; location: string; reason: string }
+  | { kind: "robots-disallowed"; url: string; reason: string }
   | { kind: "unsupported-content-type"; contentType: string };
 
 export type FetchOptions = {
@@ -75,7 +78,11 @@ export type FetchOptions = {
   maxRedirects?: number;
   /** Accept only these content types (defaults to ALLOWED_CONTENT_TYPES). */
   accept?: string[];
+  /** Called before every request (first and each redirect hop). A denial stops the fetch; nothing is sent. */
+  beforeRequest?: (url: URL) => Promise<RequestGate>;
 };
+
+export type RequestGate = { allowed: true } | { allowed: false; reason: string };
 
 export async function safeFetch(rawUrl: string, o: FetchOptions): Promise<FetchResult> {
   const first = validateSourceUrl(rawUrl, o.allowedHosts);
@@ -87,6 +94,10 @@ export async function safeFetch(rawUrl: string, o: FetchOptions): Promise<FetchR
     const headers: Record<string, string> = { "user-agent": o.userAgent, accept: accept.join(", "), "accept-encoding": "identity" };
     if (hop === 0 && o.etag) headers["if-none-match"] = o.etag;
     if (hop === 0 && o.lastModified) headers["if-modified-since"] = o.lastModified;
+    if (o.beforeRequest) {
+      const gate = await o.beforeRequest(url);
+      if (!gate.allowed) return { kind: "robots-disallowed", url: url.toString(), reason: gate.reason };
+    }
     let res: TransportResponse;
     try {
       res = await o.transport({ url, headers, timeoutMs: o.timeoutMs, maxBytes: o.maxBytes });

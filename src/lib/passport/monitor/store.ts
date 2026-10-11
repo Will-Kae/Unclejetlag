@@ -8,10 +8,22 @@
  * any edit or deletion is detectable with verifyAuditChain(). Review items are de-duplicated by key
  * while open, so a repeated run cannot raise the same alert twice. A lease lock prevents overlapping
  * runs.
+ *
+ * Concurrency (FileStore): every operation runs under an exclusive cross-process mutex (a lock file
+ * created with O_CREAT|O_EXCL), so concurrent processes cannot lose updates, interleave audit records
+ * or break the hash chain. The store fails closed: if the mutex cannot be acquired in time (including
+ * when a crashed process left it behind) the operation throws StoreLockedError; it never breaks
+ * someone else's lock. Corrupt state or a broken audit chain throws StoreIntegrityError instead of
+ * being silently reset or extended.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { sha256 } from "./fingerprint";
+
+export class StoreLockedError extends Error { code = "ESTORELOCKED"; }
+export class StoreIntegrityError extends Error { code = "ESTOREINTEGRITY"; }
 
 export type MonitorErrorEntry = { at: string; kind: string; detail: string };
 
@@ -59,7 +71,7 @@ export type MonitorRun = {
   id: string;
   startedAt: string;
   finishedAt?: string;
-  status: "running" | "completed" | "failed" | "skipped-locked";
+  status: "running" | "completed" | "failed" | "skipped-locked" | "refused-invalid-config";
   due: number;
   checked: number;
   unchanged: number;
@@ -111,60 +123,77 @@ abstract class BaseStore implements MonitorStore {
   protected abstract appendAuditRecord(r: AuditRecord): void;
   protected abstract writeSnapshot(hash: string, text: string): void;
   protected abstract readSnapshot(hash: string): string | undefined;
+  /** Runs fn under the store's exclusive lock. In-process stores need none. */
+  protected exclusive<T>(fn: () => T): T { return fn(); }
 
-  async getState(id: string) { return this.load().states[id]; }
+  async getState(id: string) { return this.exclusive(() => this.load().states[id]); }
   async putState(state: SourceMonitorState) {
-    const d = this.load();
-    d.states[state.sourceId] = { ...state, errors: state.errors.slice(-20) };
-    this.save(d);
+    this.exclusive(() => {
+      const d = this.load();
+      d.states[state.sourceId] = { ...state, errors: state.errors.slice(-20) };
+      this.save(d);
+    });
   }
   async putSnapshot(text: string) {
     const h = sha256(text);
-    if (this.readSnapshot(h) === undefined) this.writeSnapshot(h, text);
+    this.exclusive(() => { if (this.readSnapshot(h) === undefined) this.writeSnapshot(h, text); });
     return h;
   }
-  async getSnapshot(hash: string) { return this.readSnapshot(hash); }
+  async getSnapshot(hash: string) { return this.exclusive(() => this.readSnapshot(hash)); }
   async openReviewItem(input: Omit<ReviewItem, "id" | "status">) {
-    const d = this.load();
-    const existing = d.items.find((i) => i.status === "open" && i.dedupeKey === input.dedupeKey);
-    if (existing) return { item: existing, created: false };
-    const item: ReviewItem = { ...input, id: `RI-${String(d.items.length + 1).padStart(5, "0")}`, status: "open" };
-    d.items.push(item);
-    this.save(d);
-    return { item, created: true };
+    return this.exclusive(() => {
+      const d = this.load();
+      const existing = d.items.find((i) => i.status === "open" && i.dedupeKey === input.dedupeKey);
+      if (existing) return { item: existing, created: false };
+      const item: ReviewItem = { ...input, id: `RI-${String(d.items.length + 1).padStart(5, "0")}`, status: "open" };
+      d.items.push(item);
+      this.save(d);
+      return { item, created: true };
+    });
   }
   async listReviewItems(filter: { status?: ReviewItem["status"]; sourceId?: string } = {}) {
-    return this.load().items.filter((i) => (!filter.status || i.status === filter.status) && (!filter.sourceId || i.sourceId === filter.sourceId));
+    return this.exclusive(() => this.load().items.filter((i) => (!filter.status || i.status === filter.status) && (!filter.sourceId || i.sourceId === filter.sourceId)));
   }
   async appendAudit(entry: AuditInput) {
-    const log = this.loadAudit();
-    const prevHash = log.at(-1)?.hash ?? GENESIS_HASH;
-    const seq = log.length + 1;
-    const rec: AuditRecord = { ...entry, seq, prevHash, hash: auditHash(prevHash, { ...entry, seq }) };
-    this.appendAuditRecord(rec);
-    return rec;
+    return this.exclusive(() => {
+      const log = this.loadAudit();
+      // Fail closed: never extend a chain that has been tampered with.
+      const check = verifyAuditChain(log);
+      if (!check.ok) throw new StoreIntegrityError(`audit chain broken at record ${check.brokenAt} (${check.reason}); refusing to append`);
+      const prevHash = log.at(-1)?.hash ?? GENESIS_HASH;
+      const seq = log.length + 1;
+      const rec: AuditRecord = { ...entry, seq, prevHash, hash: auditHash(prevHash, { ...entry, seq }) };
+      this.appendAuditRecord(rec);
+      return rec;
+    });
   }
-  async readAudit() { return this.loadAudit(); }
+  async readAudit() { return this.exclusive(() => this.loadAudit()); }
   async acquireLock(name: string, owner: string, nowMs: number, ttlMs: number) {
-    const d = this.load();
-    const cur = d.locks[name];
-    if (cur && cur.expiresAt > nowMs && cur.owner !== owner) return false;
-    d.locks[name] = { owner, expiresAt: nowMs + ttlMs };
-    this.save(d);
-    return true;
+    return this.exclusive(() => {
+      const d = this.load();
+      const cur = d.locks[name];
+      if (cur && cur.expiresAt > nowMs && cur.owner !== owner) return false;
+      d.locks[name] = { owner, expiresAt: nowMs + ttlMs };
+      this.save(d);
+      return true;
+    });
   }
   async releaseLock(name: string, owner: string) {
-    const d = this.load();
-    if (d.locks[name]?.owner === owner) delete d.locks[name];
-    this.save(d);
+    this.exclusive(() => {
+      const d = this.load();
+      if (d.locks[name]?.owner === owner) delete d.locks[name];
+      this.save(d);
+    });
   }
   async saveRun(run: MonitorRun) {
-    const d = this.load();
-    const i = d.runs.findIndex((r) => r.id === run.id);
-    if (i >= 0) d.runs[i] = run; else d.runs.push(run);
-    this.save(d);
+    this.exclusive(() => {
+      const d = this.load();
+      const i = d.runs.findIndex((r) => r.id === run.id);
+      if (i >= 0) d.runs[i] = run; else d.runs.push(run);
+      this.save(d);
+    });
   }
-  async listRuns() { return this.load().runs; }
+  async listRuns() { return this.exclusive(() => this.load().runs); }
 }
 
 const empty = (): Data => ({ states: {}, items: [], runs: [], locks: {} });
@@ -183,31 +212,94 @@ export class MemoryStore extends BaseStore {
   unsafeAuditForTests() { return this.audit; }
 }
 
+const sleepSync = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+export type FileStoreOptions = { mutexTimeoutMs?: number };
+
 /**
- * Directory layout: state.json (states, items, runs, locks), audit.jsonl (append-only), snapshots/<sha256>.txt.
- * Single-writer by design: the lease lock serialises runs. Writes go to a temp file and are renamed.
+ * Directory layout: state.json (states, items, runs, locks), audit.jsonl (append-only),
+ * snapshots/<sha256>.txt, and .store.lock while an operation is in progress.
+ * Safe for concurrent processes on one filesystem (local disk; not network filesystems without
+ * O_EXCL semantics). State writes are fsynced to a unique temp file and renamed atomically.
  */
 export class FileStore extends BaseStore {
-  constructor(private dir: string) {
+  private readonly mutexTimeoutMs: number;
+  private depth = 0;
+  constructor(private dir: string, opts: FileStoreOptions = {}) {
     super();
+    this.mutexTimeoutMs = opts.mutexTimeoutMs ?? 10_000;
     fs.mkdirSync(path.join(dir, "snapshots"), { recursive: true });
   }
   private get statePath() { return path.join(this.dir, "state.json"); }
   private get auditPath() { return path.join(this.dir, "audit.jsonl"); }
+  get mutexPath() { return path.join(this.dir, ".store.lock"); }
+
+  protected exclusive<T>(fn: () => T): T {
+    if (this.depth > 0) return fn();
+    const token = `${os.hostname()}:${process.pid}:${randomUUID()}`;
+    const deadline = Date.now() + this.mutexTimeoutMs;
+    for (;;) {
+      try {
+        const fd = fs.openSync(this.mutexPath, "wx", 0o600);
+        try { fs.writeSync(fd, JSON.stringify({ token, at: new Date().toISOString() })); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+        break;
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+        if (Date.now() >= deadline) {
+          throw new StoreLockedError(`monitor store is locked (${this.mutexPath}). Another process is writing, or one crashed while writing. Remove the lock file only after confirming no monitor process is running.`);
+        }
+        sleepSync(2 + Math.floor(Math.random() * 8));
+      }
+    }
+    this.depth++;
+    try {
+      return fn();
+    } finally {
+      this.depth--;
+      try {
+        const held = JSON.parse(fs.readFileSync(this.mutexPath, "utf8")) as { token?: string };
+        if (held.token === token) fs.unlinkSync(this.mutexPath);
+      } catch {
+        /* lock already gone: nothing to release */
+      }
+    }
+  }
+
   protected load(): Data {
-    return fs.existsSync(this.statePath) ? { ...empty(), ...JSON.parse(fs.readFileSync(this.statePath, "utf8")) } : empty();
+    if (!fs.existsSync(this.statePath)) return empty();
+    try {
+      return { ...empty(), ...JSON.parse(fs.readFileSync(this.statePath, "utf8")) };
+    } catch (e) {
+      throw new StoreIntegrityError(`state.json is unreadable (${e instanceof Error ? e.message : e}); refusing to overwrite it`);
+    }
   }
   protected save(d: Data) {
-    const tmp = `${this.statePath}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(d, null, 1) + "\n");
+    const tmp = `${this.statePath}.${process.pid}.${randomUUID()}.tmp`;
+    const fd = fs.openSync(tmp, "wx", 0o600);
+    try { fs.writeSync(fd, JSON.stringify(d, null, 1) + "\n"); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
     fs.renameSync(tmp, this.statePath);
   }
   protected loadAudit(): AuditRecord[] {
     if (!fs.existsSync(this.auditPath)) return [];
-    return fs.readFileSync(this.auditPath, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    const lines = fs.readFileSync(this.auditPath, "utf8").split("\n").filter(Boolean);
+    return lines.map((l, i) => {
+      try {
+        return JSON.parse(l) as AuditRecord;
+      } catch {
+        throw new StoreIntegrityError(`audit.jsonl line ${i + 1} is not valid JSON`);
+      }
+    });
   }
-  protected appendAuditRecord(r: AuditRecord) { fs.appendFileSync(this.auditPath, JSON.stringify(r) + "\n"); }
-  protected writeSnapshot(h: string, t: string) { fs.writeFileSync(path.join(this.dir, "snapshots", `${h}.txt`), t); }
+  protected appendAuditRecord(r: AuditRecord) {
+    const fd = fs.openSync(this.auditPath, "a", 0o600);
+    try { fs.writeSync(fd, JSON.stringify(r) + "\n"); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  }
+  protected writeSnapshot(h: string, t: string) {
+    const p = path.join(this.dir, "snapshots", `${h}.txt`);
+    const tmp = `${p}.${randomUUID()}.tmp`;
+    fs.writeFileSync(tmp, t, { mode: 0o600 });
+    fs.renameSync(tmp, p);
+  }
   protected readSnapshot(h: string) {
     if (!/^[0-9a-f]{64}$/.test(h)) return undefined;
     const p = path.join(this.dir, "snapshots", `${h}.txt`);

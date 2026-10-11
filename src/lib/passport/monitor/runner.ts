@@ -14,9 +14,9 @@ import { jName } from "../jurisdictions";
 import { MONITOR_POLICY } from "../monitoring";
 import type { AccessRule, Source } from "../types";
 import { ruleId } from "../verification";
-import type { SourceMonitorConfig } from "./config";
+import { validateMonitorConfigs, type SourceMonitorConfig } from "./config";
 import { extractText, pdfjsExtractor, type PdfTextExtractor } from "./extract";
-import { safeFetch, withRetry, type FetchResult, type Transport } from "./fetcher";
+import { safeFetch, withRetry, type FetchResult, type RequestGate, type Transport } from "./fetcher";
 import { classifyChange, normaliseText, sha256 } from "./fingerprint";
 import { isPathAllowed, parseRobots } from "./robots";
 import type { MonitorRun, MonitorStore, ReviewItem, SourceMonitorState } from "./store";
@@ -46,6 +46,16 @@ export async function runMonitor(o: RunOptions): Promise<MonitorRun> {
   const run: MonitorRun = { id: o.runId, startedAt: iso(), status: "running", due: 0, checked: 0, unchanged: 0, cosmetic: 0, changed: 0, baselines: 0, failed: 0, itemsCreated: 0 };
   const audit = (action: string, subject: string, detail: string) => o.store.appendAudit({ at: iso(), actor: `monitor:${o.runId}`, action, subject, detail });
 
+  // Fail closed: any invalid monitor config (e.g. a source enabled without an explicitly positive terms
+  // and robots review) refuses the whole run before a single network request is made.
+  const configIssues = validateMonitorConfigs(o.configs, o.sources);
+  if (configIssues.length) {
+    const refused = { ...run, status: "refused-invalid-config" as const, finishedAt: iso(), error: configIssues.slice(0, 20).join("; ").slice(0, 1000) };
+    await o.store.saveRun(refused);
+    await audit("run-refused", o.runId, `invalid monitor config: ${configIssues.length} issue(s)`);
+    return refused;
+  }
+
   if (!(await o.store.acquireLock(LOCK, o.runId, o.now().getTime(), MONITOR_LIMITS.lockTtlMs))) {
     const skipped = { ...run, status: "skipped-locked" as const, finishedAt: iso() };
     await o.store.saveRun(skipped);
@@ -68,7 +78,6 @@ export async function runMonitor(o: RunOptions): Promise<MonitorRun> {
     }
     run.due = due.length;
 
-    const robotsCache = new Map<string, { allowed: (p: string) => boolean; reason?: string }>();
     // Per-host rate limit: requests to the same host are spaced 60s / maxRequestsPerHostPerMinute apart.
     const hostsSeen = new Set<string>();
     const spacing = 60_000 / MONITOR_POLICY.maxRequestsPerHostPerMinute;
@@ -78,9 +87,28 @@ export async function runMonitor(o: RunOptions): Promise<MonitorRun> {
     };
     const fetchOpts = { transport: o.transport, allowedHosts, userAgent: MONITOR_POLICY.userAgent, timeoutMs: MONITOR_POLICY.requestTimeoutMs };
 
+    // robots.txt, fetched once per host per run and enforced before EVERY request, including each
+    // redirect hop (to another path on the same host or to another approved host). An unreachable
+    // robots.txt (5xx, timeout, refusal) means: do not fetch from that host.
+    const robotsCache = new Map<string, { allowed: (p: string) => boolean; reason?: string }>();
+    const gate = async (target: URL): Promise<RequestGate> => {
+      const host = target.hostname.toLowerCase();
+      if (!robotsCache.has(host)) {
+        await pace(host);
+        const r = await safeFetch(`https://${host}/robots.txt`, { ...fetchOpts, maxBytes: MONITOR_LIMITS.robotsMaxBytes, accept: ["text/plain", "text/html"] });
+        if (r.kind === "ok") {
+          const parsed = parseRobots(new TextDecoder().decode(r.body), ROBOTS_TOKEN);
+          robotsCache.set(host, { allowed: (p) => isPathAllowed(parsed, p) });
+        } else if (r.kind === "not-found") robotsCache.set(host, { allowed: () => true });
+        else robotsCache.set(host, { allowed: () => false, reason: `robots.txt unavailable (${r.kind})` });
+      }
+      const robots = robotsCache.get(host)!;
+      if (!robots.allowed(target.pathname + target.search)) return { allowed: false, reason: robots.reason ?? `robots.txt disallows ${target.pathname}` };
+      await pace(host);
+      return { allowed: true };
+    };
+
     for (const { cfg, source, state } of due) {
-      const url = new URL(source.url);
-      const host = url.hostname.toLowerCase();
       const rules = o.rules.filter((r) => r.sourceId === source.id || r.additionalSourceIds?.includes(source.id));
       const ruleIds = rules.map(ruleId).sort();
       const watchNames = [...new Set(rules.map((r) => jName(r.passport).toLowerCase()))];
@@ -92,28 +120,8 @@ export async function runMonitor(o: RunOptions): Promise<MonitorRun> {
         }
       };
 
-      // robots.txt, once per host per run. Unreachable robots (5xx, timeout) means: do not fetch.
-      if (!robotsCache.has(host)) {
-        await pace(host);
-        const r = await safeFetch(`https://${host}/robots.txt`, { ...fetchOpts, maxBytes: MONITOR_LIMITS.robotsMaxBytes, accept: ["text/plain", "text/html"] });
-        if (r.kind === "ok") {
-          const rules = parseRobots(new TextDecoder().decode(r.body), ROBOTS_TOKEN);
-          robotsCache.set(host, { allowed: (p) => isPathAllowed(rules, p) });
-        } else if (r.kind === "not-found") robotsCache.set(host, { allowed: () => true });
-        else robotsCache.set(host, { allowed: () => false, reason: `robots.txt unavailable (${r.kind})` });
-      }
-      const robots = robotsCache.get(host)!;
-      if (!robots.allowed(url.pathname + url.search)) {
-        run.checked++;
-        await o.store.putState({ ...state, lastCheckedAt: iso(), lastOutcome: "robots-disallowed" });
-        await audit("check", source.id, `robots-disallowed${robots.reason ? `: ${robots.reason}` : ""}`);
-        await openItem("manual-check-required", `${source.id}:robots`, `Automated access is not permitted (${robots.reason ?? "robots.txt disallows this path"}). Read the source manually; do not work around it.`);
-        continue;
-      }
-
-      await pace(host);
       const maxBytes = cfg.strategy === "pdf" ? MONITOR_LIMITS.pdfMaxBytes : MONITOR_LIMITS.htmlMaxBytes;
-      const { result, attempts } = await withRetry(() => safeFetch(source.url, { ...fetchOpts, maxBytes, etag: state.etag, lastModified: state.lastModified }), MONITOR_POLICY.retryBackoffMs, o.sleep);
+      const { result, attempts } = await withRetry(() => safeFetch(source.url, { ...fetchOpts, maxBytes, etag: state.etag, lastModified: state.lastModified, beforeRequest: gate }), MONITOR_POLICY.retryBackoffMs, o.sleep);
       run.checked++;
       const base: SourceMonitorState = { ...state, lastCheckedAt: iso(), lastOutcome: result.kind };
       await audit("check", source.id, `${result.kind} attempts=${attempts}`);
@@ -128,6 +136,11 @@ export async function runMonitor(o: RunOptions): Promise<MonitorRun> {
       if (result.kind === "not-modified") {
         run.unchanged++;
         await o.store.putState({ ...base, lastSuccessAt: iso(), consecutiveFailures: 0 });
+        continue;
+      }
+      if (result.kind === "robots-disallowed") {
+        await o.store.putState(base);
+        await openItem("manual-check-required", `${source.id}:robots`, `Automated access is not permitted (${result.reason}; at ${result.url}). Read the source manually; do not work around it.`);
         continue;
       }
       if (result.kind !== "ok") {

@@ -65,12 +65,12 @@ Until D1–D3 are approved, 2B-B to 2B-D can't be implemented without creating e
 | File | Responsibility |
 |---|---|
 | `url-safety.ts` | `validateSourceUrl`: https only, port 443, no credentials, no IP literals or internal names, host allow-list. `isBlockedAddress`: private, loopback, link-local, CGNAT, metadata, multicast and reserved IPv4/IPv6, including IPv4-mapped, NAT64 and 6to4. `guardedLookup` checks every DNS answer at connect time, which defeats DNS rebinding. |
-| `robots.ts` | robots.txt (RFC 9309): own user-agent group, else `*`; wildcards and `$`; longest match wins |
+| `robots.ts` | robots.txt (RFC 9309): own user-agent group, else `*`; wildcards and `$`; longest match wins. Enforced before **every** request, including each redirect hop, whether to another path on the same host or to another approved host (PR #7 hardening). |
 | `fetcher.ts` | `safeFetch`: redirects re-validated on every hop and limited to registry hosts, at most 5 hops. Conditional requests (ETag / Last-Modified, 304). Bounded streaming body. `Accept-Encoding: identity`, so no decompression bombs. Content-type allow-list; status mapping. `withRetry`: back-off for timeouts, network errors, 429 and 5xx only. `nodeHttpsTransport`: no keep-alive, no proxy, guarded DNS. |
 | `extract.ts` | `htmlToText`, with no dependency. Per-source start/end markers to cut page furniture; a missing marker is reported. PDF via `pdfjs-dist`, loaded only when needed: magic-number check, no XFA, no font loading, 200-page cap, 20 s timeout. A PDF with no text layer is reported, never guessed. |
 | `fingerprint.ts` | Raw hash and normalised-text hash. Clock times and furniture lines are dropped; dates and numbers are kept. Line diff. `classifyChange`: `none` / `cosmetic` / `substantive`, with priority from jurisdiction names and policy terms in the changed lines. |
-| `config.ts` | One config per source: strategy `html`, `pdf`, `manual-js` or `manual`; frequency; markers; terms review. **All 23 are disabled** until a terms and robots review is recorded. `validateMonitorConfigs` refuses to enable a source without a positive review. |
-| `store.ts` | `MonitorStore` interface; `MemoryStore` (tests); `FileStore` (JSON files plus an append-only `audit.jsonl`). The audit log is hash-chained (`verifyAuditChain`). Open review items are de-duplicated. A lease lock stops overlapping runs. |
+| `config.ts` | One config per source: strategy `html`, `pdf`, `manual-js` or `manual`; frequency; markers; terms review. **All 23 are disabled** until a terms and robots review is recorded. `validateMonitorConfigs` requires `robotsAllows === true`, `termsAllow === true`, a named reviewer and a valid date; truthy values don't count. `runMonitor` calls it first and refuses the whole run, with **zero network requests**, if any config is invalid. |
+| `store.ts` | `MonitorStore` interface; `MemoryStore` (tests); `FileStore` (JSON files plus an append-only `audit.jsonl`). The audit log is hash-chained (`verifyAuditChain`). Open review items are de-duplicated. A lease lock stops overlapping runs. **Cross-process safe:** every FileStore operation holds an O_EXCL lock file, with writes fsynced and states replaced by atomic rename. **Fails closed:** a held or stale lock raises `StoreLockedError` (the store never breaks someone else's lock), and corrupt state or a tampered audit chain raises `StoreIntegrityError` instead of being reset or extended. |
 | `runner.ts` | `runMonitor`: lock → due sources → robots.txt per host → rate-limited, retried fetch → extract → compare → state, snapshots, audit, review items. `monitorMetrics` reports success rate, open items and backlog age. |
 
 ### What a detected change produces
@@ -110,7 +110,8 @@ The runner never edits a rule, a source or `Source.checked`. Tests enforce this.
 - **PDF timeout.** The 20 s PDF timeout stops waiting but can't interrupt a running pdfjs parse. 2B-D should run extraction in a worker thread or a separate process with a memory limit.
 - **HTML extraction is regex-based.** It's adequate for change detection but isn't a full parser. Per-source markers reduce noise.
 - **JavaScript-rendered pages.** These are `manual-js` only. A headless browser would widen the attack surface and needs its own review.
-- **FileStore** is single-writer by design. Concurrent writers need the Postgres store (D1).
+- **FileStore is safe for several processes on one local disk,** but not on network filesystems or across machines. If a process crashes mid-write, its lock file stays behind and every later operation fails closed until a person removes it. Multi-user review (2B-B) still needs the Postgres store (D1).
+- **Each audit append re-verifies the whole chain.** That's fine at current volumes; Postgres will replace it.
 - **The production transport ignores HTTP(S) proxies.** The runner must run where direct egress is allowed, such as GitHub Actions.
 
 ## 5. Phase 2B-B to 2B-D (designed, not built)

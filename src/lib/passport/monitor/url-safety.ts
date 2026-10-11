@@ -39,6 +39,9 @@ const V4_BLOCKED: [string, number][] = [
   ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
   ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.88.99.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24],
   ["203.0.113.0", 24], ["224.0.0.0", 4], ["240.0.0.0", 4],
+  // Cloud metadata / platform endpoints on otherwise public addresses (169.254.169.254 and
+  // 100.100.100.200 are already covered by the link-local and CGNAT ranges above).
+  ["168.63.129.16", 32], // Azure WireServer
 ];
 
 function isBlockedV4(ip: string): boolean {
@@ -72,6 +75,7 @@ function isBlockedV6(ip: string): boolean {
   const embeddedV4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
   if (g.every((x) => x === 0)) return true; // ::
   if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true; // ::1
+  if (g.slice(0, 6).every((x) => x === 0)) return true; // ::/96 (deprecated IPv4-compatible, e.g. ::127.0.0.1)
   if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) return isBlockedV4(embeddedV4(g[6], g[7])); // IPv4-mapped
   if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) return isBlockedV4(embeddedV4(g[6], g[7])); // NAT64
   if (g[0] === 0x2002) return isBlockedV4(embeddedV4(g[1], g[2])); // 6to4

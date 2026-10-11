@@ -52,9 +52,17 @@ export function validateMonitorConfigs(configs: SourceMonitorConfig[], sources: 
     seen.add(c.sourceId);
     if (!ids.has(c.sourceId)) issues.push(`${c.sourceId}: no such source`);
     if (!Number.isInteger(c.frequencyDays) || c.frequencyDays < 1) issues.push(`${c.sourceId}: frequencyDays must be a whole number ≥ 1`);
-    if (c.enabled) {
-      if (!c.termsReview) issues.push(`${c.sourceId}: enabled without a recorded terms/robots review`);
-      else if (!c.termsReview.robotsAllows || !c.termsReview.termsAllow) issues.push(`${c.sourceId}: enabled although the review did not allow automated access`);
+    if (typeof c.enabled !== "boolean") issues.push(`${c.sourceId}: enabled must be true or false`);
+    if (!["html", "pdf", "manual-js", "manual"].includes(c.strategy)) issues.push(`${c.sourceId}: unknown strategy`);
+    if (c.enabled !== false) {
+      // Only an explicit, complete, positive review counts. Truthy values ("yes", 1) do not.
+      const r = c.termsReview;
+      if (!r) issues.push(`${c.sourceId}: enabled without a recorded terms/robots review`);
+      else {
+        if (r.robotsAllows !== true || r.termsAllow !== true) issues.push(`${c.sourceId}: enabled although the review did not explicitly allow automated access`);
+        if (typeof r.reviewer !== "string" || !r.reviewer.trim()) issues.push(`${c.sourceId}: review has no named reviewer`);
+        if (typeof r.reviewedOn !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedOn) || Number.isNaN(Date.parse(r.reviewedOn))) issues.push(`${c.sourceId}: review date is not a valid ISO date`);
+      }
       if (c.strategy === "manual" || c.strategy === "manual-js") issues.push(`${c.sourceId}: manual strategies cannot be enabled for automated fetching`);
     }
   }
