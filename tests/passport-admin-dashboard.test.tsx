@@ -14,7 +14,7 @@ describe("passport verification admin dashboard", () => {
 
   it("shows supplied release and audit records without action controls", () => {
     const html = renderToStaticMarkup(<AdminDashboard summary={summary} preview
-      releases={[{ id: "r1", label: "October evidence batch", evidenceCount: 2, status: "blocked" }]}
+      releases={[{ id: "r1", label: "October evidence batch", evidenceCount: 2, status: "withdrawn" }]}
       audit={[{ id: "a1", eventType: "evidence_submitted", actorLabel: "researcher", occurredAt: "2026-10-11T12:00:00Z" }]} />);
     expect(html).toContain("October evidence batch");
     expect(html).toContain("evidence_submitted");
