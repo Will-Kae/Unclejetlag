@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassportBearer } from "@/lib/passport/verification/auth";
+import { extractPassportBearer } from "@/lib/passport/verification/session-token";
 import { isVerificationEnabled, verificationConfig } from "@/lib/passport/verification/server-config";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +35,9 @@ function isAudit(value: unknown): value is Audit {
 /** Private, read-only operational summary. Counts are based on capped datasets. */
 export async function GET(request: NextRequest) {
   if (!isVerificationEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
-  const token = authorization.slice(7);
-  if (!token || token.length > 8192 || /\s/.test(token)) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
+  const token = extractPassportBearer(request.headers.get("authorization"));
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
+
   const identity = await verifyPassportBearer(token);
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
   if (identity.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: noStore });
