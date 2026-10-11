@@ -23,6 +23,8 @@ const tokens = Object.fromEntries(Object.entries(tokenVars).map(([role, key]) =>
 if (Object.values(tokens).some((token) => !token || token.length > 8192 || /\s/.test(token))) {
   throw new Error("All three valid test access tokens are required");
 }
+const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+if (!bypass || /\s/.test(bypass)) throw new Error("Valid Vercel automation bypass secret is required");
 const paths = ["me", "researcher", "reviewer", "admin"];
 const expectations = {
   researcher: [200, 200, 403, 403],
@@ -33,7 +35,7 @@ let failures = 0;
 async function check(role, path, token, expected) {
   try {
     const response = await fetch(new URL(`/api/passport-verification/${path}`, url), {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { "x-vercel-protection-bypass": bypass, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
       redirect: "error",
@@ -50,7 +52,7 @@ async function check(role, path, token, expected) {
       }
     }
   } catch {
-    console.log(`FAIL ${role}/${path}: request failed`);
+    console.log(`FAIL ${role}/${path}: request failed (check Vercel protection, network, or timeout)`);
     failures++;
   }
 }
