@@ -21,6 +21,7 @@ jobs:
       PASSPORT_RESEARCHER_TOKEN: ${{ secrets.PASSPORT_RESEARCHER_TOKEN }}
       PASSPORT_REVIEWER_TOKEN: ${{ secrets.PASSPORT_REVIEWER_TOKEN }}
       PASSPORT_ADMIN_TOKEN: ${{ secrets.PASSPORT_ADMIN_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,7 +30,7 @@ jobs:
       - name: Confirm staging credentials are configured
         shell: bash
         run: |
-          for name in PASSPORT_STAGING_URL PASSPORT_RESEARCHER_TOKEN PASSPORT_REVIEWER_TOKEN PASSPORT_ADMIN_TOKEN; do
+          for name in PASSPORT_STAGING_URL PASSPORT_RESEARCHER_TOKEN PASSPORT_REVIEWER_TOKEN PASSPORT_ADMIN_TOKEN VERCEL_AUTOMATION_BYPASS_SECRET; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing required protected staging secret: $name"
               exit 1
