@@ -17,7 +17,7 @@ anon_code="$(curl -sS -o /tmp/passport-anon-response -w '%{http_code}' -X POST "
 # The service key must reach the RPC and fail on validation, not on privileges.
 service_code="$(curl -sS -o /tmp/passport-service-response -w '%{http_code}' -X POST "$api/passport_server_submit" \
  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
- -H 'Content-Type: application/json' -d '{}')"
+ -H 'Content-Type: application/json' -d '{"p_actor":"00000000-0000-4000-8000-000000000099","p_rule_id":"ci-smoke","p_passport_code":"AUS","p_destination_code":"ZAF","p_access":"visa_free","p_source_id":"official","p_source_url":"https://example.gov/visa","p_observed_at":"2026-10-12T00:00:00Z","p_rationale":"Independent verification smoke check evidence.","p_ai_assisted":false}')"
 [[ "$service_code" == "400" ]] || {
   echo "Service RPC failed with unexpected HTTP $service_code" >&2
   cat /tmp/passport-service-response >&2; exit 1;
