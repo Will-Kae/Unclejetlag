@@ -1,47 +1,31 @@
-# Local Passport Phase 2B Database Tests
+# Uncle Jetlag Passport Verification — Isolated Security Test Record
 
-**Status: preparation only. No migration has been validated yet.**
+**Updated 12 October 2026.** All tests described below run on the feature branch `phase-2b/verification-workflow` (draft PR #8). This document is not authorization to deploy.
 
-## Requirements
+## Verified in GitHub Actions
 
-On your Mac, install and start Docker Desktop, install the Supabase CLI and PostgreSQL client `psql`, and check out `phase-2b/verification-workflow` in your private Uncle Jetlag repository.
+- Disposable PostgreSQL 17: staged migrations, schema permissions, row-level security, submission/review/resubmission state transitions, self-review rejection, stale revisions, finalized evidence immutability, atomic audit rollback, concurrent approval contention, and rate limiting.
+- Disposable Supabase CLI stack: real local Auth accounts, authenticated-client denial of privileged RPCs and protected tables, PostgREST submit → request changes → resubmit → approve, stale-review rejection, audit assertions, and 11th-call rate limiting.
+- Preservation harness: TypeScript, unit and contract tests, local website build, browser checks, and isolated database tests.
+- Next.js write handler: feature-flag gates, origin restrictions, authenticated role checks, strict payload validation, rate-limit fail-closed behavior, verified actor ID forwarding, and sanitized RPC errors (unit-tested with mocks).
 
-**Never run `supabase db push`, `supabase link`, or remote SQL scripts for these tests.** Do not paste secrets or database passwords into ChatGPT.
+**Confirmed successful runs:** [preservation harness #125](https://github.com/Will-Kae/Unclejetlag/actions/runs/38276260793), [isolated database #32](https://github.com/Will-Kae/Unclejetlag/actions/runs/38276260883), [local Supabase integration #11](https://github.com/Will-Kae/Unclejetlag/actions/runs/38276260776).
 
-## First pass
+## Release blockers / unverified assumptions
 
-```bash
-git switch phase-2b/verification-workflow
-git pull --ff-only
-bash scripts/passport/run-local-security.sh
-```
+1. No real hosted **staging** deployment has been tested with its actual Vercel environment, HTTPS origin allowlist, Supabase secrets and private verification accounts. Local Supabase API tests do not establish hosted configuration correctness.
+2. The full Next.js HTTP handler → Supabase Auth → role lookup → rate limiter → RPC chain has not been exercised end-to-end against the disposable Supabase instance with both release gates enabled. Handler tests use mocks; local RPC tests call PostgREST directly.
+3. Security and operations review is still needed for abuse resistance, maximum request body bytes (do not trust Content-Length alone), monitoring, credential rotation, rollback and database backups.
+4. The existing hosted production Supabase project must not be used for tests or migrations without explicit authorization and a reviewed deployment plan.
 
-This script checks for Docker/CLI/psql, refuses database URLs in `DATABASE_URL`, `SUPABASE_DB_URL`, or `PGHOST`, and requires the DB URL reported by the local Supabase CLI to point to localhost. It then runs `tests/passport/sql/structural-security.sql`.
+## Release controls
 
-**Caution:** The local Supabase CLI applies all tracked migrations. Inspect migration ordering and check for conflicts before running. The current staged migrations have not yet been tested together; the script may fail. If it does, save only the error message (redact credentials) and do not modify your remote project.
+- `PASSPORT_TRANSACTIONAL_WRITES_ENABLED` must remain unset/false.
+- `PASSPORT_WRITE_RPC_BRIDGE_ENABLED` must remain unset/false.
+- `PASSPORT_VERIFICATION_WORKSPACE_ENABLED` must not be enabled in production without approval.
+- Keep PR #8 in **draft**. Do not merge or deploy staged migrations.
+- Never expose `passport_internal`, Supabase service-role secrets or private verification tables to browser clients.
 
-## Acceptance criteria
+## Local reproduction
 
-1. All staged migrations apply successfully on a disposable local instance.
-2. Structural security SQL passes.
-3. Submission/review/resubmission fixture tests pass (still to be authored).
-4. Self-review, stale revision, unauthorized actor, and mutation of finalized evidence all fail.
-5. Audit insertion failure rolls back the associated transaction.
-6. Two concurrent reviews cannot both finalize the same revision.
-7. Eleven rate-limit calls in the same minute produce 10 allowed, then 1 denied.
-8. TypeScript, unit, build and browser tests all pass in CI.
-
-Until every criterion is satisfied, leave `PASSPORT_TRANSACTIONAL_WRITES_ENABLED` unset/false and PR #8 in draft.
-
-
-## Automated CI alternative (2026-10-12)
-
-The project now runs passport migrations on disposable PostgreSQL 17 in GitHub Actions; Mac/Docker setup is optional.
-
-- Workflow: `.github/workflows/passport-isolated-db.yml`
-- The PR preservation harness also runs the `passport-db` job.
-- Bootstrap: `tests/passport/sql/ci-bootstrap.sql` (fake auth schema/roles, CI only).
-- Structural assertions: `tests/passport/sql/structural-security.sql`.
-- Transaction fixtures: `tests/passport/sql/transactional-security.sql`.
-
-The isolated workflow run **38220857859 passed** on commit `2eea3b8`: all staged migrations, structural assertions and basic transaction fixtures passed. It is PostgreSQL-only and does not validate all Supabase-hosted integration or browser-to-API flows. Concurrency, forced audit rollback and API end-to-end mutation tests remain required before enabling writes. Do not deploy migrations to the existing hosted project until those checks and a manual security review are complete.
+CI runs automatically on PR changes. Optional local reproduction requires Docker and Supabase CLI. Use `supabase start` against the disposable local stack only. Never run `supabase link`, `supabase db push`, or remote SQL against the hosted project during testing.
