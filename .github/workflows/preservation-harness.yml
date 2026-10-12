@@ -95,3 +95,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/transactional-security.sql
       - name: Assert audit failure atomic rollback
         run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/audit-rollback.sql
+      - name: Reject concurrent duplicate approvals
+        run: bash tests/passport/concurrent-review.sh
