@@ -57,7 +57,9 @@ test("DiscoverCars widget keeps its affiliate attributes", async ({ page }) => {
   await expect(s).toHaveCount(1, { timeout: 15_000 });
   await expect(s).toHaveAttribute("data-utm-source", "unclejetlag");
   await expect(s).toHaveAttribute("data-aff-code", "a_aid");
-  await expect(s).toHaveAttribute("data-aff-channel", "code1");
+  await expect(s).toHaveAttribute("data-aff-value", "unclejetlag");
+  await expect(s).toHaveAttribute("data-lang", "en");
+  await expect(s).not.toHaveAttribute("data-aff-channel", /.+/);
 });
 
 test("Insurance: Genki calculator iframe and World Nomads / Genki partner links", async ({ page }) => {
