@@ -96,6 +96,22 @@ function DiscoverCarsLoader({ fallbackHref }: { fallbackHref: string }) {
     return () => io.disconnect();
   }, []);
 
+  // The provider creates its iframe dynamically without a title. Apply an accessible
+  // name as soon as the iframe appears; this does not alter its URL or tracking.
+  useEffect(() => {
+    if (!nearViewport) return;
+    const setFrameTitle = () => {
+      const frame = document.getElementById("discoFrameId");
+      if (frame instanceof HTMLIFrameElement && !frame.title.trim()) {
+        frame.title = "DiscoverCars car rental search";
+      }
+    };
+    setFrameTitle();
+    const observer = new MutationObserver(setFrameTitle);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [nearViewport]);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !nearViewport) return;
