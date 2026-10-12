@@ -42,3 +42,11 @@
 - Use strict source URL parsing/allowlisting for any server-side fetching; do not fetch user-supplied URLs from the database without SSRF controls.
 - Release eligibility must be rechecked in the same transaction as final publication, including active independent approval for the current revision, no open conflicts, and immutable dataset hash.
 - Acceptance tests still outstanding: revision resubmission, immutable approved evidence, audit rollback, concurrent reviews, stale revision rejection, disabled reviewer, release race, negative privilege checks, and Next.js/CI checks.
+
+## Staged resubmission state machine (2026-10-12; not deployed)
+
+Migration `20261012091000_passport_resubmission_state_machine.sql` adds a private-schema, service-role-only `SECURITY INVOKER` resubmission function. It locks the evidence row, requires `changes_requested` and matching revision, requires the original active researcher, increments revision exactly once, returns it to `submitted`, and writes an audit event in the same transaction. A submission transition trigger prohibits modification of finalized `approved`/`rejected` evidence and limits transitions.
+
+**Integration security gate:** `p_actor` is a privileged server-supplied argument. The Next.js server must verify the user's Supabase access token and obtain the verified `user.id` before invoking the function with the server-only service role. Never expose this RPC or service-role credentials to the browser. Until that route is implemented and tested, this is not end-to-end authorization.
+
+**Unresolved:** transactional review RPC redesign; strict trigger protection against direct privileged modifications; verified schema/migration ordering; test fixture migrations; concurrent review/audit rollback tests; private-schema PostgREST exposure and grants; source URL validation/SSRF if URLs are fetched; migration test on disposable database. Do not apply to staging or production yet.
