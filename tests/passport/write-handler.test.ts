@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   rate: vi.fn(),
   origin: vi.fn(() => true),
+  execute: vi.fn(),
 }));
 
 vi.mock("../../src/lib/passport/verification/server-config", () => ({
@@ -19,6 +20,10 @@ vi.mock("../../src/lib/passport/verification/write-rate-limit", () => ({
 }));
 vi.mock("../../src/lib/passport/verification/write-origin", () => ({
   allowedPassportWriteOrigin: mocks.origin,
+}));
+
+vi.mock("../../src/lib/passport/verification/mutation-executor", () => ({
+  executePassportMutation: mocks.execute,
 }));
 
 import { handlePassportWrite } from "../../src/lib/passport/verification/write-handler";
@@ -47,6 +52,8 @@ describe("passport write HTTP boundary (no real database or credentials)", () =>
     mocks.auth.mockResolvedValue({ status: 200, identity: { userId: "00000000-0000-4000-8000-000000000001", role: "researcher" } });
     mocks.rate.mockResolvedValue("allowed");
     process.env.PASSPORT_TRANSACTIONAL_WRITES_ENABLED = "false";
+    process.env.PASSPORT_WRITE_RPC_BRIDGE_ENABLED = "false";
+    mocks.execute.mockResolvedValue("00000000-0000-4000-8000-000000000099");
   });
   it("404 when workspace is off", async () => {
     mocks.enabled.mockReturnValue(false);
@@ -100,5 +107,22 @@ describe("passport write HTTP boundary (no real database or credentials)", () =>
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("Transactional integration not released");
     expect(res.headers.get("cache-control")).toContain("no-store");
+    expect(mocks.execute).not.toHaveBeenCalled();
+  });
+  it("requires both release flags and uses verified actor, not browser actor", async () => {
+    process.env.PASSPORT_TRANSACTIONAL_WRITES_ENABLED = "true";
+    process.env.PASSPORT_WRITE_RPC_BRIDGE_ENABLED = "true";
+    const res = await handlePassportWrite(req(good), "submit");
+    expect(res.status).toBe(201);
+    expect(mocks.execute).toHaveBeenCalledWith("submit", "00000000-0000-4000-8000-000000000001", expect.objectContaining({ p_rule_id: "rule-1" }));
+    expect(JSON.stringify(mocks.execute.mock.calls)).not.toContain("p_actor");
+  });
+  it("fails closed and hides database errors", async () => {
+    process.env.PASSPORT_TRANSACTIONAL_WRITES_ENABLED = "true";
+    process.env.PASSPORT_WRITE_RPC_BRIDGE_ENABLED = "true";
+    mocks.execute.mockRejectedValue(new Error("sensitive SQL connection secret"));
+    const res = await handlePassportWrite(req(good), "submit");
+    expect(res.status).toBe(503);
+    expect(JSON.stringify(await res.json())).not.toContain("sensitive");
   });
 });
