@@ -1,11 +1,14 @@
 import { getPartner } from "@/data/partners";
 import { ArrowUpRight, Shield, Globe } from "@/components/ui/icons";
 import { CjImpressionPixel } from "@/components/partners/CjImpressionPixel";
+import { ConsentGate } from "@/components/consent/ConsentGate";
 
 /**
  * Travel Insurance & International Health Cover (Jetlag Guides hub).
  *
  * Partners: World Nomads (CJ link + CJ impression pixel) and Genki (official calculator iframe + product links).
+ * The Genki iframe sits in a ConsentGate (Phase 3A): it loads only after advertising consent or the
+ * visitor pressing "Load health insurance calculator". The partner links need no gate.
  * Links go straight to each partner's issued tracking URL, unmodified, read from the partner registry.
  * Descriptions are deliberately factual: no benefits, prices, exclusions or eligibility are claimed here.
  */
@@ -97,16 +100,18 @@ export function TravelInsuranceSection({ className = "mt-20" }: { className?: st
               </div>
             </div>
             <div className="mt-4 flex justify-center">
-              {/* Official Genki embed. Attributes kept as issued; only the outer width is capped so it fits phones. */}
-              <iframe
-                width="400"
-                height="640"
-                loading="lazy"
-                title="Genki International Health Insurance Calculator"
-                style={{ background: "transparent", border: "none", maxWidth: "100%" }}
-                sandbox="allow-popups allow-popups-to-escape-sandbox allow-scripts"
-                src={GENKI_CALCULATOR}
-              />
+              <ConsentGate service="genki-calculator" minHeight={360}>
+                {/* Official Genki embed. Attributes kept as issued; only the outer width is capped so it fits phones. */}
+                <iframe
+                  width="400"
+                  height="640"
+                  loading="lazy"
+                  title="Genki International Health Insurance Calculator"
+                  style={{ background: "transparent", border: "none", maxWidth: "100%" }}
+                  sandbox="allow-popups allow-popups-to-escape-sandbox allow-scripts"
+                  src={GENKI_CALCULATOR}
+                />
+              </ConsentGate>
             </div>
           </article>
 

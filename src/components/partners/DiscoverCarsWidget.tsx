@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ConsentGate } from "@/components/consent/ConsentGate";
 
 /**
  * Official DiscoverCars affiliate search widget.
@@ -12,8 +13,9 @@ import { useEffect, useRef, useState } from "react";
  * - The loader script is injected once, into this component's own container, after mount.
  *   It renders an iframe beside the script tag. On unmount the container is emptied, so
  *   client-side navigation back to the page never produces a second widget.
- * - It loads for every visitor once the section is near the viewport (owner's decision,
- *   October 2026). The privacy policy says DiscoverCars may set cookies when it loads.
+ * - It loads once the section is near the viewport, but only after the visitor accepts advertising
+ *   cookies or presses "Load car hire search" (Phase 3A; replaces the October 2026 load-for-everyone
+ *   decision, by owner approval on 12 October 2026). A plain affiliate link is offered meanwhile.
  */
 const WIDGET_SRC = "https://www.discovercars.com/widget.js?v1";
 
@@ -48,6 +50,26 @@ const WIDGET_ATTRS: Record<string, string> = {
 };
 
 export function DiscoverCarsWidget({ fallbackHref }: { fallbackHref: string }) {
+  return (
+    <ConsentGate
+      service="discovercars"
+      minHeight={320}
+      fallback={
+        <>
+          Prefer not to load it?{" "}
+          <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="font-semibold text-sky underline">
+            Compare car hire prices on DiscoverCars
+          </a>
+          .
+        </>
+      }
+    >
+      <DiscoverCarsLoader fallbackHref={fallbackHref} />
+    </ConsentGate>
+  );
+}
+
+function DiscoverCarsLoader({ fallbackHref }: { fallbackHref: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [nearViewport, setNearViewport] = useState(false);
   const [failed, setFailed] = useState(false);
