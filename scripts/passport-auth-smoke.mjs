@@ -68,3 +68,48 @@ if (failures) {
 } else {
   console.log("Staging authorization smoke tests passed (read-only).");
 }
+
+/**
+ * Optional live expiry check. Uses the existing researcher token, never logs it,
+ * and waits for the JWT exp claim plus a small clock-skew margin.
+ * Enable with PASSPORT_EXPIRY_TEST=1 in a local interactive test run.
+ */
+if (process.env.PASSPORT_EXPIRY_TEST === "1") {
+  const token = tokens.researcher;
+  const jwtParts = token.split(".");
+  let expiry;
+  try {
+    if (jwtParts.length !== 3) throw new Error("Invalid JWT");
+    const claims = JSON.parse(Buffer.from(jwtParts[1], "base64url").toString("utf8"));
+    if (!Number.isSafeInteger(claims.exp)) throw new Error("Missing expiry");
+    expiry = claims.exp * 1000;
+  } catch {
+    console.error("FAIL expiry: researcher token does not have a valid JWT expiry");
+    process.exitCode = 1;
+  }
+  if (expiry) {
+    const endpoint = new URL("/api/passport-verification/me", url);
+    const headers = { Authorization: `Bearer ${token}`, "x-vercel-protection-bypass": bypass };
+    const request = () => fetch(endpoint, {
+      headers, cache: "no-store", redirect: "error",
+      signal: AbortSignal.timeout(10000),
+    });
+    try {
+      const before = await request();
+      if (before.status !== 200) throw new Error(`pre-expiry HTTP ${before.status} (expected 200)`);
+      const delay = Math.max(0, expiry + 10000 - Date.now());
+      if (delay > 90 * 60 * 1000) throw new Error("token expiry is over 90 minutes away");
+      console.log(`PASS expiry preflight: HTTP 200. Waiting approximately ${Math.ceil(delay / 60000)} minutes for token expiry; keep Terminal open.`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      const after = await request();
+      const noStore = (after.headers.get("cache-control") || "").includes("no-store");
+      if (after.status !== 401 || !noStore) {
+        throw new Error(`post-expiry HTTP ${after.status} (expected 401); no-store=${noStore}`);
+      }
+      console.log("PASS expired-token API rejection: HTTP 401; no-store=true");
+    } catch (error) {
+      console.error(`FAIL expiry: ${error instanceof Error ? error.message : "request failed"}`);
+      process.exitCode = 1;
+    }
+  }
+}
