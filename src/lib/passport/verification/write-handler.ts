@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isVerificationEnabled } from "@/lib/passport/verification/server-config";
 import { verifyPassportMutation } from "@/lib/passport/verification/mutation-auth";
 import { toDatabaseFields, type PassportMutationKind } from "@/lib/passport/verification/mutation-validation";
+import { allowedPassportWriteOrigin } from "@/lib/passport/verification/write-origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,6 +14,9 @@ export async function handlePassportWrite(
 ) {
   if (!isVerificationEnabled()) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers });
+  }
+  if (!allowedPassportWriteOrigin(request.headers.get("origin"), process.env.PASSPORT_WRITE_ALLOWED_ORIGINS)) {
+    return NextResponse.json({ error: "Forbidden origin" }, { status: 403, headers });
   }
   const auth = await verifyPassportMutation(
     request.headers.get("authorization"),
