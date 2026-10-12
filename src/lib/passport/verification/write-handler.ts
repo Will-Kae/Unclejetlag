@@ -4,6 +4,7 @@ import { verifyPassportMutation } from "@/lib/passport/verification/mutation-aut
 import { toDatabaseFields, type PassportMutationKind } from "@/lib/passport/verification/mutation-validation";
 import { allowedPassportWriteOrigin } from "@/lib/passport/verification/write-origin";
 import { checkPassportWriteRateLimit } from "@/lib/passport/verification/write-rate-limit";
+import { executePassportMutation } from "@/lib/passport/verification/mutation-executor";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,15 +44,26 @@ export async function handlePassportWrite(
   }
   // Even if the flag is accidentally enabled, do not execute until the
   // production-grade protections and database tests are implemented.
-  let body: unknown;
+  let fields: ReturnType<typeof toDatabaseFields>;
   try {
     if (Number(request.headers.get("content-length") || 0) > 16384) {
       return NextResponse.json({ error: "Payload too large" }, { status: 413, headers });
     }
-    body = await request.json();
-    toDatabaseFields(kind, body);
+    const body: unknown = await request.json();
+    fields = toDatabaseFields(kind, body);
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400, headers });
   }
-  return NextResponse.json({ error: "Transactional integration not released" }, { status: 503, headers });
+  // A second independent opt-in is required to exercise the RPC bridge.
+  // Neither flag is enabled in production. Do not enable until deployment review.
+  if (process.env.PASSPORT_WRITE_RPC_BRIDGE_ENABLED !== "true") {
+    return NextResponse.json({ error: "Transactional integration not released" }, { status: 503, headers });
+  }
+  try {
+    const result = await executePassportMutation(kind, auth.identity.userId, fields);
+    return NextResponse.json({ result }, { status: kind === "submit" ? 201 : 200, headers });
+  } catch {
+    // Never disclose database error messages or credentials to callers.
+    return NextResponse.json({ error: "Passport transaction unavailable or rejected" }, { status: 503, headers });
+  }
 }
