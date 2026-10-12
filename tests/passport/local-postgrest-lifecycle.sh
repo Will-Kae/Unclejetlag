@@ -59,7 +59,7 @@ done
 
 # Verify the shared PostgREST rate limiter enforces 10 calls per actor/operation/minute.
 for i in {1..11}; do
-  code="$(request passport_server_rate_limit "{\\"p_actor\\":\\"$researcher\\",\\"p_operation\\":\\"review\\"}" /tmp/passport-rate-limit.json)"
+  code="$(request passport_server_rate_limit "{\"p_actor\":\"$researcher\",\"p_operation\":\"review\"}" /tmp/passport-rate-limit.json)"
   [[ "$code" == 200 ]] || { cat /tmp/passport-rate-limit.json; echo "Rate limit RPC HTTP $code"; exit 1; }
   actual="$(cat /tmp/passport-rate-limit.json)"
   if (( i <= 10 )); then
