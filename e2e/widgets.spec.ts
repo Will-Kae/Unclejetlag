@@ -62,6 +62,20 @@ test("DiscoverCars widget keeps its affiliate attributes", async ({ page }) => {
   await expect(s).not.toHaveAttribute("data-aff-channel", /.+/);
 });
 
+test("DiscoverCars dynamically injected iframe receives an accessible title", async ({ page }) => {
+  await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Load car hire search" }).click();
+  await expect(page.locator('script[src="https://www.discovercars.com/widget.js?v1"]')).toHaveCount(1);
+  // Provider requests are blocked; simulate its dynamically inserted iframe.
+  await page.evaluate(() => {
+    const iframe = document.createElement("iframe");
+    iframe.id = "discoFrameId";
+    iframe.src = "about:blank";
+    document.body.appendChild(iframe);
+  });
+  await expect(page.locator("#discoFrameId")).toHaveAttribute("title", "DiscoverCars car rental search");
+});
+
 test("Insurance: Genki calculator iframe and World Nomads / Genki partner links", async ({ page }) => {
   await page.goto("/insurance");
   const iframe = page.locator('iframe[src^="https://widgets.genki.world/calculator"]');
