@@ -104,11 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   })();`,
           }}
         />
-        {ADSENSE_CLIENT && (
-          // AdSense code in <head> (site verification + Auto ads). Consent Mode defaults above load first,
-          // so Google only uses cookies/personalisation after the visitor opts in.
-          <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossOrigin="anonymous" />
-        )}
+
       </head>
       <body className="min-h-dvh">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-paper">
