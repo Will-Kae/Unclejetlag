@@ -3,6 +3,7 @@ import { isVerificationEnabled } from "@/lib/passport/verification/server-config
 import { verifyPassportMutation } from "@/lib/passport/verification/mutation-auth";
 import { toDatabaseFields, type PassportMutationKind } from "@/lib/passport/verification/mutation-validation";
 import { allowedPassportWriteOrigin } from "@/lib/passport/verification/write-origin";
+import { checkPassportWriteRateLimit } from "@/lib/passport/verification/write-rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,6 +33,13 @@ export async function handlePassportWrite(
   // database integration tests, and migration verification have passed.
   if (process.env.PASSPORT_TRANSACTIONAL_WRITES_ENABLED !== "true") {
     return NextResponse.json({ error: "Writes are not enabled" }, { status: 503, headers });
+  }
+  const limit = await checkPassportWriteRateLimit(auth.identity.userId, kind);
+  if (limit === "limited") {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { ...headers, "Retry-After": "60" } });
+  }
+  if (limit === "unavailable") {
+    return NextResponse.json({ error: "Rate limiter unavailable" }, { status: 503, headers });
   }
   // Even if the flag is accidentally enabled, do not execute until the
   // production-grade protections and database tests are implemented.
