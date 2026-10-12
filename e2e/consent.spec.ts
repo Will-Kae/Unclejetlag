@@ -136,9 +136,9 @@ test("Accept all: Drive and the embedded tools load", async ({ page, context }) 
   await page.goto("/");
   await page.getByRole("button", { name: "Accept all" }).click();
   await exercise(page);
-  await page.goto("/insurance");
+  await page.goto("/insurance", { waitUntil: "domcontentloaded" });
   await exercise(page);
-  await page.goto("/guides/topics/car-rentals");
+  await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
   await exercise(page);
   await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "tpwidg.com", "creator.expediagroup.com", "www.discovercars.com", "widgets.genki.world", CJ]));
   await expect(page.locator("#travelpayouts-drive")).toHaveAttribute("src", "https://emrldtp.cc/NTgyNzYz.js?t=582763");
@@ -163,7 +163,7 @@ test("withdrawing advertising consent reloads the page and nothing third-party l
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(0);
   await expect(page.locator('[data-consent-placeholder="genki-calculator"]')).toBeVisible();
   for (const p of ["/", "/guides/topics/flights"]) {
-    await page.goto(p);
+    await page.goto(p, { waitUntil: "domcontentloaded" });
     await exercise(page);
   }
   expect(net.unique()).toEqual([]);
