@@ -2,7 +2,6 @@
 # CI-only: two PostgreSQL sessions race to approve the same revision.
 set -euo pipefail
 tmp="$(mktemp -d)"
-export PASSPORT_CI_LOCK_MARKER="$tmp/locked"
 trap 'rm -rf "$tmp"' EXIT
 
 psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -24,7 +23,6 @@ id="$(psql -At -v ON_ERROR_STOP=1 -c "select passport_internal.submit_evidence('
   psql -v ON_ERROR_STOP=1 -v id="$id" >"$tmp/a.log" 2>&1 <<'SQL'
 begin;
 select id from public.passport_evidence_submissions where id=:'id'::uuid for update;
-\! touch :marker
 select pg_sleep(4);
 select passport_internal.review_evidence('00000000-0000-4000-8000-000000000022', :'id'::uuid,1,'approve','Official evidence independently reviewed and approved.');
 commit;
@@ -34,11 +32,14 @@ a_pid=$!
 
 # Wait until session A has locked the row; fail if it never reaches that point.
 for i in {1..100}; do
-  [[ -f "$tmp/locked" ]] && break
+  # A is inside pg_sleep only after acquiring the evidence row lock.
+  if psql -At -v ON_ERROR_STOP=1 -c "select exists(select 1 from pg_stat_activity where query like 'select pg_sleep(4)%' and state='active')" | grep -qx t; then break; fi
   if ! kill -0 "$a_pid" 2>/dev/null; then cat "$tmp/a.log"; exit 1; fi
-  sleep 0.1
+  sleep 0.05
 done
-[[ -f "$tmp/locked" ]] || { echo "Lock not acquired"; cat "$tmp/a.log"; exit 1; }
+if ! psql -At -v ON_ERROR_STOP=1 -c "select exists(select 1 from pg_stat_activity where query like 'select pg_sleep(4)%' and state='active')" | grep -qx t; then
+  echo "Session A did not acquire lock in time" >&2; cat "$tmp/a.log"; exit 1
+fi
 
 # Session B attempts approval while A holds the row lock.
 (
