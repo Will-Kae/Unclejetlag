@@ -3,13 +3,14 @@
 import Script from "next/script";
 import { useEffect } from "react";
 import { useConsent } from "@/components/consent/ConsentProvider";
+import { ADSENSE_CLIENT } from "@/components/monetization/ads-config";
 import { mayLoadAdvertising, TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 /**
  * Loads GA4 only after analytics consent, and Travelpayouts Drive only after advertising consent.
- * (AdSense loads in <head> under Google Consent Mode; see layout.tsx.) Pressing an embedded tool's
+ * (AdSense loads only after advertising consent; Consent Mode defaults do not prevent requests.) Pressing an embedded tool's
  * "Load" button never loads Drive: that is a separate permission (src/lib/consent/services.ts).
  */
 export function ThirdPartyScripts() {
@@ -30,6 +31,9 @@ export function ThirdPartyScripts() {
 
   return (
     <>
+      {ADSENSE_CLIENT && ads && (
+        <Script id="adsense-consented" strategy="afterInteractive" src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossOrigin="anonymous" />
+      )}
       {GA_ID && consent?.analytics && (
         <>
           <Script id="ga4-src" strategy="afterInteractive" src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
