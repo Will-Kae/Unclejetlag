@@ -25,6 +25,20 @@ done
 researcher="$(python3 -c 'import json;print(json.load(open("/tmp/passport-researcher.json"))["id"])')"
 reviewer="$(python3 -c 'import json;print(json.load(open("/tmp/passport-reviewer.json"))["id"])')"
 [[ "$researcher" =~ ^[0-9a-f-]{36}$ && "$reviewer" =~ ^[0-9a-f-]{36}$ ]] || exit 1
+
+# A real signed-in researcher must still be denied direct PostgREST mutations.
+login_code="$(curl -sS -o /tmp/passport-auth-token.json -w '%{http_code}' -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H 'Content-Type: application/json' \
+  -d '{"email":"passport-ci-researcher@example.test","password":"local-only-test-password-987!"}')"
+[[ "$login_code" == 200 ]] || { cat /tmp/passport-auth-token.json; echo "Auth login HTTP $login_code"; exit 1; }
+access_token="$(python3 -c 'import json;print(json.load(open("/tmp/passport-auth-token.json"))["access_token"])')"
+client_code="$(curl -sS -o /tmp/passport-authenticated-response -w '%{http_code}' -X POST "$api/passport_server_submit" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $access_token" \
+  -H 'Content-Type: application/json' -d '{}')"
+[[ "$client_code" == 401 || "$client_code" == 403 || "$client_code" == 404 ]] || {
+  echo "SECURITY FAILURE: authenticated browser can invoke server-only RPC (HTTP $client_code)" >&2; exit 1;
+}
+
 sql -v researcher="$researcher" -v reviewer="$reviewer" <<'SQL'
 insert into public.passport_research_profiles(user_id,role,active)
 values (:'researcher'::uuid,'researcher',true),(:'reviewer'::uuid,'reviewer',true);
