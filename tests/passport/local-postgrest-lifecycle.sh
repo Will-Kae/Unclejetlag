@@ -53,6 +53,7 @@ approve="{\"p_actor\":\"$reviewer\",\"p_submission_id\":\"$id\",\"p_revision\":2
 code="$(request passport_server_review "$approve" /tmp/passport-approved.json)"
 [[ "$code" == 204 || "$code" == 200 ]] || { cat /tmp/passport-approved.json; echo "Approve HTTP $code"; exit 1; }
 sql -v id="$id" <<'SQL'
+select pg_catalog.set_config('passport.ci_submission_id', :'id', false);
 do $check$
 declare
   v_id uuid := current_setting('passport.ci_submission_id')::uuid;
