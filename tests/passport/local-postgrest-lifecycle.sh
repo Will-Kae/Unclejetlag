@@ -57,6 +57,18 @@ for table in passport_research_profiles passport_evidence_submissions passport_v
 done
 
 
+# Verify the shared PostgREST rate limiter enforces 10 calls per actor/operation/minute.
+for i in {1..11}; do
+  code="$(request passport_server_rate_limit "{\\"p_actor\\":\\"$researcher\\",\\"p_operation\\":\\"review\\"}" /tmp/passport-rate-limit.json)"
+  [[ "$code" == 200 ]] || { cat /tmp/passport-rate-limit.json; echo "Rate limit RPC HTTP $code"; exit 1; }
+  actual="$(cat /tmp/passport-rate-limit.json)"
+  if (( i <= 10 )); then
+    [[ "$actual" == true ]] || { echo "Premature rate limit on request $i"; exit 1; }
+  else
+    [[ "$actual" == false ]] || { echo "SECURITY FAILURE: 11th request was not limited"; exit 1; }
+  fi
+done
+
 sql -v researcher="$researcher" -v reviewer="$reviewer" <<'SQL'
 insert into public.passport_research_profiles(user_id,role,active)
 values (:'researcher'::uuid,'researcher',true),(:'reviewer'::uuid,'reviewer',true);
