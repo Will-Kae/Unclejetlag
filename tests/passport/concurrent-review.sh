@@ -20,7 +20,7 @@ id="$(psql -At -v ON_ERROR_STOP=1 -c "select passport_internal.submit_evidence('
 
 # Session A locks the evidence row, waits to let B block, then approves.
 (
-  psql -v ON_ERROR_STOP=1 -v id="$id" -v marker="$tmp/locked" >"$tmp/a.log" 2>&1 <<'SQL'
+  psql -v ON_ERROR_STOP=1 -v id="$id" >"$tmp/a.log" 2>&1 <<'SQL'
 begin;
 select id from public.passport_evidence_submissions where id=:'id'::uuid for update;
 \! touch :marker
@@ -33,11 +33,11 @@ a_pid=$!
 
 # Wait until session A has locked the row; fail if it never reaches that point.
 for i in {1..100}; do
-  [[ -f "$tmp/locked" ]] && break
+  grep -q LOCK_ACQUIRED "$tmp/a.log" && break
   if ! kill -0 "$a_pid" 2>/dev/null; then cat "$tmp/a.log"; exit 1; fi
   sleep 0.1
 done
-[[ -f "$tmp/locked" ]] || { echo "Lock not acquired"; exit 1; }
+grep -q LOCK_ACQUIRED "$tmp/a.log" || { echo "Lock not acquired"; exit 1; }
 
 # Session B attempts approval while A holds the row lock.
 (
@@ -59,9 +59,10 @@ grep -q 'Unavailable or stale submission' "$tmp/b.log" || {
 }
 
 psql -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
-do $$
+select pg_catalog.set_config('passport.ci_submission_id', :'id', false);
+do $
 declare
-  v_id uuid := :'id'::uuid;
+  v_id uuid := current_setting('passport.ci_submission_id')::uuid;
 begin
   if (select status from public.passport_evidence_submissions where id=v_id) <> 'approved'
     or (select count(*) from public.passport_verification_reviews where submission_id=v_id) <> 1
