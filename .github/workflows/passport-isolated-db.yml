@@ -74,6 +74,7 @@ jobs:
           export SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           bash tests/passport/local-postgrest-smoke.sh
+          bash tests/passport/local-postgrest-lifecycle.sh
       - name: Stop disposable Supabase
         if: always()
         run: supabase stop --no-backup || true
