@@ -37,6 +37,7 @@ describe("partner identifiers are unchanged", () => {
     for (const a of ['"data-utm-source": "unclejetlag"', '"data-utm-medium": "widget"', '"data-aff-code": "a_aid"', '"data-aff-value": "unclejetlag"', 'const WIDGET_SRC = "https://www.discovercars.com/widget.js?v1"']) expect(dc).toContain(a);
     expect(dc).toContain('"data-lang": "en"');
     expect(dc).not.toContain('"data-aff-channel"');
+    expect(dc).toContain('frame.title = "DiscoverCars car rental search"');
     expect(read("src/components/partners/TravelInsuranceSection.tsx")).toContain('"https://widgets.genki.world/calculator?hue=111&saturation=46&with=unclejetlag"');
     expect(read("public/embeds/expedia-stays.html")).toContain('data-camref="1011l6tK2n"');
   });
