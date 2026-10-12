@@ -20,9 +20,7 @@ create or replace function public.passport_server_rate_limit(
 language plpgsql security invoker set search_path = ''
 as $$
 declare
-  v_start timestamptz := pg_catalog.to_timestamp(
-    pg_catalog.floor(pg_catalog.extract(epoch from pg_catalog.clock_timestamp()) / 60) * 60
-  );
+  v_start timestamptz := pg_catalog.date_trunc('minute', pg_catalog.clock_timestamp());
   v_hits integer;
 begin
   if p_actor is null or p_operation not in ('submit','review','resubmit') then
