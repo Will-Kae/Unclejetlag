@@ -39,6 +39,24 @@ client_code="$(curl -sS -o /tmp/passport-authenticated-response -w '%{http_code}
   echo "SECURITY FAILURE: authenticated browser can invoke server-only RPC (HTTP $client_code)" >&2; exit 1;
 }
 
+# Deny every privileged RPC and deny direct reads of protected tables.
+for endpoint in passport_server_review passport_server_resubmit passport_server_rate_limit; do
+  code="$(curl -sS -o /tmp/passport-authenticated-denied -w '%{http_code}' -X POST "$api/$endpoint" \
+    -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $access_token" \
+    -H 'Content-Type: application/json' -d '{}')"
+  [[ "$code" == 401 || "$code" == 403 || "$code" == 404 ]] || {
+    echo "SECURITY FAILURE: authenticated browser can invoke $endpoint (HTTP $code)" >&2; exit 1;
+  }
+done
+for table in passport_research_profiles passport_evidence_submissions passport_verification_reviews passport_verification_audit; do
+  code="$(curl -sS -o /tmp/passport-table-denied -w '%{http_code}' "$SUPABASE_URL/rest/v1/$table?select=*" \
+    -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $access_token")"
+  [[ "$code" == 401 || "$code" == 403 || "$code" == 404 ]] || {
+    echo "SECURITY FAILURE: authenticated browser can read $table (HTTP $code)" >&2; exit 1;
+  }
+done
+
+
 sql -v researcher="$researcher" -v reviewer="$reviewer" <<'SQL'
 insert into public.passport_research_profiles(user_id,role,active)
 values (:'researcher'::uuid,'researcher',true),(:'reviewer'::uuid,'reviewer',true);
