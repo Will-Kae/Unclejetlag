@@ -62,7 +62,7 @@ grep -q 'Unavailable or stale submission' "$tmp/b.log" || {
 
 psql -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
 select pg_catalog.set_config('passport.ci_submission_id', :'id', false);
-do $
+do $ci$
 declare
   v_id uuid := current_setting('passport.ci_submission_id')::uuid;
 begin
@@ -72,6 +72,6 @@ begin
         where object_id=v_id and action='evidence_reviewed') <> 1
   then raise exception 'Concurrent approval invariant violated'; end if;
   raise notice 'PASS exactly one approval and audit event';
-end $$;
+end $ci$;
 SQL
 echo "PASS second concurrent reviewer safely rejected"
