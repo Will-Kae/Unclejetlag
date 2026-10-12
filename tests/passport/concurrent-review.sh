@@ -2,6 +2,7 @@
 # CI-only: two PostgreSQL sessions race to approve the same revision.
 set -euo pipefail
 tmp="$(mktemp -d)"
+export PASSPORT_CI_LOCK_MARKER="$tmp/locked"
 trap 'rm -rf "$tmp"' EXIT
 
 psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -33,11 +34,11 @@ a_pid=$!
 
 # Wait until session A has locked the row; fail if it never reaches that point.
 for i in {1..100}; do
-  grep -q LOCK_ACQUIRED "$tmp/a.log" && break
+  [[ -f "$tmp/locked" ]] && break
   if ! kill -0 "$a_pid" 2>/dev/null; then cat "$tmp/a.log"; exit 1; fi
   sleep 0.1
 done
-grep -q LOCK_ACQUIRED "$tmp/a.log" || { echo "Lock not acquired"; exit 1; }
+[[ -f "$tmp/locked" ]] || { echo "Lock not acquired"; cat "$tmp/a.log"; exit 1; }
 
 # Session B attempts approval while A holds the row lock.
 (
