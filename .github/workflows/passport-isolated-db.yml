@@ -46,3 +46,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/structural-security.sql
       - name: Execute transactional security fixtures
         run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/transactional-security.sql
+      - name: Assert audit failure atomic rollback
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/audit-rollback.sql
