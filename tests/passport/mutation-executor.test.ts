@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("../../src/lib/passport/verification/server-config", () => ({
   verificationConfig: () => ({ url: "https://passport-ci.supabase.co", key: "CI_ONLY_SECRET" }),
 }));
