@@ -9,7 +9,9 @@ export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-
 export const ADSENSE_RELEASE_ENABLED = false;
 
 /** Whether AdSense may run at all in this build (before consent is considered). */
-export const ADSENSE_ACTIVE = ADSENSE_RELEASE_ENABLED && Boolean(ADSENSE_CLIENT);
+/** Separate release gate: only set true after certified CMP + live TCF and withdrawal tests pass. */
+export const ADSENSE_CMP_VERIFIED = false;
+export const ADSENSE_ACTIVE = ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED && Boolean(ADSENSE_CLIENT);
 export const SHOW_AD_PLACEHOLDERS = process.env.NEXT_PUBLIC_SHOW_AD_PLACEHOLDERS === "true";
 export type AdPosition = "after-intro" | "mid-article" | "end-of-article" | "sidebar";
 export const AD_SLOTS: Record<AdPosition, string | undefined> = {
