@@ -54,11 +54,12 @@ describe("partner identifiers are unchanged", () => {
     expect(read("src/components/partners/TravelInsuranceSection.tsx")).toContain('"https://widgets.genki.world/calculator?hue=111&saturation=46&with=unclejetlag"');
     expect(read("public/embeds/expedia-stays.html")).toContain('data-camref="1011l6tK2n"');
   });
-  it("keeps AdSense out of the server-rendered head and behind advertising consent", () => {
+  it("keeps AdSense out of the server-rendered head and behind the independent release gate", () => {
     const layout = read("src/app/layout.tsx");
     const scripts = read("src/components/monetization/ThirdPartyScripts.tsx");
     expect(layout).not.toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
-    expect(scripts).toContain("ADSENSE_ACTIVE && ads");
+    expect(scripts).toContain("ADSENSE_ACTIVE && (");
+    expect(scripts).not.toContain("ADSENSE_ACTIVE && ads");
     expect(scripts).toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
   });
   it("loads no executable Drive script from the layout", () => {
