@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ConsentGate } from "@/components/consent/ConsentGate";
 
 /**
  * Official Expedia Group search widget(s). Add a product here when Expedia issues its widget code.
@@ -11,13 +12,22 @@ import { useEffect, useRef, useState } from "react";
  * same-origin frame: every visit gets a fresh document and the widget always initialises. The
  * embed reports its height so the frame fits the widget with no inner scrollbar.
  *
- * Loads for every visitor once the section is near the viewport, like the DiscoverCars widget.
+ * Consent (Phase 3A): wrapped in ConsentGate. It loads once the section is near the viewport, but only
+ * after the visitor accepts advertising cookies or presses "Load hotel and stays search".
  */
 const PRODUCTS = {
   stays: { embed: "expedia-stays", title: "Search hotels and stays with Expedia" },
 } as const;
 
 export function ExpediaWidget({ product }: { product: keyof typeof PRODUCTS }) {
+  return (
+    <ConsentGate service="expedia-stays" minHeight={320}>
+      <ExpediaFrame product={product} />
+    </ConsentGate>
+  );
+}
+
+function ExpediaFrame({ product }: { product: keyof typeof PRODUCTS }) {
   const { embed, title } = PRODUCTS[product];
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);

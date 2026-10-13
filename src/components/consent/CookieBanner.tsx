@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { useConsent } from "./ConsentProvider";
 
 export function CookieBanner() {
-  const { consent, ready, save, settingsOpen, closeSettings } = useConsent();
+  const { consent, ready, save, settingsOpen, closeSettings, flightAnalytics } = useConsent();
   const [custom, setCustom] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [ads, setAds] = useState(false);
+  const [flights, setFlights] = useState(false);
 
   useEffect(() => {
     if (settingsOpen) {
@@ -16,8 +17,9 @@ export function CookieBanner() {
       setCustom(true);
       setAnalytics(consent?.analytics ?? false);
       setAds(consent?.ads ?? false);
+      setFlights(flightAnalytics === true);
     }
-  }, [settingsOpen, consent]);
+  }, [settingsOpen, consent, flightAnalytics]);
 
   if (!ready || (consent && !settingsOpen)) return null;
 
@@ -50,12 +52,19 @@ export function CookieBanner() {
             <input type="checkbox" checked={ads} onChange={(e) => setAds(e.target.checked)} className="mt-0.5 h-4 w-4 accent-jet" />
             <span><strong>Advertising:</strong> lets ad partners show and measure ads.</span>
           </label>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" checked={flights} onChange={(e) => setFlights(e.target.checked)} className="mt-0.5 h-4 w-4 accent-jet" />
+            <span>
+              <strong>Flight search analytics (Travelpayouts):</strong> needed to load the flight search. Travelpayouts stores a unique ID and your
+              visit times in <code>_sp_id.*</code> for about 13 months. Not included in &ldquo;Accept all&rdquo;.
+            </span>
+          </label>
         </fieldset>
       )}
 
       <div className="mt-3 flex flex-wrap gap-2 [&>button]:h-9 [&>button]:px-3.5 sm:[&>button]:h-10 sm:[&>button]:px-4">
         {custom ? (
-          <button onClick={() => save({ analytics, ads })} className="h-10 rounded-full bg-ink px-4 text-sm font-semibold text-paper">
+          <button onClick={() => save({ analytics, ads, flightAnalytics: flights || flightAnalytics !== null ? flights : undefined })} className="h-10 rounded-full bg-ink px-4 text-sm font-semibold text-paper">
             Save choices
           </button>
         ) : (
@@ -63,7 +72,7 @@ export function CookieBanner() {
             Customise
           </button>
         )}
-        <button onClick={() => save({ analytics: false, ads: false })} className="h-10 rounded-full border border-ink/15 px-4 text-sm font-semibold">
+        <button onClick={() => save({ analytics: false, ads: false, flightAnalytics: flightAnalytics === true ? false : undefined })} className="h-10 rounded-full border border-ink/15 px-4 text-sm font-semibold">
           Essential only
         </button>
         <button onClick={() => save({ analytics: true, ads: true })} className="h-10 rounded-full bg-jet px-4 text-sm font-semibold text-white">

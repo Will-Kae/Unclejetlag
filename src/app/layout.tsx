@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { EsimPromoBar } from "@/components/esim/EsimPromoBar";
 import { Footer } from "@/components/layout/Footer";
 import { ConsentProvider, consentDefaultsScript } from "@/components/consent/ConsentProvider";
+import { TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
 import { CookieBanner } from "@/components/consent/CookieBanner";
 import { ThirdPartyScripts } from "@/components/monetization/ThirdPartyScripts";
 import { ADSENSE_CLIENT } from "@/components/monetization/ads-config";
@@ -83,26 +84,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="impact-site-verification" {...{ value: "e3f65cdf-b28c-4507-9fd4-e102d360a10e" }} />
         <meta name="impact-site-verification" {...{ value: "2cabb71a-44d5-414f-b1d4-dedb993fc5aa" }} />
         <script id="consent-defaults" dangerouslySetInnerHTML={{ __html: consentDefaultsScript }} />
-        {/* Travelpayouts (Drive) site script, as issued. Server-rendered in <head> so Travelpayouts can verify it.
-            The WordPress optimiser hints from the original snippet (nowprocket, data-noptimize, etc.) are omitted: they do nothing on Next.js. */}
+        {/* Travelpayouts (Drive) site script (Phase 3A). Drive reads page content and rewrites links for
+            affiliate tracking, so it is advertising/tracking and must not run before consent.
+            The issued snippet stays in the server-rendered <head> for Travelpayouts' ownership check, but as an
+            inert type="text/plain" block that browsers never execute. ThirdPartyScripts loads the same script
+            (TRAVELPAYOUTS_DRIVE_SRC) only after the visitor accepts advertising cookies. */}
         <script
           id="travelpayouts"
+          type="text/plain"
+          data-consent-category="advertising"
           data-cmp-ab="2"
           dangerouslySetInnerHTML={{
             __html: `(function () {
       var script = document.createElement("script");
       script.async = 1;
       script.setAttribute("data-cmp-ab","2");
-      script.src = 'https://emrldtp.cc/NTgyNzYz.js?t=582763';
+      script.src = '${TRAVELPAYOUTS_DRIVE_SRC}';
       document.head.appendChild(script);
   })();`,
           }}
         />
-        {ADSENSE_CLIENT && (
-          // AdSense code in <head> (site verification + Auto ads). Consent Mode defaults above load first,
-          // so Google only uses cookies/personalisation after the visitor opts in.
-          <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossOrigin="anonymous" />
-        )}
+
       </head>
       <body className="min-h-dvh">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-paper">
