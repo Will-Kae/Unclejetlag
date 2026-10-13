@@ -64,7 +64,7 @@ export function CookieBanner() {
             <input type="checkbox" checked={flights} onChange={(e) => setFlights(e.target.checked)} className="mt-0.5 h-4 w-4 accent-jet" />
             <span>
               <strong>Flight search analytics (Travelpayouts):</strong> needed to load the flight search. Travelpayouts stores a unique ID and your
-              visit times in <code>_sp_id.*</code> for about 13 months. Not included in &ldquo;Accept all&rdquo;.
+              visit times in <code>_sp_id.*</code> for about 13 months. Not included in &ldquo;Accept site preferences&rdquo;.
             </span>
           </label>
         </fieldset>
