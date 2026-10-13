@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type GoogleFcWindow = Window & { googlefc?: { callbackQueue?: Array<Record<string, () => void>>; showRevocationMessage?: () => void } };
+type GoogleFcWindow = Window & {
+  googlefc?: { callbackQueue?: Array<Record<string, () => void>>; showRevocationMessage?: () => void };
+  __tcfapi?: (
+    command: string,
+    version: number,
+    callback: (data: { gdprApplies?: boolean } | null, success: boolean) => void,
+  ) => void;
+};
 import { useConsent } from "./ConsentProvider";
 
 export function CookieBanner() {
@@ -97,13 +104,18 @@ export function CookieSettingsButton({ className }: { className?: string }) {
     const w = window as GoogleFcWindow;
     w.googlefc = w.googlefc || {};
     w.googlefc.callbackQueue = w.googlefc.callbackQueue || [];
-    if (typeof w.googlefc.showRevocationMessage === "function") {
-      setGoogleCmpReady(true);
-    } else {
-      w.googlefc.callbackQueue.push({
-        CONSENT_API_READY: () => setGoogleCmpReady(typeof w.googlefc?.showRevocationMessage === "function"),
-      });
-    }
+    // Google recommends displaying the revocation entrypoint only when TCF
+    // confirms GDPR applies. API readiness alone does not establish that.
+    w.googlefc.callbackQueue.push({
+      CONSENT_API_READY: () => {
+        if (typeof w.__tcfapi !== "function") return;
+        w.__tcfapi("addEventListener", 0, (data, success) => {
+          setGoogleCmpReady(
+            Boolean(success && data?.gdprApplies && typeof w.googlefc?.showRevocationMessage === "function"),
+          );
+        });
+      },
+    });
   }, []);
 
   return (
