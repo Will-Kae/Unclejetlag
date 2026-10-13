@@ -12,6 +12,8 @@ export const ADSENSE_RELEASE_ENABLED = false;
 /** Separate release gate: only set true after certified CMP + live TCF and withdrawal tests pass. */
 export const ADSENSE_CMP_VERIFIED = false;
 export const ADSENSE_ACTIVE = ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED && Boolean(ADSENSE_CLIENT);
+/** Separate slot-rendering hold until the certified CMP and regional ad serving policy are tested. */
+export const ADSENSE_SLOTS_ENABLED = false;
 export const SHOW_AD_PLACEHOLDERS = process.env.NEXT_PUBLIC_SHOW_AD_PLACEHOLDERS === "true";
 export type AdPosition = "after-intro" | "mid-article" | "end-of-article" | "sidebar";
 export const AD_SLOTS: Record<AdPosition, string | undefined> = {
