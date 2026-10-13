@@ -200,3 +200,43 @@ for (const tool of [
     expect(net.unique()).toEqual([tool.host]);
   });
 }
+
+/**
+ * Withdrawal removes the first-party tracking cookies Travelpayouts writes on our domain
+ * (_sp_id.<hex>, _sp_ses.<hex>, am_user_session) and leaves consent and other cookies alone.
+ * Partner scripts are blocked in tests, so the cookies are created the way those scripts create
+ * them (document.cookie on our page) after "Accept all".
+ */
+const TRACKING_COOKIES = ["_sp_id.4e6c", "_sp_ses.4e6c", "am_user_session"];
+
+test("withdrawing advertising consent deletes the Travelpayouts tracking cookies and keeps essential ones", async ({ page, context }) => {
+  const net = await recordThirdParty(context);
+  await page.goto("/insurance");
+  await page.getByRole("button", { name: "Accept all" }).click();
+  await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
+  await page.evaluate((names) => {
+    for (const n of names) document.cookie = `${n}=tracker-value; Path=/; Max-Age=3600; SameSite=Lax`;
+    document.cookie = "uj_other_pref=keep; Path=/; Max-Age=3600; SameSite=Lax";
+  }, TRACKING_COOKIES);
+  const before = (await context.cookies()).map((c) => c.name);
+  for (const n of TRACKING_COOKIES) expect(before).toContain(n);
+
+  await page.getByRole("button", { name: "Cookie settings" }).last().click();
+  const reload = page.waitForEvent("load");
+  await page.getByRole("dialog", { name: "Cookies, briefly." }).getByRole("button", { name: "Essential only" }).click();
+  await reload;
+
+  const after = (await context.cookies()).map((c) => c.name);
+  for (const n of TRACKING_COOKIES) expect(after, n).not.toContain(n);
+  expect(after).toContain("uj_consent");
+  expect(after).toContain("uj_other_pref");
+  expect(await consentCookie(context)).toMatchObject({ ads: false, analytics: false });
+
+  // Optional third-party scripts stay blocked after withdrawal.
+  net.hosts.length = 0;
+  await exercise(page);
+  await page.goto("/guides/topics/flights");
+  await exercise(page);
+  await expect(page.locator("#travelpayouts-drive")).toHaveCount(0);
+  expect(net.unique()).toEqual([]);
+});

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { EmbeddedServiceId } from "@/lib/consent/services";
+import { clearAdvertisingCookies } from "@/lib/consent/tracking-cookies";
 
 /**
  * Lightweight consent store + Google Consent Mode v2 bridge.
@@ -31,6 +32,8 @@ type Ctx = {
 
 const ConsentContext = createContext<Ctx | null>(null);
 const COOKIE = "uj_consent";
+/** sessionStorage flag: clear advertising cookies again on the page load that follows a withdrawal. */
+const CLEAR_AFTER_RELOAD = "uj:clear-ad-cookies";
 
 type GtagWindow = Window & { gtag?: (...args: unknown[]) => void; dataLayer?: unknown[] };
 
@@ -64,6 +67,14 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const c = read();
+    try {
+      if (sessionStorage.getItem(CLEAR_AFTER_RELOAD)) {
+        sessionStorage.removeItem(CLEAR_AFTER_RELOAD);
+        if (!c?.ads) clearAdvertisingCookies();
+      }
+    } catch {
+      /* storage unavailable */
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from cookie once on mount
     setConsent(c);
     current.current = c;
@@ -84,8 +95,19 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     applyToGoogle(full);
     setSettingsOpen(false);
     // Third-party scripts that already ran (Travelpayouts Drive, loaded widgets) can't be unloaded and
-    // may keep listeners or rewritten links. Reload so the page restarts in the new, denied state.
-    if (withdrawingAds) window.location.reload();
+    // may keep listeners or rewritten links. Delete the tracking cookies they wrote on our own domain,
+    // then reload so the page restarts in the new, denied state.
+    if (withdrawingAds) {
+      clearAdvertisingCookies();
+      // A tracker still running on this page can rewrite its cookie while the page unloads, so clear
+      // once more as soon as the reloaded page starts (see the mount effect).
+      try {
+        sessionStorage.setItem(CLEAR_AFTER_RELOAD, "1");
+      } catch {
+        /* storage unavailable: the immediate clear above still ran */
+      }
+      window.location.reload();
+    }
   }, []);
 
   const activate = useCallback((id: EmbeddedServiceId) => {

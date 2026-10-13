@@ -45,7 +45,18 @@ How Uncle Jetlag decides what third-party code a visitor's browser may load.
 
 - **When a visitor changes advertising from on to off,** `ConsentProvider.save()` reloads the page. Scripts that already ran (Drive, loaded tools) can't be unloaded, so the reload starts the page again in the denied state.
 - **Changing only analytics consent** doesn't reload.
-- **Cookies a provider already set remain** until they expire or the visitor deletes them; the cookie policy says so.
+- **Tracking cookies on our own domain are deleted on withdrawal** (`src/lib/consent/tracking-cookies.ts`). These were observed on 13 October 2026, all with path `/`:
+
+  | Cookie | Set by | Domain | Secure | Lifetime |
+  |---|---|---|---|---|
+  | `_sp_id.<4 hex>` | Snowplow tracker loaded by Travelpayouts | `unclejetlag.com` (Domain cookie); on previews, the full host | yes | 13 months |
+  | `_sp_ses.<4 hex>` | Snowplow tracker loaded by Travelpayouts | same as `_sp_id` | yes | 30 minutes |
+  | `am_user_session` | Travelpayouts Drive | host-only | no | 30 minutes |
+
+  - The 4-hex suffix differs per site (`.43e4` in production, `.4e6c` on the preview).
+  - Each cookie is expired host-only and for every parent domain, then cleared once more on the reloaded page, because a tracker can rewrite its cookie while the page unloads.
+  - Only these patterns are touched; `uj_consent`, authentication and security cookies are never deleted.
+- **Cookies a provider set on its own domain** stay until they expire or the visitor deletes them; the cookie policy says so.
 
 ## Tests
 
@@ -53,6 +64,7 @@ How Uncle Jetlag decides what third-party code a visitor's browser may load.
 |---|---|
 | `e2e/consent.spec.ts` | Every third-party request is recorded and aborted across 12 page types, with all booking tabs opened and every lazy section scrolled into view, for: no choice made; "Essential only" (including client-side navigation); a single tool activation; "Accept all"; withdrawal (reload, then nothing); an analytics-only change (no reload). |
 | `e2e/widgets.spec.ts` | Each tool, loaded the way a visitor would load it, still carries its exact affiliate identifiers |
+| `tests/consent-tracking-cookies.test.ts`, `e2e/consent-cookies-domain.spec.ts`, the last test in `e2e/consent.spec.ts` | Withdrawal deletes the three tracking cookies (host-only and `Domain=` forms, including a rewrite during unload) and keeps `uj_consent` and other cookies; scripts stay blocked afterwards |
 | `tests/consent-services.test.ts` | The gate truth tables; activation never stands in for advertising consent; the issued URLs and parameters are unchanged |
 
 Partner hosts are never contacted in tests. Live behaviour of the tools after loading is checked manually on a Vercel preview (see the Phase 3A deployment plan).
