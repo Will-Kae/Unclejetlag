@@ -58,7 +58,8 @@ describe("partner identifiers are unchanged", () => {
     const layout = read("src/app/layout.tsx");
     const scripts = read("src/components/monetization/ThirdPartyScripts.tsx");
     expect(layout).not.toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
-    expect(scripts).toContain("ADSENSE_ACTIVE && (");
+    expect(scripts).toContain("(ADSENSE_ACTIVE || stagingCmpProbe) && (");
+    expect(scripts).toContain('window.location.hostname === "staging.unclejetlag.com"');
     expect(scripts).not.toContain("ADSENSE_ACTIVE && ads");
     expect(scripts).toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
   });
