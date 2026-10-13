@@ -4,7 +4,7 @@
 
 - Google AdSense publisher ID: `ca-pub-6434910360613331` (the `ca-` prefix is used for the client ID).
 - AdSense is still hard-disabled by `ADSENSE_RELEASE_ENABLED = false` in `src/components/monetization/ads-config.ts`.
-- The site owner explicitly confirmed the Google Privacy & messaging European regulations message is **Draft**. It has not been published; live TCF behavior cannot yet be verified.
+- The site owner confirmed the European regulations message was **Published** on 13 October 2026. Publication is owner-reported; live TCF delivery and behavior have not been verified.
 - Existing `CookieBanner` and `ConsentProvider` handle first-party affiliate/analytics choices; Travelpayouts flight analytics has its own explicit permission.
 - The existing first-party `uj_consent.ads` preference **must not** be treated as IAB TCF consent or proof of permission to serve Google ads.
 
@@ -47,21 +47,21 @@ Official references:
 
 ## Owner-confirmed CMP status (13 October 2026)
 
-- **Draft**, explicitly confirmed by the owner. Do not publish as part of this development phase.
+- **Published** after a separate explicit owner authorization. No code merge, deployment, or ad activation was authorized.
 - Run CI, typecheck/build, static and browser consent tests with AdSense and slots disabled.
-- A Google CMP `?fc=alwaysshow&fctype=gdpr` test is **not a valid end-to-end acceptance test while the message remains Draft**.
+- A Google CMP `?fc=alwaysshow&fctype=gdpr` test requires the published message **and a supported Google tag loaded on an eligible domain**; publishing alone is insufficient.
 - After code checks pass, request separate approval for a coordinated CMP publication and controlled live verification. No deployment or AdSense enablement is implied.
 
 ## Step 3 — Controlled CMP testing plan (prepared, not authorized for publication)
 
-**Prerequisites confirmed by owner:** European regulations message configuration reviewed (accept, reject, manage, policy, vendors, Consent Mode, revocation). GitHub Preservation harness run #165 succeeded (both jobs). The message remains **Draft**.
+**Prerequisites confirmed by owner:** European regulations message configuration reviewed (accept, reject, manage, policy, vendors, Consent Mode, revocation). GitHub Preservation harness run #165 succeeded (both jobs). The message is **Published** per owner confirmation; live delivery remains unverified.
 
 ### A. Offline and disabled-tag checks — safe now
 
 1. Keep `ADSENSE_RELEASE_ENABLED`, `ADSENSE_CMP_VERIFIED`, and `ADSENSE_SLOTS_ENABLED` all `false`.
 2. Check clean-browser first visit, Essential only, Accept site preferences, Customise, flight-search analytics permission, cookie withdrawal, and 375/390/768px layouts.
 3. Confirm `adsbygoogle.js` and ad-slot requests are absent in Network under every first-party preference; GA4 and affiliate scripts follow only their separate permissions.
-4. Confirm the footer's Google privacy choices control does not incorrectly claim the draft CMP is live. Capture CI logs and preview screenshots.
+4. Confirm the footer's Google privacy choices control does not incorrectly claim CMP availability when the Google publisher tag is absent. Capture CI logs and preview screenshots.
 
 ### B. Live CMP acceptance — separate future approval required
 
@@ -74,3 +74,11 @@ Official references:
 ### C. Release decision
 
 Record browser evidence and require a separate approval to enable publisher tag, ad slots, merge, or deploy. CI success alone does not clear the live CMP release gate.
+
+## Publication checkpoint — owner-confirmed 13 October 2026
+
+- Owner reports European regulations message status **Published**. This is not independent proof that it appears on unclejetlag.com.
+- The Phase 3B code still hard-disables AdSense (`ADSENSE_RELEASE_ENABLED = false`, `ADSENSE_CMP_VERIFIED = false`, `ADSENSE_SLOTS_ENABLED = false`). No merge, deployment, or activation authorized.
+- **Critical blocker:** `ThirdPartyScripts.tsx` loads the Google AdSense publisher tag only when `ADSENSE_ACTIVE` is true. Therefore the current branch cannot demonstrate the live Google CMP through that tag. The debug query parameter alone cannot change this.
+- Do not set `ADSENSE_CMP_VERIFIED = true` just to test a CMP that has not been verified, and do not treat `CONSENT_API_READY` as consent.
+- Next: identify a Google-supported test-only mechanism or a separately authorized isolated environment, validate its domain eligibility, then collect EEA/UK/Swiss browser evidence for reject, accept, manage, withdrawal, TCF state, Consent Mode v2, and network requests. Never claim a live CMP pass without evidence.
