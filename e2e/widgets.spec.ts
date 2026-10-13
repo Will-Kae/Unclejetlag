@@ -48,32 +48,19 @@ test("Expedia stays widget embed keeps its partner identifiers", async ({ page, 
   }
 });
 
-test("DiscoverCars widget keeps its affiliate attributes", async ({ page }) => {
+test("DiscoverCars direct frame preserves attribution and title without a parent loader", async ({ page }) => {
   await page.goto("/guides/topics/car-rentals");
-  await page.locator("#car-rentals").scrollIntoViewIfNeeded();
-  const s = page.locator('script[src="https://www.discovercars.com/widget.js?v1"]');
-  await expect(s).toHaveCount(0);
+  await expect(page.locator("#discoFrameId")).toHaveCount(0);
   await page.getByRole("button", { name: "Load car hire search" }).click();
-  await expect(s).toHaveCount(1, { timeout: 15_000 });
-  await expect(s).toHaveAttribute("data-utm-source", "unclejetlag");
-  await expect(s).toHaveAttribute("data-aff-code", "a_aid");
-  await expect(s).toHaveAttribute("data-aff-value", "unclejetlag");
-  await expect(s).toHaveAttribute("data-lang", "en");
-  await expect(s).not.toHaveAttribute("data-aff-channel", /.+/);
-});
-
-test("DiscoverCars dynamically injected iframe receives an accessible title", async ({ page }) => {
-  await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Load car hire search" }).click();
-  await expect(page.locator('script[src="https://www.discovercars.com/widget.js?v1"]')).toHaveCount(1);
-  // Provider requests are blocked; simulate its dynamically inserted iframe.
-  await page.evaluate(() => {
-    const iframe = document.createElement("iframe");
-    iframe.id = "discoFrameId";
-    iframe.src = "about:blank";
-    document.body.appendChild(iframe);
-  });
-  await expect(page.locator("#discoFrameId")).toHaveAttribute("title", "DiscoverCars car rental search");
+  const frame = page.locator("#discoFrameId");
+  await expect(frame).toHaveAttribute("title", "DiscoverCars car rental search");
+  const url = new URL((await frame.getAttribute("src"))!);
+  expect(url.origin).toBe("https://widget.discovercars.com");
+  expect(url.searchParams.get("aff_code")).toBe("a_aid");
+  expect(url.searchParams.get("aff_value")).toBe("unclejetlag");
+  expect(url.searchParams.get("utm_source")).toBe("unclejetlag");
+  expect(url.searchParams.get("widget_origin")).toBe(new URL(page.url()).origin);
+  await expect(page.locator('script[src*="discovercars.com/widget.js"]')).toHaveCount(0);
 });
 
 test("Insurance: Genki calculator iframe and World Nomads / Genki partner links", async ({ page }) => {

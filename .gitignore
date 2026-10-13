@@ -11,3 +11,6 @@ src/app/fonts/*.woff2
 # Playwright (preservation harness)
 /test-results/
 /playwright-report/
+
+preview-audit-report/
+preview-audit-results/

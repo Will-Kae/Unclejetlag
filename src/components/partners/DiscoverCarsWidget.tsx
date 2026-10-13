@@ -2,148 +2,43 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ConsentGate } from "@/components/consent/ConsentGate";
+import { DISCOVERCARS_FRAME_TITLE, discoverCarsFrameUrl } from "@/lib/partners/discovercars";
 
-/**
- * Official DiscoverCars affiliate search widget.
- *
- * The attributes below are copied from the DiscoverCars widget generator. Do not change the
- * tracking attributes (data-utm-*, data-aff-*) without checking the DiscoverCars dashboard.
- *
- * Loading rules:
- * - The loader script is injected once, into this component's own container, after mount.
- *   It renders an iframe beside the script tag. On unmount the container is emptied, so
- *   client-side navigation back to the page never produces a second widget.
- * - It loads once the section is near the viewport, but only after the visitor accepts advertising
- *   cookies or presses "Load car hire search" (Phase 3A; replaces the October 2026 load-for-everyone
- *   decision, by owner approval on 12 October 2026). A plain affiliate link is offered meanwhile.
+/** Load the audited provider frame directly, avoiding the parent-page loader's isRTL error.
+ * The provider's own frame scripts remain under DiscoverCars' control.
  */
-const WIDGET_SRC = "https://www.discovercars.com/widget.js?v1";
-
-const WIDGET_ATTRS: Record<string, string> = {
-  id: "dchwidget",
-  "data-dev-env": "com",
-  "data-location": "",
-  "data-lang": "en",
-  "data-currency": "usd",
-  "data-utm-source": "unclejetlag",
-  "data-utm-medium": "widget",
-  "data-aff-code": "a_aid",
-  "data-aff-value": "unclejetlag",
-  "data-autocomplete": "on",
-  "data-style-submit-bg-color": "#101c30",
-  "data-style-submit-font-color": "#ffffff",
-  "data-style-form-bg-color": "#ffffff",
-  "data-style-form-font-color": "#101c30",
-  "data-style-submit-text": "Search now",
-  "data-style-title-color": "#101c30",
-  "data-title-text": "Uncle's search and compare car rentals and save up to 70%!",
-  "data-style_rounded_corners": "on",
-  "data-localization_currency_box": "on",
-  "data-layout_benefits": "on",
-  "data-layout_description": "on",
-  "data-layout_description_text": "Uncle Jetlag has selected the best deals from our car rental partners.",
-  "data-layout_logo_style": "on dark",
-  "data-layout_style_form_bg_color": "#101c30",
-  "data-layout_title": "on",
-  "data-layout_top_logo": "on",
-  "data-layout_supplier_logos": "on",
-};
-
 export function DiscoverCarsWidget({ fallbackHref }: { fallbackHref: string }) {
   return (
-    <ConsentGate
-      service="discovercars"
-      minHeight={320}
-      fallback={
-        <>
-          Prefer not to load it?{" "}
-          <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="font-semibold text-sky underline">
-            Compare car hire prices on DiscoverCars
-          </a>
-          .
-        </>
-      }
-    >
-      <DiscoverCarsLoader fallbackHref={fallbackHref} />
+    <ConsentGate service="discovercars" minHeight={320} fallback={
+      <>Prefer not to load it? <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="font-semibold text-sky underline">Compare car hire prices on DiscoverCars</a>.</>
+    }>
+      <DiscoverCarsFrame fallbackHref={fallbackHref} />
     </ConsentGate>
   );
 }
 
-function DiscoverCarsLoader({ fallbackHref }: { fallbackHref: string }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const [nearViewport, setNearViewport] = useState(false);
-  const [failed, setFailed] = useState(false);
+function DiscoverCarsFrame({ fallbackHref }: { fallbackHref: string }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [src, setSrc] = useState<string>();
 
-  // Wait until the section is close to the viewport before fetching anything.
   useEffect(() => {
-    const el = hostRef.current;
-    if (!el) return;
-    if (!("IntersectionObserver" in window)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- old browsers: load straight away
-      setNearViewport(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setNearViewport(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "600px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const box = boxRef.current;
+    if (!box) return;
+    const load = () => setSrc(discoverCarsFrameUrl(window.location.origin));
+    if (!("IntersectionObserver" in window)) { load(); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) { load(); observer.disconnect(); }
+    }, { rootMargin: "600px 0px" });
+    observer.observe(box);
+    return () => observer.disconnect();
   }, []);
 
-  // The provider creates its iframe dynamically without a title. Apply an accessible
-  // name as soon as the iframe appears; this does not alter its URL or tracking.
-  useEffect(() => {
-    if (!nearViewport) return;
-    const setFrameTitle = () => {
-      const frame = document.getElementById("discoFrameId");
-      if (frame instanceof HTMLIFrameElement && !frame.title.trim()) {
-        frame.title = "DiscoverCars car rental search";
-      }
-    };
-    setFrameTitle();
-    const observer = new MutationObserver(setFrameTitle);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [nearViewport]);
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host || !nearViewport) return;
-    // Guard against double injection (React Strict Mode, fast refresh, repeat renders).
-    if (host.querySelector("#dchwidget") || document.getElementById("dchwidget")) return;
-
-    const wrap = document.createElement("div");
-    const s = document.createElement("script");
-    for (const [k, v] of Object.entries(WIDGET_ATTRS)) s.setAttribute(k, v);
-    s.async = true;
-    s.src = WIDGET_SRC;
-    s.onerror = () => setFailed(true);
-    wrap.appendChild(s);
-    host.appendChild(wrap);
-
-    return () => {
-      host.replaceChildren();
-    };
-  }, [nearViewport]);
-
   return (
-    <div className="dc-widget w-full max-w-full overflow-hidden rounded-[var(--radius-card)] bg-white ring-1 ring-line">
-      <div ref={hostRef} className="min-h-[1px] w-full" />
-      {failed && (
-        <p className="p-6 text-muted">
-          The car search didn&apos;t load. You can still{" "}
-          <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="font-semibold text-sky underline">
-            compare car hire prices on DiscoverCars
-          </a>
-          .
-        </p>
-      )}
+    <div ref={boxRef} className="w-full min-w-0 max-w-full rounded-[var(--radius-card)] bg-white ring-1 ring-line">
+      {src && <iframe id="discoFrameId" src={src} title={DISCOVERCARS_FRAME_TITLE} className="block h-[900px] w-full border-0 sm:h-[640px]" />}
+      <p className="p-4 text-sm text-muted">
+        <a href={fallbackHref} rel="sponsored nofollow noopener" target="_blank" className="font-semibold text-sky underline">Compare car hire prices on DiscoverCars</a>
+      </p>
     </div>
   );
 }

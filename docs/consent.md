@@ -23,7 +23,7 @@ How Uncle Jetlag decides what third-party code a visitor's browser may load.
 |---|---|---|---|
 | Travelpayouts flight search | `tpwidg.com` | `TravelpayoutsFlightsWidget` | Ads consent or the "Load flight search" button |
 | Expedia stays search | `creator.expediagroup.com` (inside the same-origin `/embeds/expedia-stays.html`) | `ExpediaWidget` | Ads consent or the "Load hotel and stays search" button |
-| DiscoverCars car hire search | `www.discovercars.com` | `DiscoverCarsWidget` | Ads consent or the "Load car hire search" button (a plain affiliate link is offered meanwhile) |
+| DiscoverCars car hire search | `widget.discovercars.com` | `DiscoverCarsWidget` | Ads consent or the "Load car hire search" button (a plain affiliate link is offered meanwhile) |
 | Genki health insurance calculator | `widgets.genki.world` | `TravelInsuranceSection` | Ads consent or the "Load health insurance calculator" button |
 | Travelpayouts Drive | `emrldtp.cc` | `ThirdPartyScripts` | Ads consent only |
 | CJ impression pixel (World Nomads) | `www.lduhtrp.net` | `CjImpressionPixel` | Ads consent only |

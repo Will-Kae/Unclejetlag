@@ -140,7 +140,7 @@ test("Accept all: Drive and the embedded tools load", async ({ page, context }) 
   await exercise(page);
   await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
   await exercise(page);
-  await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "tpwidg.com", "creator.expediagroup.com", "www.discovercars.com", "widgets.genki.world", CJ]));
+  await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "tpwidg.com", "creator.expediagroup.com", "widget.discovercars.com", "widgets.genki.world", CJ]));
   await expect(page.locator("#travelpayouts-drive")).toHaveAttribute("src", "https://emrldtp.cc/NTgyNzYz.js?t=582763");
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
 });
@@ -179,3 +179,24 @@ test("changing only analytics consent does not reload the page", async ({ page }
   await dialog.getByRole("button", { name: "Save choices" }).click();
   expect(await page.evaluate(() => (window as unknown as { __ujMarker?: number }).__ujMarker)).toBe(1);
 });
+
+// Each activation starts in a fresh Playwright context. Aborted provider responses cannot execute
+// downstream scripts: this establishes first-hop isolation, not the provider's full live network.
+for (const tool of [
+  { path: "/guides/topics/flights", button: "Load flight search", host: "tpwidg.com" },
+  { path: "/guides/topics/hotels", button: "Load hotel and stays search", host: "creator.expediagroup.com" },
+  { path: "/guides/topics/car-rentals", button: "Load car hire search", host: "widget.discovercars.com" },
+  { path: "/insurance", button: "Load health insurance calculator", host: "widgets.genki.world" },
+]) {
+  test(`${tool.host}: only the requested provider is attempted`, async ({ page, context }) => {
+    const net = await recordThirdParty(context);
+    await page.goto(tool.path);
+    await page.getByRole("button", { name: "Essential only", exact: true }).click();
+    await page.getByRole("button", { name: tool.button, exact: true }).click();
+    await expect.poll(() => net.unique()).toEqual([tool.host]);
+    expect(await consentCookie(context)).toMatchObject({ ads: false, analytics: false });
+    await page.goto("/");
+    await exercise(page);
+    expect(net.unique()).toEqual([tool.host]);
+  });
+}

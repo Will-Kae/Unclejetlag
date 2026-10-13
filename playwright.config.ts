@@ -16,7 +16,7 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]] : "list",
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   webServer: {
-    command: `npx next start -p ${PORT}`,
+    command: `npx next start -H 127.0.0.1 -p ${PORT}`,
     url: `http://127.0.0.1:${PORT}/robots.txt`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "harness:baseline": "UPDATE_BASELINE=1 vitest run tests/harness && UPDATE_BASELINE=1 playwright test e2e/baseline.spec.ts e2e/routes.spec.ts -g \"matches the reviewed baseline|write tests\"",
-    "passport:coverage": "UPDATE_BASELINE=1 vitest run tests/harness/write-passport-baselines.test.ts -t coverage"
+    "passport:coverage": "UPDATE_BASELINE=1 vitest run tests/harness/write-passport-baselines.test.ts -t coverage",
+    "audit:preview": "playwright test --config playwright.preview.config.ts"
   },
   "engines": {
     "node": ">=20.9.0"

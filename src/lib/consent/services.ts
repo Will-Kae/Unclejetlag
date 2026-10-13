@@ -27,7 +27,7 @@ export type EmbeddedService = {
 export const EMBEDDED_SERVICES: Record<EmbeddedServiceId, EmbeddedService> = {
   "travelpayouts-flights": { id: "travelpayouts-flights", tool: "flight search", provider: "Travelpayouts", hosts: ["tpwidg.com"] },
   "expedia-stays": { id: "expedia-stays", tool: "hotel and stays search", provider: "Expedia Group", hosts: ["creator.expediagroup.com"] },
-  discovercars: { id: "discovercars", tool: "car hire search", provider: "DiscoverCars", hosts: ["www.discovercars.com"] },
+  discovercars: { id: "discovercars", tool: "car hire search", provider: "DiscoverCars", hosts: ["widget.discovercars.com"] },
   "genki-calculator": { id: "genki-calculator", tool: "health insurance calculator", provider: "Genki", hosts: ["widgets.genki.world"] },
 };
 

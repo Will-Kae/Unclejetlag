@@ -57,3 +57,35 @@ until you do).
 
 The fixtures contain the same affiliate IDs that already live in `src/data/partners.ts` and in the
 public redirects. They add no new exposure. Never put API keys, passwords or dashboard data here.
+
+## Phase 3A release audit
+
+`e2e/consent-mobile.spec.ts` now covers the homepage, flights, hotels, car rentals and insurance at
+375, 390 and 768 CSS pixels. These CI tests block provider requests. They verify first-party
+layout and activation only; they do not establish that the provider's own content fits.
+
+The separate opt-in preview harness contacts real providers in fresh Playwright contexts, records
+all request URLs/hosts/resource types and console/page errors, and attaches layout screenshots.
+It never starts or deploys a server. It accepts only HTTPS `vercel.app` preview domains.
+
+Before running, confirm that the Vercel deployment's Git commit matches the PR head using its
+Vercel status and deployment details. `PREVIEW_AUDIT_COMMIT` labels the evidence; it does not
+independently verify deployment identity. The preview must be accessible without a sign-in wall.
+
+```bash
+PREVIEW_AUDIT_URL=https://YOUR-PREVIEW.vercel.app \
+PREVIEW_AUDIT_COMMIT=VERIFIED_FULL_SHA npm run audit:preview
+```
+
+Review `preview-audit-report/` and `preview-audit-results/`. Screenshots are evidence for human
+layout review, not an automatic visual sign-off. The automatic overflow check measures the outer
+page, not every scroll area inside cross-origin widgets. Request assertions recognise documented
+optional provider/advertising hosts; review the complete captured host list for new downstream
+hosts. Commission credit through a completed booking is outside this harness.
+
+DiscoverCars now uses the iframe URL emitted by its official loader, with the verified affiliate
+parameters. This avoids running `widget.js` in the parent page (where the audited `isRTL` error
+originated). The iframe retains its own scrollbar and an always-available affiliate link. Provider
+scripts inside the iframe are untouched; the observed `gtmgtg` MutationObserver error may remain.
+The real-provider search audit reports those errors without suppressing them. Direct-frame search,
+mobile sizing, and consent withdrawal must be verified on a new preview before release.

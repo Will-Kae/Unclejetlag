@@ -34,10 +34,8 @@ describe("partner identifiers are unchanged", () => {
       "https://tpwidg.com/content?currency=usd&trs=582763&shmarker=786947.786947&locale=en&stops=any&show_hotels=false&powered_by=true&border_radius=0&plain=false&color_button=%23101C30&color_button_text=%23ffffff&promo_id=3414&campaign_id=111",
     );
     const dc = read("src/components/partners/DiscoverCarsWidget.tsx");
-    for (const a of ['"data-utm-source": "unclejetlag"', '"data-utm-medium": "widget"', '"data-aff-code": "a_aid"', '"data-aff-value": "unclejetlag"', 'const WIDGET_SRC = "https://www.discovercars.com/widget.js?v1"']) expect(dc).toContain(a);
-    expect(dc).toContain('"data-lang": "en"');
-    expect(dc).not.toContain('"data-aff-channel"');
-    expect(dc).toContain('frame.title = "DiscoverCars car rental search"');
+    expect(dc).not.toContain("https://www.discovercars.com/widget.js");
+    expect(dc).toContain("title={DISCOVERCARS_FRAME_TITLE}");
     expect(read("src/components/partners/TravelInsuranceSection.tsx")).toContain('"https://widgets.genki.world/calculator?hue=111&saturation=46&with=unclejetlag"');
     expect(read("public/embeds/expedia-stays.html")).toContain('data-camref="1011l6tK2n"');
   });
