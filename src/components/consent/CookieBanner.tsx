@@ -41,8 +41,7 @@ export function CookieBanner() {
     >
       <p id="cookie-title" className="font-display text-lg font-semibold">Cookies, briefly.</p>
       <p className="mt-1.5 text-[0.8rem] leading-relaxed text-muted sm:text-sm">
-        Essential cookies keep the site running. With your OK, we&apos;ll also use analytics and advertising cookies to
-        learn what&apos;s useful and keep the guides free. See our{" "}
+        Essential cookies keep the site running. You can separately allow site analytics and affiliate tracking. Google advertising privacy choices, where applicable, are managed by Google&apos;s certified consent message; accepting here does not grant Google advertising consent. See our{" "}
         <Link className="font-medium text-sky underline" href="/cookies">Cookie Policy</Link>.
       </p>
 
@@ -59,7 +58,7 @@ export function CookieBanner() {
           </label>
           <label className="flex items-start gap-3">
             <input type="checkbox" checked={ads} onChange={(e) => setAds(e.target.checked)} className="mt-0.5 h-4 w-4 accent-jet" />
-            <span><strong>Advertising:</strong> lets ad partners show and measure ads.</span>
+            <span><strong>Affiliate tracking:</strong> permits affiliate tracking scripts and partner tools. This does not grant Google AdSense consent.</span>
           </label>
           <label className="flex items-start gap-3">
             <input type="checkbox" checked={flights} onChange={(e) => setFlights(e.target.checked)} className="mt-0.5 h-4 w-4 accent-jet" />
@@ -85,7 +84,7 @@ export function CookieBanner() {
           Essential only
         </button>
         <button onClick={() => save({ analytics: true, ads: true })} className="h-10 rounded-full bg-jet px-4 text-sm font-semibold text-white">
-          Accept all
+          Accept site preferences
         </button>
         {settingsOpen && consent && (
           <button onClick={closeSettings} className="h-10 px-2 text-sm text-muted underline">Cancel</button>
