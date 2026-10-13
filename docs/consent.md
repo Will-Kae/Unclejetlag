@@ -37,7 +37,7 @@ How Uncle Jetlag decides what third-party code a visitor's browser may load.
 | Travelpayouts Drive | `emrldtp.cc` | `ThirdPartyScripts` | Ads consent only |
 | CJ impression pixel (World Nomads) | `www.lduhtrp.net` | `CjImpressionPixel` | Ads consent only |
 | Google Analytics | `googletagmanager.com` | `ThirdPartyScripts` | Analytics consent only (and only if `NEXT_PUBLIC_GA_MEASUREMENT_ID` is set) |
-| Google AdSense | `pagead2.googlesyndication.com` | `layout.tsx` | Only if `NEXT_PUBLIC_ADSENSE_CLIENT` is set. It runs under Consent Mode defaults of "denied". Not changed in Phase 3A; see "Open points". |
+| Google AdSense | `pagead2.googlesyndication.com` | `ThirdPartyScripts`, `AdSlot` | **Off for this release** in every consent state: `ADSENSE_RELEASE_ENABLED = false` in `src/components/monetization/ads-config.ts`, even if `NEXT_PUBLIC_ADSENSE_CLIENT` is set. Re-enable together with a Google-certified CMP (Phase 3B); it then loads only after advertising consent. Tests: `e2e/adsense-off.spec.ts`, `tests/consent-services.test.ts`. |
 
 **Not third-party loads:** affiliate links (`/go/*`, the CJ click link, Genki product links) load nothing until clicked, and then the visitor leaves the site.
 

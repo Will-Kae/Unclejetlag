@@ -3,19 +3,19 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent } from "@/components/consent/ConsentProvider";
-import { ADSENSE_CLIENT, AD_SLOTS, SHOW_AD_PLACEHOLDERS, type AdPosition } from "./ads-config";
+import { ADSENSE_ACTIVE, ADSENSE_CLIENT, AD_SLOTS, SHOW_AD_PLACEHOLDERS, type AdPosition } from "./ads-config";
 import { cn } from "@/lib/utils";
 
 /**
  * A tasteful, optional ad location. Renders NOTHING unless:
- *  - NEXT_PUBLIC_ADSENSE_CLIENT is configured AND the visitor granted ad consent, or
+ *  - AdSense is active (ADSENSE_RELEASE_ENABLED and NEXT_PUBLIC_ADSENSE_CLIENT) AND the visitor granted ad consent, or
  *  - NEXT_PUBLIC_SHOW_AD_PLACEHOLDERS=true (layout preview only).
  */
 export function AdSlot({ position, className }: { position: AdPosition; className?: string }) {
   const { consent } = useConsent();
   const ref = useRef<HTMLModElement>(null);
   const pathname = usePathname();
-  const live = Boolean(ADSENSE_CLIENT && consent?.ads);
+  const live = Boolean(ADSENSE_ACTIVE && consent?.ads);
 
   useEffect(() => {
     if (!live || !ref.current || ref.current.dataset.adsbygoogleStatus) return;

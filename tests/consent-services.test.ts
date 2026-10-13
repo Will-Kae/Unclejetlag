@@ -1,7 +1,7 @@
 /** Phase 3A: the two permissions (advertising consent vs. a tool activation) never mix. */
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EMBEDDED_SERVICES, FLIGHT_ANALYTICS, mayLoadAdvertising, mayLoadEmbedded, mayLoadFlightSearch, TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
 
 const ROOT = path.resolve(__dirname, "..");
@@ -58,11 +58,27 @@ describe("partner identifiers are unchanged", () => {
     const layout = read("src/app/layout.tsx");
     const scripts = read("src/components/monetization/ThirdPartyScripts.tsx");
     expect(layout).not.toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
-    expect(scripts).toContain("ADSENSE_CLIENT && ads");
+    expect(scripts).toContain("ADSENSE_ACTIVE && ads");
     expect(scripts).toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
   });
   it("loads no executable Drive script from the layout", () => {
     const layout = read("src/app/layout.tsx");
     expect(layout).toMatch(/id="travelpayouts"\s+type="text\/plain"/);
+  });
+});
+
+describe("AdSense is off for this release (certified CMP planned for Phase 3B)", () => {
+  it("stays inactive even when a publisher ID is configured", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_ADSENSE_CLIENT", "ca-pub-0000000000000000");
+    const cfg = await import("@/components/monetization/ads-config");
+    expect(cfg.ADSENSE_CLIENT).toBe("ca-pub-0000000000000000");
+    expect(cfg.ADSENSE_RELEASE_ENABLED).toBe(false);
+    expect(cfg.ADSENSE_ACTIVE).toBe(false);
+    vi.unstubAllEnvs();
+  });
+  it("gates every AdSense request on ADSENSE_ACTIVE (script and ad slots)", () => {
+    expect(read("src/components/monetization/ThirdPartyScripts.tsx")).not.toMatch(/\{ADSENSE_CLIENT &&/);
+    expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && consent?.ads);");
   });
 });
