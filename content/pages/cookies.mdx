@@ -21,6 +21,7 @@ Cookies are small text files a website stores on your device. Similar technologi
 | Cookie | Provider | Purpose | Duration | Consent needed? |
 |---|---|---|---|---|
 | `uj_consent` | Uncle Jetlag | Remembers your cookie choices | 6 months | No (strictly necessary) |
+| `uj_flight_analytics` | Uncle Jetlag | Remembers whether you allowed or declined the flight search analytics (below) | 6 months | No (strictly necessary) |
 
 ## Advertising cookies (Google AdSense)
 
@@ -50,14 +51,31 @@ Without advertising consent, Google may still show **non-personalised or limited
 
 | Service | Provider | Loads when | Consent needed? |
 |---|---|---|---|
-| Flight search | Travelpayouts | You press **Load flight search**, or you've accepted advertising cookies | Yes: your choice |
+| Flight search | Travelpayouts | Only after you press **Allow and load flight search**, or tick **Flight search analytics** in Cookie settings. "Accept all" doesn't load it. | Yes: its own analytics consent (see below) |
 | Hotel and stays search | Expedia Group | You press **Load hotel and stays search**, or you've accepted advertising cookies | Yes: your choice |
 | Car hire search | DiscoverCars | You press **Load car hire search**, or you've accepted advertising cookies | Yes: your choice |
 | Health insurance calculator | Genki | You press **Load health insurance calculator**, or you've accepted advertising cookies | Yes: your choice |
 | Site script ("Drive"), affiliate attribution | Travelpayouts | Only after you accept advertising cookies | Yes: advertising |
 | Impression pixel (World Nomads offer) | CJ (Commission Junction) | Only after you accept advertising cookies | Yes: advertising |
 
-Pressing a **Load** button loads only that one tool, for your current visit. It isn't saved and doesn't switch on advertising cookies. Once a tool has loaded, its provider may set its own cookies, which are covered by that provider's cookie and privacy policies. If you withdraw advertising consent in **Cookie settings**, the page reloads without these scripts, and we delete the Travelpayouts tracking cookies stored on our own domain (`_sp_id.*`, `_sp_ses.*` and `am_user_session`). Cookies a provider has set on its own domain stay in your browser until they expire or you delete them.
+Pressing a **Load** button (hotels, car hire, the Genki calculator) loads only that one tool, for your current visit. It isn't saved and doesn't switch on advertising cookies. Once a tool has loaded, its provider may set its own cookies, which are covered by that provider's cookie and privacy policies.
+
+If you withdraw advertising consent in **Cookie settings**, the page reloads without these scripts, and we delete the Travelpayouts Drive cookie stored on our own domain (`am_user_session`). Cookies a provider has set on its own domain stay in your browser until they expire or you delete them.
+
+## Flight search analytics (Travelpayouts)
+
+Our flight search is provided by Travelpayouts. When it loads, Travelpayouts runs **behavioural analytics** that we can't switch off, so the search asks for your permission separately and loads only if you allow it. This permission is separate from advertising consent: "Accept all" doesn't include it, and allowing it doesn't switch on anything else.
+
+| Cookie | Set by | Stored on | Purpose | Duration |
+|---|---|---|---|---|
+| `_sp_id.<4 characters>` | Travelpayouts analytics (loaded by the flight search) | `unclejetlag.com` | A unique ID for your browser and the times of your visits | About 13 months |
+| `_sp_ses.<4 characters>` | Travelpayouts analytics | `unclejetlag.com` | Tracks the current visit | 30 minutes |
+
+When the flight search loads, your browser also connects to Travelpayouts services, including `tpwidg.com`, `avsplow.com`, `sentry.avs.io`, `img.wway.io` and `www.apistp.com`. What Travelpayouts does with this data is covered by Travelpayouts' own privacy and cookie policies.
+
+- **Allow:** press **Allow and load flight search** under the search, or tick **Flight search analytics** in Cookie settings. We remember your choice for 6 months.
+- **Decline:** press **No thanks**, or leave the box unticked. Nothing is loaded from Travelpayouts and these cookies aren't set.
+- **Withdraw at any time:** press **Turn off** under the flight search, untick the box in Cookie settings, or choose **Essential only**. The page reloads without the search, and we delete `_sp_id.*` and `_sp_ses.*` from our domain. If either cookie is ever found without your permission, we delete it on the next page load.
 
 ## Affiliate partner cookies
 

@@ -1,23 +1,32 @@
 /**
- * First-party cookies written on our own domain by Travelpayouts scripts, removed when the visitor
- * withdraws advertising consent (Phase 3A).
+ * First-party tracking cookies that Travelpayouts scripts write on our own domain, and their removal
+ * whenever the permission that allowed them is missing (Phase 3A).
  *
  * Observed on 13 October 2026 (production unclejetlag.com and the PR #9 preview), with their actual
  * attributes:
- * | Cookie            | Set by                                                    | Domain                         | Path | Secure | Lifetime   |
- * |-------------------|-----------------------------------------------------------|--------------------------------|------|--------|------------|
- * | `_sp_id.<4 hex>`  | Snowplow tracker loaded by Travelpayouts (avsplow.com)    | registrable domain (`unclejetlag.com`) or the full host where that is a public suffix | `/` | yes | 13 months |
- * | `_sp_ses.<4 hex>` | same                                                      | same                           | `/`  | yes    | 30 minutes |
- * | `am_user_session` | Travelpayouts Drive                                       | host-only                      | `/`  | no     | 30 minutes |
- * The 4-hex suffix differs per site (`.43e4` on unclejetlag.com, `.4e6c` on the preview), so names
- * are matched by pattern.
+ * | Cookie            | Set by                                                         | Domain                         | Path | Secure | Lifetime   |
+ * |-------------------|----------------------------------------------------------------|--------------------------------|------|--------|------------|
+ * | `_sp_id.<4 hex>`  | Snowplow tracker loaded by the Travelpayouts flight search (avsplow.com) | registrable domain (`unclejetlag.com`) or the full host where that is a public suffix | `/` | yes | 13 months |
+ * | `_sp_ses.<4 hex>` | same                                                           | same                           | `/`  | yes    | 30 minutes |
+ * | `am_user_session` | Travelpayouts Drive                                            | host-only                      | `/`  | no     | 30 minutes |
  *
- * Only these exact patterns are removed. Consent, preference, authentication and security cookies
- * (uj_consent, Vercel's _vercel_jwt, anything else) are never touched.
+ * Source check on the preview: Drive alone (advertising consent, flight search not loaded) set only
+ * `am_user_session`; loading only the flight search set `_sp_id`/`_sp_ses`. So the two groups belong
+ * to two different permissions:
+ * - FLIGHT_ANALYTICS: the separate flight-search analytics permission (uj_flight_analytics cookie);
+ * - DRIVE: advertising consent (uj_consent.ads).
+ *
+ * The 4-hex suffix differs per site (`.43e4` on unclejetlag.com, `.4e6c` on the preview), so names
+ * are matched by pattern. Only these exact patterns are removed. Consent, preference, authentication
+ * and security cookies (uj_consent, uj_flight_analytics, Vercel's _vercel_jwt, anything else) are
+ * never touched.
  */
-export const ADVERTISING_COOKIE_PATTERNS: readonly RegExp[] = [/^_sp_id\.[0-9a-f]{4}$/, /^_sp_ses\.[0-9a-f]{4}$/, /^am_user_session$/];
+export const FLIGHT_ANALYTICS_COOKIE_PATTERNS: readonly RegExp[] = [/^_sp_id\.[0-9a-f]{4}$/, /^_sp_ses\.[0-9a-f]{4}$/];
+export const DRIVE_COOKIE_PATTERNS: readonly RegExp[] = [/^am_user_session$/];
+export const TRACKING_COOKIE_PATTERNS: readonly RegExp[] = [...FLIGHT_ANALYTICS_COOKIE_PATTERNS, ...DRIVE_COOKIE_PATTERNS];
 
-export const isAdvertisingCookie = (name: string) => ADVERTISING_COOKIE_PATTERNS.some((re) => re.test(name));
+const matches = (patterns: readonly RegExp[], name: string) => patterns.some((re) => re.test(name));
+export const isTrackingCookie = (name: string) => matches(TRACKING_COOKIE_PATTERNS, name);
 
 /**
  * Domains a cookie on `hostname` could have been set for: the host itself and each parent domain with
@@ -38,9 +47,25 @@ export function expiryStrings(name: string, hostname: string, secure: boolean): 
   return [base, ...cookieDomainCandidates(hostname).map((d) => `${base}; Domain=${d}`)];
 }
 
-/** Delete the advertising cookies present in `doc`. Returns the names removed (for tests and logs). */
-export function clearAdvertisingCookies(doc: Pick<Document, "cookie"> = document, loc: Pick<Location, "hostname" | "protocol"> = location): string[] {
-  const names = [...new Set(doc.cookie.split(";").map((c) => c.split("=")[0].trim()).filter(Boolean))].filter(isAdvertisingCookie);
+type Doc = Pick<Document, "cookie">;
+type Loc = Pick<Location, "hostname" | "protocol">;
+
+/** Delete every cookie in `doc` matching `patterns`. Returns the names removed (for tests and logs). */
+export function clearCookies(patterns: readonly RegExp[], doc: Doc = document, loc: Loc = location): string[] {
+  const names = [...new Set(doc.cookie.split(";").map((c) => c.split("=")[0].trim()).filter(Boolean))].filter((n) => matches(patterns, n));
   for (const name of names) for (const s of expiryStrings(name, loc.hostname, loc.protocol === "https:")) doc.cookie = s;
   return names;
+}
+
+/** What the visitor currently allows. Anything not explicitly allowed is treated as refused. */
+export type TrackingPermissions = { ads: boolean; flightAnalytics: boolean };
+
+/**
+ * Delete the tracking cookies whose permission is missing: Drive's without advertising consent, the
+ * flight-search analytics cookies without the flight-search analytics permission. Runs on every page
+ * load and on withdrawal, so a visitor without the permission never keeps these cookies.
+ */
+export function clearUnpermittedTrackingCookies(p: TrackingPermissions, doc: Doc = document, loc: Loc = location): string[] {
+  const patterns = [...(p.flightAnalytics ? [] : FLIGHT_ANALYTICS_COOKIE_PATTERNS), ...(p.ads ? [] : DRIVE_COOKIE_PATTERNS)];
+  return patterns.length ? clearCookies(patterns, doc, loc) : [];
 }

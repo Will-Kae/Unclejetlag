@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ConsentGate } from "@/components/consent/ConsentGate";
+import { FlightSearchConsent } from "@/components/consent/FlightSearchConsent";
 
 /**
  * Official Travelpayouts flight search widget.
@@ -14,17 +14,19 @@ import { ConsentGate } from "@/components/consent/ConsentGate";
  * emptied, so client-side navigation never leaves a second widget behind, and coming back
  * re-injects a fresh one. Searches open the partner results in a new tab.
  *
- * Consent (Phase 3A): wrapped in ConsentGate, so nothing is requested from Travelpayouts until the
- * visitor accepts advertising cookies or presses "Load flight search".
+ * Consent (Phase 3A): wrapped in FlightSearchConsent. Loading this widget starts Travelpayouts'
+ * behavioural analytics (`_sp_id.*` / `_sp_ses.*` on our domain), which can't be switched off, so
+ * nothing is requested from Travelpayouts until the visitor explicitly allows that analytics.
+ * Advertising consent ("Accept all") does not load it.
  */
 const WIDGET_SRC =
   "https://tpwidg.com/content?currency=usd&trs=582763&shmarker=786947.786947&locale=en&stops=any&show_hotels=false&powered_by=true&border_radius=0&plain=false&color_button=%23101C30&color_button_text=%23ffffff&promo_id=3414&campaign_id=111";
 
 export function TravelpayoutsFlightsWidget() {
   return (
-    <ConsentGate service="travelpayouts-flights" minHeight={260}>
+    <FlightSearchConsent minHeight={260}>
       <FlightsWidget />
-    </ConsentGate>
+    </FlightSearchConsent>
   );
 }
 

@@ -11,6 +11,13 @@
  * Embedded tools also load automatically once advertising consent has been given, because they
  * carry affiliate tracking and may set the provider's cookies.
  *
+ * Exception: the Travelpayouts flight search. Loading it starts Travelpayouts' behavioural analytics
+ * (a Snowplow tracker writing `_sp_id.*`, a unique ID plus visit timestamps kept ~13 months, and
+ * `_sp_ses.*`), and Travelpayouts documents no setting that turns this off while keeping the search.
+ * So it needs a third, dedicated permission: the visitor's informed "Allow" on the flight search
+ * itself, stored in the uj_flight_analytics cookie. Neither advertising consent ("Accept all") nor a
+ * generic Load press counts. See FLIGHT_ANALYTICS and mayLoadFlightSearch below.
+ *
  * Affiliate identifiers stay in the widget components; this file only describes the services.
  */
 export type EmbeddedServiceId = "travelpayouts-flights" | "expedia-stays" | "discovercars" | "genki-calculator";
@@ -44,3 +51,28 @@ export const mayLoadEmbedded = ({ ready, ads, activated }: GateInput) => ready &
 
 /** Whether advertising/tracking scripts may load. A tool activation never counts. */
 export const mayLoadAdvertising = ({ ready, ads }: Pick<GateInput, "ready" | "ads">) => ready && ads;
+
+/**
+ * Disclosure for the Travelpayouts flight search analytics (shown in the flight-search prompt, the
+ * cookie settings dialog and the Cookie Policy). Observed on the PR #9 preview, 13 October 2026.
+ */
+export const FLIGHT_ANALYTICS = {
+  provider: "Travelpayouts",
+  purpose: "behavioural analytics",
+  cookies: [
+    { name: "_sp_id.*", stores: "a unique ID for your browser and the times of your visits", lifetime: "about 13 months" },
+    { name: "_sp_ses.*", stores: "the current visit", lifetime: "30 minutes" },
+  ],
+  /** Hosts contacted once the flight search loads (observed). */
+  hosts: ["tpwidg.com", "avsplow.com", "sentry.avs.io", "img.wway.io", "www.apistp.com"],
+  /** The permission cookie and how long it is kept, matching uj_consent. */
+  cookie: "uj_flight_analytics",
+  maxAgeDays: 180,
+} as const;
+
+/**
+ * Whether the flight search may load: only after the visitor explicitly allowed the flight-search
+ * analytics (true). Undecided (null) and refused (false) never load it. Advertising consent and tool
+ * activations are deliberately not inputs.
+ */
+export const mayLoadFlightSearch = ({ ready, flightAnalytics }: { ready: boolean; flightAnalytics: boolean | null }) => ready && flightAnalytics === true;

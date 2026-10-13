@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { EMBEDDED_SERVICES, mayLoadAdvertising, mayLoadEmbedded, TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
+import { EMBEDDED_SERVICES, FLIGHT_ANALYTICS, mayLoadAdvertising, mayLoadEmbedded, mayLoadFlightSearch, TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
@@ -19,6 +19,21 @@ describe("consent gates", () => {
     expect(mayLoadAdvertising({ ready: true, ads: true })).toBe(true);
     expect(mayLoadAdvertising.length).toBe(1);
     expect(mayLoadAdvertising.toString()).not.toMatch(/activated/);
+  });
+  it("loads the flight search only after its own explicit allow, never on ads consent or an activation", () => {
+    for (const ready of [true, false]) for (const flightAnalytics of [true, false, null]) {
+      expect(mayLoadFlightSearch({ ready, flightAnalytics }), JSON.stringify({ ready, flightAnalytics })).toBe(ready && flightAnalytics === true);
+    }
+    expect(mayLoadFlightSearch.toString()).not.toMatch(/\bads\b|activated/);
+  });
+  it("discloses the flight-search analytics cookies, purpose and lifetime", () => {
+    expect(FLIGHT_ANALYTICS.provider).toBe("Travelpayouts");
+    expect(FLIGHT_ANALYTICS.cookies.map((c) => c.name)).toEqual(["_sp_id.*", "_sp_ses.*"]);
+    expect(FLIGHT_ANALYTICS.cookies[0].lifetime).toBe("about 13 months");
+    const component = read("src/components/consent/FlightSearchConsent.tsx");
+    expect(component).toContain("Allow and load flight search");
+    expect(component).toContain("No thanks");
+    expect(read("src/components/partners/TravelpayoutsFlightsWidget.tsx")).not.toContain("ConsentGate");
   });
   it("covers the four embedded partner tools", () => {
     expect(Object.keys(EMBEDDED_SERVICES).sort()).toEqual(["discovercars", "expedia-stays", "genki-calculator", "travelpayouts-flights"]);

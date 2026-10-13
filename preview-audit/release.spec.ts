@@ -3,7 +3,7 @@ import { expect, test, type BrowserContext, type Page, type TestInfo } from "@pl
 
 const paths = ["/", "/guides/topics/flights", "/guides/topics/hotels", "/guides/topics/car-rentals", "/insurance"];
 const providers = [
-  { path: paths[1], button: "Load flight search", host: "tpwidg.com" },
+  { path: paths[1], button: "Allow and load flight search", host: "tpwidg.com" },
   { path: paths[2], button: "Load hotel and stays search", host: "creator.expediagroup.com" },
   { path: paths[3], button: "Load car hire search", host: "widget.discovercars.com" },
   { path: paths[4], button: "Load health insurance calculator", host: "widgets.genki.world" },

@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { blockThirdParty } from "./helpers";
 
 const pages = [
-  { path: "/", buttons: ["Load flight search", "Load hotel and stays search", "Load car hire search"] },
-  { path: "/guides/topics/flights", buttons: ["Load flight search"] },
+  { path: "/", buttons: ["Allow and load flight search", "Load hotel and stays search", "Load car hire search"] },
+  { path: "/guides/topics/flights", buttons: ["Allow and load flight search"] },
   { path: "/guides/topics/hotels", buttons: ["Load hotel and stays search"] },
   { path: "/guides/topics/car-rentals", buttons: ["Load car hire search"] },
   { path: "/insurance", buttons: ["Load health insurance calculator"] },

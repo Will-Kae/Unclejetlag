@@ -27,7 +27,7 @@ test("Travelpayouts flights widget keeps its tracking parameters", async ({ page
   await page.goto("/guides/topics/flights");
   await page.locator("#flights").scrollIntoViewIfNeeded();
   await expect(page.locator('script[src^="https://tpwidg.com/content"]')).toHaveCount(0);
-  await page.getByRole("button", { name: "Load flight search" }).click();
+  await page.getByRole("button", { name: "Allow and load flight search" }).click();
   const src = await page.waitForFunction(() => [...document.scripts].map((s) => s.src).find((s) => s.startsWith("https://tpwidg.com/content")), null, { timeout: 15_000 }).then((h) => h.jsonValue());
   const u = new URL(String(src));
   expect(u.searchParams.get("trs")).toBe("582763");

@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { EmbeddedServiceId } from "@/lib/consent/services";
-import { clearAdvertisingCookies } from "@/lib/consent/tracking-cookies";
+import { FLIGHT_ANALYTICS, type EmbeddedServiceId } from "@/lib/consent/services";
+import { clearUnpermittedTrackingCookies } from "@/lib/consent/tracking-cookies";
 
 /**
  * Lightweight consent store + Google Consent Mode v2 bridge.
@@ -15,13 +15,22 @@ import { clearAdvertisingCookies } from "@/lib/consent/tracking-cookies";
  * `activate(id)` records that the visitor pressed that tool's own "Load" button. Activations live
  * in memory for the current visit only, are never written to the consent cookie, and never grant
  * advertising consent. See src/lib/consent/services.ts.
+ *
+ * The Travelpayouts flight search has a third permission, `flightAnalytics`: the visitor's informed
+ * allow/decline for Travelpayouts' behavioural analytics, which the search can't run without. It is
+ * stored in its own cookie (uj_flight_analytics), so allowing it never answers the cookie banner, and
+ * "Accept all" never sets it. null = not decided yet.
  */
 export type Consent = { v: 1; analytics: boolean; ads: boolean; ts: number };
 
 type Ctx = {
   consent: Consent | null;
   ready: boolean;
-  save: (c: Omit<Consent, "v" | "ts">) => void;
+  /** Save banner choices. Pass `flightAnalytics` only to change the flight-search permission too. */
+  save: (c: Omit<Consent, "v" | "ts"> & { flightAnalytics?: boolean }) => void;
+  /** Flight-search analytics permission: true allowed, false declined, null not decided. */
+  flightAnalytics: boolean | null;
+  setFlightAnalytics: (granted: boolean) => void;
   openSettings: () => void;
   settingsOpen: boolean;
   closeSettings: () => void;
@@ -32,8 +41,7 @@ type Ctx = {
 
 const ConsentContext = createContext<Ctx | null>(null);
 const COOKIE = "uj_consent";
-/** sessionStorage flag: clear advertising cookies again on the page load that follows a withdrawal. */
-const CLEAR_AFTER_RELOAD = "uj:clear-ad-cookies";
+const FLIGHT_COOKIE = FLIGHT_ANALYTICS.cookie;
 
 type GtagWindow = Window & { gtag?: (...args: unknown[]) => void; dataLayer?: unknown[] };
 
@@ -46,6 +54,22 @@ function read(): Consent | null {
   } catch {
     return null;
   }
+}
+
+function readFlightAnalytics(): boolean | null {
+  try {
+    const m = document.cookie.match(new RegExp(`(?:^|; )${FLIGHT_COOKIE}=([^;]*)`));
+    if (!m) return null;
+    const c = JSON.parse(decodeURIComponent(m[1])) as { v: number; granted: unknown };
+    return c.v === 1 && typeof c.granted === "boolean" ? c.granted : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCookie(name: string, value: unknown, maxAgeDays: number) {
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))}; Path=/; Max-Age=${60 * 60 * 24 * maxAgeDays}; SameSite=Lax${secure}`;
 }
 
 function applyToGoogle(c: Consent) {
@@ -63,21 +87,21 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activated, setActivated] = useState<ReadonlySet<EmbeddedServiceId>>(() => new Set());
+  const [flightAnalytics, setFlightState] = useState<boolean | null>(null);
   const current = useRef<Consent | null>(null);
+  const flights = useRef<boolean | null>(null);
 
   useEffect(() => {
     const c = read();
-    try {
-      if (sessionStorage.getItem(CLEAR_AFTER_RELOAD)) {
-        sessionStorage.removeItem(CLEAR_AFTER_RELOAD);
-        if (!c?.ads) clearAdvertisingCookies();
-      }
-    } catch {
-      /* storage unavailable */
-    }
+    const f = readFlightAnalytics();
+    // On every page load, delete Travelpayouts tracking cookies on our domain that the visitor hasn't
+    // allowed. This also catches a tracker rewriting its cookie while the previous page unloaded.
+    clearUnpermittedTrackingCookies({ ads: Boolean(c?.ads), flightAnalytics: f === true });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from cookie once on mount
     setConsent(c);
+    setFlightState(f);
     current.current = c;
+    flights.current = f;
     if (c) applyToGoogle(c);
     setReady(true);
     const open = () => setSettingsOpen(true);
@@ -85,30 +109,45 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("uj:open-consent", open);
   }, []);
 
-  const save = useCallback((c: Omit<Consent, "v" | "ts">) => {
-    const full: Consent = { v: 1, ts: Date.now(), ...c };
-    const secure = location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `${COOKIE}=${encodeURIComponent(JSON.stringify(full))}; Path=/; Max-Age=${60 * 60 * 24 * 180}; SameSite=Lax${secure}`;
-    const withdrawingAds = Boolean(current.current?.ads) && !full.ads;
-    current.current = full;
-    setConsent(full);
-    applyToGoogle(full);
-    setSettingsOpen(false);
-    // Third-party scripts that already ran (Travelpayouts Drive, loaded widgets) can't be unloaded and
-    // may keep listeners or rewritten links. Delete the tracking cookies they wrote on our own domain,
-    // then reload so the page restarts in the new, denied state.
-    if (withdrawingAds) {
-      clearAdvertisingCookies();
-      // A tracker still running on this page can rewrite its cookie while the page unloads, so clear
-      // once more as soon as the reloaded page starts (see the mount effect).
-      try {
-        sessionStorage.setItem(CLEAR_AFTER_RELOAD, "1");
-      } catch {
-        /* storage unavailable: the immediate clear above still ran */
-      }
-      window.location.reload();
-    }
+  /** Withdrawal: delete the tracking cookies no longer allowed, then restart the page without the scripts. */
+  const withdraw = useCallback(() => {
+    // Third-party scripts that already ran (Travelpayouts Drive, the flight search, loaded widgets) can't
+    // be unloaded and may keep listeners or rewritten links. The mount effect clears once more after the
+    // reload, in case a tracker rewrites its cookie while this page unloads.
+    clearUnpermittedTrackingCookies({ ads: Boolean(current.current?.ads), flightAnalytics: flights.current === true });
+    window.location.reload();
   }, []);
+
+  /** Store the flight-search permission. Returns true when this withdraws an earlier "allow". */
+  const storeFlights = useCallback((granted: boolean) => {
+    const withdrawing = flights.current === true && !granted;
+    writeCookie(FLIGHT_COOKIE, { v: 1, ts: Date.now(), granted }, FLIGHT_ANALYTICS.maxAgeDays);
+    flights.current = granted;
+    setFlightState(granted);
+    return withdrawing;
+  }, []);
+
+  const save = useCallback(
+    ({ flightAnalytics: f, ...c }: Omit<Consent, "v" | "ts"> & { flightAnalytics?: boolean }) => {
+      const full: Consent = { v: 1, ts: Date.now(), analytics: c.analytics, ads: c.ads };
+      writeCookie(COOKIE, full, 180);
+      const withdrawingAds = Boolean(current.current?.ads) && !full.ads;
+      current.current = full;
+      setConsent(full);
+      applyToGoogle(full);
+      setSettingsOpen(false);
+      const withdrawingFlights = f === undefined ? false : storeFlights(f);
+      if (withdrawingAds || withdrawingFlights) withdraw();
+    },
+    [storeFlights, withdraw],
+  );
+
+  const setFlightAnalytics = useCallback(
+    (granted: boolean) => {
+      if (storeFlights(granted)) withdraw();
+    },
+    [storeFlights, withdraw],
+  );
 
   const activate = useCallback((id: EmbeddedServiceId) => {
     setActivated((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
@@ -116,7 +155,7 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ConsentContext.Provider
-      value={{ consent, ready, save, settingsOpen, openSettings: () => setSettingsOpen(true), closeSettings: () => setSettingsOpen(false), activated, activate }}
+      value={{ consent, ready, save, flightAnalytics, setFlightAnalytics, settingsOpen, openSettings: () => setSettingsOpen(true), closeSettings: () => setSettingsOpen(false), activated, activate }}
     >
       {children}
     </ConsentContext.Provider>

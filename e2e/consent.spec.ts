@@ -8,7 +8,8 @@
  *   navigation;
  * - pressing a tool's "Load" button: only that tool's provider is contacted; advertising consent is
  *   not granted and Travelpayouts Drive / the CJ pixel never load;
- * - "Accept all": Drive and the tools load;
+ * - "Accept all": Drive and the tools load, except the Travelpayouts flight search, which needs its own
+ *   analytics permission (e2e/consent-flight-analytics.spec.ts);
  * - withdrawing advertising consent: the page reloads and nothing third-party loads afterwards.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
@@ -97,28 +98,28 @@ test("Essential only: nothing third-party loads, including after client-side nav
 
 test("a tool's Load button loads only that tool and never grants advertising consent", async ({ page, context }) => {
   const net = await recordThirdParty(context);
-  await page.goto("/guides/topics/flights");
+  await page.goto("/guides/topics/hotels");
   await page.getByRole("button", { name: "Essential only" }).click();
-  await page.getByRole("button", { name: "Load flight search" }).click();
+  await page.getByRole("button", { name: "Load hotel and stays search" }).click();
   // Focus moves to the loaded tool for keyboard and screen-reader users.
-  await expect(page.getByRole("region", { name: "Flight search from Travelpayouts" })).toBeFocused();
-  await expect.poll(() => net.unique()).toEqual(["tpwidg.com"]);
+  await expect(page.getByRole("region", { name: "Hotel and stays search from Expedia Group" })).toBeFocused();
+  await expect.poll(() => net.unique()).toEqual(["creator.expediagroup.com"]);
   expect(await consentCookie(context)).toMatchObject({ ads: false });
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(0);
 
   // Other tools stay gated after client-side navigation; the activation is per tool.
-  await clientNavigate(page, "/guides/topics/hotels");
+  await clientNavigate(page, "/guides/topics/car-rentals");
   await exercise(page);
-  await expect(page.locator('[data-consent-placeholder="expedia-stays"]')).toBeVisible();
+  await expect(page.locator('[data-consent-placeholder="discovercars"]')).toBeVisible();
   await clientNavigate(page, "/insurance");
   await exercise(page);
-  expect(net.unique()).toEqual(["tpwidg.com"]);
+  expect(net.unique()).toEqual(["creator.expediagroup.com"]);
   expect(net.hosts).not.toContain(DRIVE);
   expect(net.hosts).not.toContain(CJ);
 
   // The activation is for this visit only: a full reload shows the placeholder again.
-  await page.goto("/guides/topics/flights");
-  await expect(page.locator('[data-consent-placeholder="travelpayouts-flights"]')).toBeVisible();
+  await page.goto("/guides/topics/hotels");
+  await expect(page.locator('[data-consent-placeholder="expedia-stays"]')).toBeVisible();
 });
 
 test("a Load button works before any banner choice and leaves the banner unanswered", async ({ page, context }) => {
@@ -131,7 +132,7 @@ test("a Load button works before any banner choice and leaves the banner unanswe
   await expect(page.getByRole("dialog", { name: "Cookies, briefly." })).toBeVisible();
 });
 
-test("Accept all: Drive and the embedded tools load", async ({ page, context }) => {
+test("Accept all: Drive and the embedded tools load, but not the flight search", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto("/");
   await page.getByRole("button", { name: "Accept all" }).click();
@@ -140,7 +141,12 @@ test("Accept all: Drive and the embedded tools load", async ({ page, context }) 
   await exercise(page);
   await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
   await exercise(page);
-  await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "tpwidg.com", "creator.expediagroup.com", "widget.discovercars.com", "widgets.genki.world", CJ]));
+  await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "creator.expediagroup.com", "widget.discovercars.com", "widgets.genki.world", CJ]));
+  // The flight search needs its own analytics permission; "Accept all" doesn't grant it.
+  await page.goto("/guides/topics/flights");
+  await exercise(page);
+  await expect(page.locator('[data-consent-placeholder="travelpayouts-flights"]')).toBeVisible();
+  expect(net.hosts).not.toContain("tpwidg.com");
   await expect(page.locator("#travelpayouts-drive")).toHaveAttribute("src", "https://emrldtp.cc/NTgyNzYz.js?t=582763");
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
 });
@@ -180,10 +186,10 @@ test("changing only analytics consent does not reload the page", async ({ page }
   expect(await page.evaluate(() => (window as unknown as { __ujMarker?: number }).__ujMarker)).toBe(1);
 });
 
-// Each activation starts in a fresh Playwright context. Aborted provider responses cannot execute
+// Each activation starts in a fresh Playwright context. (The flight search is covered by
+// e2e/consent-flight-analytics.spec.ts, because it needs its own analytics permission.) Aborted provider responses cannot execute
 // downstream scripts: this establishes first-hop isolation, not the provider's full live network.
 for (const tool of [
-  { path: "/guides/topics/flights", button: "Load flight search", host: "tpwidg.com" },
   { path: "/guides/topics/hotels", button: "Load hotel and stays search", host: "creator.expediagroup.com" },
   { path: "/guides/topics/car-rentals", button: "Load car hire search", host: "widget.discovercars.com" },
   { path: "/insurance", button: "Load health insurance calculator", host: "widgets.genki.world" },
