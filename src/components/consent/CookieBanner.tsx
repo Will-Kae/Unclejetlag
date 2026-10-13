@@ -109,7 +109,7 @@ export function CookieSettingsButton({ className }: { className?: string }) {
     w.googlefc.callbackQueue.push({
       CONSENT_API_READY: () => {
         if (typeof w.__tcfapi !== "function") return;
-        w.__tcfapi("addEventListener", 0, (data, success) => {
+        w.__tcfapi("addEventListener", 2, (data, success) => {
           setGoogleCmpReady(
             Boolean(success && data?.gdprApplies && typeof w.googlefc?.showRevocationMessage === "function"),
           );
