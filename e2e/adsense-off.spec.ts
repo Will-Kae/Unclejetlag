@@ -36,11 +36,11 @@ async function visit(page: Page) {
 const states: { name: string; act: (page: Page) => Promise<void> }[] = [
   { name: "no choice made", act: async () => {} },
   { name: "Essential only", act: async (page) => page.getByRole("button", { name: "Essential only" }).click() },
-  { name: "Accept all", act: async (page) => page.getByRole("button", { name: "Accept all" }).click() },
+  { name: "Accept site preferences", act: async (page) => page.getByRole("button", { name: "Accept site preferences" }).click() },
   {
-    name: "Accept all plus flight-search analytics",
+    name: "Accept site preferences plus flight-search analytics",
     act: async (page) => {
-      await page.getByRole("button", { name: "Accept all" }).click();
+      await page.getByRole("button", { name: "Accept site preferences" }).click();
       await page.goto("/guides/topics/flights");
       await page.getByRole("button", { name: "Allow and load flight search" }).click();
     },
