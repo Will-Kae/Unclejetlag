@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+type GoogleFcWindow = Window & { googlefc?: { callbackQueue?: Array<Record<string, () => void>>; showRevocationMessage?: () => void } };
 import { useConsent } from "./ConsentProvider";
 
 export function CookieBanner() {
@@ -87,9 +89,38 @@ export function CookieBanner() {
 }
 
 export function CookieSettingsButton({ className }: { className?: string }) {
+  const [googleCmpReady, setGoogleCmpReady] = useState(false);
+
+  useEffect(() => {
+    // Google's supported callback is only fired once its certified CMP API is ready.
+    // This does NOT grant consent, load ads, or mistake uj_consent for a TCF decision.
+    const w = window as GoogleFcWindow;
+    w.googlefc = w.googlefc || {};
+    w.googlefc.callbackQueue = w.googlefc.callbackQueue || [];
+    w.googlefc.callbackQueue.push({
+      CONSENT_API_READY: () => setGoogleCmpReady(typeof w.googlefc?.showRevocationMessage === "function"),
+    });
+  }, []);
+
   return (
-    <button type="button" className={className} onClick={() => window.dispatchEvent(new Event("uj:open-consent"))}>
-      Cookie settings
-    </button>
+    <span className="inline-flex flex-wrap items-center gap-3">
+      <button type="button" className={className} onClick={() => window.dispatchEvent(new Event("uj:open-consent"))}>
+        Cookie settings
+      </button>
+      {googleCmpReady && (
+        <button
+          type="button"
+          className={className}
+          onClick={() => {
+            const w = window as GoogleFcWindow;
+            w.googlefc?.callbackQueue?.push({
+              CONSENT_API_READY: () => w.googlefc?.showRevocationMessage?.(),
+            });
+          }}
+        >
+          Google advertising privacy choices
+        </button>
+      )}
+    </span>
   );
 }
