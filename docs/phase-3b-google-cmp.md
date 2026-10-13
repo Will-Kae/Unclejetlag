@@ -4,7 +4,7 @@
 
 - Google AdSense publisher ID: `ca-pub-6434910360613331` (the `ca-` prefix is used for the client ID).
 - AdSense is still hard-disabled by `ADSENSE_RELEASE_ENABLED = false` in `src/components/monetization/ads-config.ts`.
-- Google's Privacy & messaging European regulations message for `unclejetlag.com` is saved as a **draft**, not published.
+- Google Privacy & messaging settings were confirmed by the site owner. Publication and live TCF behavior have **not** been independently verified.
 - Existing `CookieBanner` and `ConsentProvider` handle first-party affiliate/analytics choices; Travelpayouts flight analytics has its own explicit permission.
 - The existing first-party `uj_consent.ads` preference **must not** be treated as IAB TCF consent or proof of permission to serve Google ads.
 
@@ -38,3 +38,9 @@ Official references:
 7. A live CMP test requires an explicit coordinated release plan because publishing the message affects the registered production domain and loading the AdSense tag can cause requests. Arrange a controlled deployment and verify EEA/UK/Swiss consent, reject, manage, revocation, mobile, and requests. Keep `ADSENSE_RELEASE_ENABLED = false` until this plan is approved and executed.
 
 **Release gate:** Do not merge or publish from this document alone. Account-wide dashboard changes and production ad activation require explicit owner authorization.
+
+## Verification checkpoint
+
+- Publisher tag is decoupled from affiliate cookie; `ADSENSE_RELEASE_ENABLED` and `ADSENSE_CMP_VERIFIED` remain false.
+- Ad slots remain independently disabled by `ADSENSE_SLOTS_ENABLED = false`.
+- CI passing does not verify a published Google CMP. Before launch test real TCF state, Consent Mode, withdrawal and network calls for covered regions.
