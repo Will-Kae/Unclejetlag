@@ -74,6 +74,7 @@ describe("AdSense is off for this release (certified CMP planned for Phase 3B)",
     const cfg = await import("@/components/monetization/ads-config");
     expect(cfg.ADSENSE_CLIENT).toBe("ca-pub-0000000000000000");
     expect(cfg.ADSENSE_RELEASE_ENABLED).toBe(false);
+    expect(cfg.ADSENSE_CMP_VERIFIED).toBe(false);
     expect(cfg.ADSENSE_ACTIVE).toBe(false);
     vi.unstubAllEnvs();
   });
@@ -99,5 +100,20 @@ describe("Phase 3B: certified Google consent remains independent", () => {
     expect(read("src/components/layout/Footer.tsx")).toContain("<CookieSettingsButton");
     expect(read("src/components/consent/CookieBanner.tsx")).toContain('new Event("uj:open-consent")');
     expect(read("src/components/consent/ConsentProvider.tsx")).toContain('window.addEventListener("uj:open-consent", open)');
+  });
+});
+
+
+describe("Phase 3B release guardrails", () => {
+  it("does not mistake affiliate acceptance for certified Google advertising consent", () => {
+    const banner = read("src/components/consent/CookieBanner.tsx");
+    expect(banner).toContain("Accept site preferences");
+    expect(banner).toContain("does not grant Google AdSense consent");
+    expect(banner).toContain("Google advertising privacy choices");
+  });
+  it("requires independent CMP verification before AdSense can activate", () => {
+    const config = read("src/components/monetization/ads-config.ts");
+    expect(config).toContain("ADSENSE_CMP_VERIFIED = false");
+    expect(config).toContain("ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED");
   });
 });
