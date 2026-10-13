@@ -76,12 +76,13 @@ describe("AdSense is off for this release (certified CMP planned for Phase 3B)",
     expect(cfg.ADSENSE_CLIENT).toBe("ca-pub-0000000000000000");
     expect(cfg.ADSENSE_RELEASE_ENABLED).toBe(false);
     expect(cfg.ADSENSE_CMP_VERIFIED).toBe(false);
+    expect(cfg.ADSENSE_SLOTS_ENABLED).toBe(false);
     expect(cfg.ADSENSE_ACTIVE).toBe(false);
     vi.unstubAllEnvs();
   });
   it("gates every AdSense request on ADSENSE_ACTIVE (script and ad slots)", () => {
     expect(read("src/components/monetization/ThirdPartyScripts.tsx")).not.toMatch(/\{ADSENSE_CLIENT &&/);
-    expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && consent?.ads);");
+    expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && ADSENSE_SLOTS_ENABLED);");
   });
 });
 
@@ -116,5 +117,6 @@ describe("Phase 3B release guardrails", () => {
     const config = read("src/components/monetization/ads-config.ts");
     expect(config).toContain("ADSENSE_CMP_VERIFIED = false");
     expect(config).toContain("ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED");
+    expect(config).toContain("ADSENSE_SLOTS_ENABLED = false");
   });
 });
