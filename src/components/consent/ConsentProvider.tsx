@@ -5,11 +5,10 @@ import { FLIGHT_ANALYTICS, type EmbeddedServiceId } from "@/lib/consent/services
 import { clearUnpermittedTrackingCookies } from "@/lib/consent/tracking-cookies";
 
 /**
- * Lightweight consent store + Google Consent Mode v2 bridge.
+ * Lightweight first-party consent store + analytics Consent Mode bridge.
  * NOTE: For EEA/UK/Swiss traffic Google requires a Google-certified CMP (IAB TCF v2.2)
- * to serve AdSense. Before enabling ads there, replace <CookieBanner/> with a certified
- * CMP (e.g. Google's own "Privacy & messaging") and keep this provider as the
- * app-level source of truth by calling `save()` from the CMP callback.
+ * to serve AdSense. A certified CMP must separately manage Google's advertising
+ * signals and TCF choices. Never treat `uj_consent.ads` as certified Google consent.
  *
  * Embedded tools (booking searches, the Genki calculator) have a second, separate permission:
  * `activate(id)` records that the visitor pressed that tool's own "Load" button. Activations live
@@ -75,10 +74,11 @@ function writeCookie(name: string, value: unknown, maxAgeDays: number) {
 function applyToGoogle(c: Consent) {
   const w = window as GtagWindow;
   w.gtag?.("consent", "update", {
+    // Site analytics consent is independent of Google's certified advertising CMP.
+    // Never infer Google ad consent from the first-party affiliate preference (c.ads).
+    // Google advertising signals remain at their denied defaults until a verified
+    // certified CMP integration controls them separately.
     analytics_storage: c.analytics ? "granted" : "denied",
-    ad_storage: c.ads ? "granted" : "denied",
-    ad_user_data: c.ads ? "granted" : "denied",
-    ad_personalization: c.ads ? "granted" : "denied",
   });
 }
 
