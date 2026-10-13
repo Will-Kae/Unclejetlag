@@ -1,4 +1,4 @@
-export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
+export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-6434910360613331";
 
 /**
  * Release switch (Phase 3A). AdSense stays OFF for this release, in every consent state, even when
