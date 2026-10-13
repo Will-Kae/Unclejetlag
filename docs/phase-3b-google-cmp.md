@@ -34,7 +34,7 @@ Official references:
 3. The account-level **Maximize message coverage** option can cause a fallback message to appear through the AdSense tag even if the customized message is still a draft. This setting may affect all AdSense-tagged sites in the account.
 4. The supported `googlefc.callbackQueue` key `CONSENT_API_READY` signals TCF API availability, **not that a user has consented**. The revocation control can use `__tcfapi('addEventListener', 0, ...)` and `gdprApplies` as in Google's documented example. Never use `CONSENT_API_READY` as an ad-consent grant.
 5. Google's CMP can update Google Consent Mode advertising and analytics purposes if configured in its dashboard. Before enabling this, review overlap with Uncle Jetlag's first-party GA4 analytics consent: do not let one integration unexpectedly override the other's preferences.
-6. Safe local tests before any account-wide publishing: run the existing unit tests and Playwright ad-blocking tests on the preview; verify no `adsbygoogle.js` is present after both Essential only and Accept all; confirm the footer and independent flight-search analytics controls. **These do not constitute a live Google CMP test.**
+6. Safe local tests before any account-wide publishing: run the existing unit tests and Playwright ad-blocking tests on the preview; verify no `adsbygoogle.js` is present after both Essential only and Accept site preferences; confirm the footer and independent flight-search analytics controls. **These do not constitute a live Google CMP test.**
 7. A live CMP test requires an explicit coordinated release plan because publishing the message affects the registered production domain and loading the AdSense tag can cause requests. Arrange a controlled deployment and verify EEA/UK/Swiss consent, reject, manage, revocation, mobile, and requests. Keep `ADSENSE_RELEASE_ENABLED = false` until this plan is approved and executed.
 
 **Release gate:** Do not merge or publish from this document alone. Account-wide dashboard changes and production ad activation require explicit owner authorization.
@@ -51,3 +51,26 @@ Official references:
 - Run CI, typecheck/build, static and browser consent tests with AdSense and slots disabled.
 - A Google CMP `?fc=alwaysshow&fctype=gdpr` test is **not a valid end-to-end acceptance test while the message remains Draft**.
 - After code checks pass, request separate approval for a coordinated CMP publication and controlled live verification. No deployment or AdSense enablement is implied.
+
+## Step 3 — Controlled CMP testing plan (prepared, not authorized for publication)
+
+**Prerequisites confirmed by owner:** European regulations message configuration reviewed (accept, reject, manage, policy, vendors, Consent Mode, revocation). GitHub Preservation harness run #165 succeeded (both jobs). The message remains **Draft**.
+
+### A. Offline and disabled-tag checks — safe now
+
+1. Keep `ADSENSE_RELEASE_ENABLED`, `ADSENSE_CMP_VERIFIED`, and `ADSENSE_SLOTS_ENABLED` all `false`.
+2. Check clean-browser first visit, Essential only, Accept site preferences, Customise, flight-search analytics permission, cookie withdrawal, and 375/390/768px layouts.
+3. Confirm `adsbygoogle.js` and ad-slot requests are absent in Network under every first-party preference; GA4 and affiliate scripts follow only their separate permissions.
+4. Confirm the footer's Google privacy choices control does not incorrectly claim the draft CMP is live. Capture CI logs and preview screenshots.
+
+### B. Live CMP acceptance — separate future approval required
+
+1. Obtain explicit owner authorization before publishing the European regulations message or modifying the AdSense account. Publishing may affect every tagged site in the account; review Maximize message coverage.
+2. Determine a supported, isolated testing arrangement and ensure the registered site/domain and Google's publisher tag can actually deliver the published message. Do not assume a Vercel preview subdomain is eligible.
+3. With the message published, test EEA, UK and Switzerland first visits (consent, reject, manage), repeat visits, and withdrawal via Google's revocation UI. Confirm `__tcfapi` events and consent strings; API readiness is **not** permission.
+4. Inspect network requests and Google Consent Mode v2 (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`) across all paths; resolve conflicts with first-party analytics consent. Verify non-EEA behavior separately.
+5. Review policies, ads.txt, vendor disclosure, account approval, and ad slot configuration before proposing activation.
+
+### C. Release decision
+
+Record browser evidence and require a separate approval to enable publisher tag, ad slots, merge, or deploy. CI success alone does not clear the live CMP release gate.
