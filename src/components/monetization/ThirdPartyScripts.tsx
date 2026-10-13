@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useConsent } from "@/components/consent/ConsentProvider";
 import { ADSENSE_ACTIVE, ADSENSE_CLIENT } from "@/components/monetization/ads-config";
 import { mayLoadAdvertising, TRAVELPAYOUTS_DRIVE_SRC } from "@/lib/consent/services";
@@ -17,6 +17,11 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 export function ThirdPartyScripts() {
   const { consent, ready } = useConsent();
   const ads = mayLoadAdvertising({ ready, ads: Boolean(consent?.ads) });
+  // Preview CMP probe: hostname-restricted, no ad slots and no consent grant.
+  const [stagingCmpProbe, setStagingCmpProbe] = useState(false);
+  useEffect(() => {
+    setStagingCmpProbe(window.location.hostname === "staging.unclejetlag.com");
+  }, []);
 
   useEffect(() => {
     if (!ads || document.getElementById("travelpayouts-drive")) return;
@@ -32,7 +37,7 @@ export function ThirdPartyScripts() {
 
   return (
     <>
-      {ADSENSE_ACTIVE && (
+      {(ADSENSE_ACTIVE || stagingCmpProbe) && (
         <Script id="adsense-consented" strategy="afterInteractive" src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossOrigin="anonymous" />
       )}
       {GA_ID && consent?.analytics && (
