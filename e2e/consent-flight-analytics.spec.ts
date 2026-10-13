@@ -97,10 +97,10 @@ test("refusal: No thanks loads nothing, sets no analytics cookie, and is remembe
   expect(net.unique()).toEqual([]);
 });
 
-test("Accept all does not allow the flight-search analytics", async ({ page, context }) => {
+test("Accept site preferences does not allow the flight-search analytics", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto(FLIGHTS);
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
   await scrollAll(page);
   await expect(placeholder(page)).toHaveAttribute("data-consent-state", "undecided");
@@ -182,7 +182,7 @@ test("withdrawal with Turn off: reloads, deletes the analytics cookies, and noth
 test("withdrawal in Cookie settings: unticking the flight-search analytics reloads and deletes its cookies", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto(FLIGHTS);
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await page.getByRole("button", { name: ALLOW }).click();
   await expect.poll(() => net.unique()).toContain(WIDGET_HOST);
   await plantTrackerCookies(page);
