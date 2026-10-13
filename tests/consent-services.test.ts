@@ -82,3 +82,22 @@ describe("AdSense is off for this release (certified CMP planned for Phase 3B)",
     expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && consent?.ads);");
   });
 });
+
+describe("Phase 3B: certified Google consent remains independent", () => {
+  it("does not derive Google advertising Consent Mode grants from affiliate ads preference", () => {
+    const provider = read("src/components/consent/ConsentProvider.tsx");
+    const bridge = provider.slice(provider.indexOf("function applyToGoogle("), provider.indexOf("export function ConsentProvider("));
+    expect(bridge).toContain('analytics_storage: c.analytics ? "granted" : "denied"');
+    expect(bridge).not.toMatch(/ad_storage\s*:\s*c\.ads|ad_user_data\s*:\s*c\.ads|ad_personalization\s*:\s*c\.ads/);
+    const defaults = provider.slice(provider.indexOf("export const consentDefaultsScript"));
+    for (const signal of ["ad_storage", "ad_user_data", "ad_personalization"]) {
+      expect(defaults).toContain(signal + ":'denied'");
+    }
+  });
+
+  it("keeps the footer preference control and consent-open event wired together", () => {
+    expect(read("src/components/layout/Footer.tsx")).toContain("<CookieSettingsButton");
+    expect(read("src/components/consent/CookieBanner.tsx")).toContain('new Event("uj:open-consent")');
+    expect(read("src/components/consent/ConsentProvider.tsx")).toContain('window.addEventListener("uj:open-consent", open)');
+  });
+});
