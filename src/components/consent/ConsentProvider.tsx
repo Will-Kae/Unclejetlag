@@ -18,7 +18,7 @@ import { clearUnpermittedTrackingCookies } from "@/lib/consent/tracking-cookies"
  * The Travelpayouts flight search has a third permission, `flightAnalytics`: the visitor's informed
  * allow/decline for Travelpayouts' behavioural analytics, which the search can't run without. It is
  * stored in its own cookie (uj_flight_analytics), so allowing it never answers the cookie banner, and
- * "Accept all" never sets it. null = not decided yet.
+ * "Accept site preferences" never sets it. null = not decided yet.
  */
 export type Consent = { v: 1; analytics: boolean; ads: boolean; ts: number };
 
