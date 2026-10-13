@@ -97,9 +97,13 @@ export function CookieSettingsButton({ className }: { className?: string }) {
     const w = window as GoogleFcWindow;
     w.googlefc = w.googlefc || {};
     w.googlefc.callbackQueue = w.googlefc.callbackQueue || [];
-    w.googlefc.callbackQueue.push({
-      CONSENT_API_READY: () => setGoogleCmpReady(typeof w.googlefc?.showRevocationMessage === "function"),
-    });
+    if (typeof w.googlefc.showRevocationMessage === "function") {
+      setGoogleCmpReady(true);
+    } else {
+      w.googlefc.callbackQueue.push({
+        CONSENT_API_READY: () => setGoogleCmpReady(typeof w.googlefc?.showRevocationMessage === "function"),
+      });
+    }
   }, []);
 
   return (
@@ -113,9 +117,7 @@ export function CookieSettingsButton({ className }: { className?: string }) {
           className={className}
           onClick={() => {
             const w = window as GoogleFcWindow;
-            w.googlefc?.callbackQueue?.push({
-              CONSENT_API_READY: () => w.googlefc?.showRevocationMessage?.(),
-            });
+            w.googlefc?.showRevocationMessage?.();
           }}
         >
           Google advertising privacy choices
