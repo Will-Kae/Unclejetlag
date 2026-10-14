@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
-import { comparePassports, scorePassport, type ComparisonFilter } from "@/lib/passport/engine";
+import { scorePassport, type ComparisonFilter } from "@/lib/passport/engine";
+import { comparisonCoverage } from "@/lib/passport/comparison-coverage";
 import { flagOf, jName, jurisdictions } from "@/lib/passport/jurisdictions";
 import { categoryMeta } from "@/lib/passport/types";
 import { ScrollRegion } from "@/components/ui/ScrollRegion";
@@ -26,7 +27,7 @@ export function CompareTool({ withData }: { withData: string[] }) {
     if (pb && jurisdictions.some((j) => j.code === pb)) setB(pb);
   }, []);
 
-  const result = useMemo(() => (a !== b ? comparePassports(a, b, filter) : null), [a, b, filter]);
+  const result = useMemo(() => (a !== b ? comparisonCoverage(a, b, filter) : null), [a, b, filter]);
   const sa = useMemo(() => scorePassport(a), [a]);
   const sb = useMemo(() => scorePassport(b), [b]);
   const opts = [...jurisdictions].sort((x, y) => Number(withData.includes(y.code)) - Number(withData.includes(x.code)) || x.name.localeCompare(y.name));
@@ -81,11 +82,16 @@ export function CompareTool({ withData }: { withData: string[] }) {
               </tbody>
             </table>
           </ScrollRegion>
-          <p className="text-sm text-muted">{(() => { const n = result.both.length + result.onlyA.length + result.onlyB.length; return `Compared only where both passports have a verified rule: ${n} ${n === 1 ? "destination" : "destinations"} reachable by at least one; ${result.unverified.length} not yet verified for one or both.`; })()}</p>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl bg-sand/60 p-5 text-sm text-ink-2" role="status">
+            <p className="font-semibold text-ink">Evidence coverage: {result.verifiedForBoth} of {result.total} shared destinations ({Math.round(result.coverage * 100)}%)</p>
+            <p className="mt-2">{result.unverified.length} destinations lack verified evidence for one or both passports. These are excluded from the access comparison, not counted as visa-required.</p>
+            <p className="mt-2">This is a comparison of verified records, not a global passport ranking.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
             <List title="Both passports" codes={result.both} />
             <List title={`Only ${jName(a)}`} codes={result.onlyA} />
             <List title={`Only ${jName(b)}`} codes={result.onlyB} />
+            <List title="Neither passport (verified)" codes={result.neither} />
           </div>
           <p className="text-sm"><Link href={`/passport-index/passports/${jurisdictions.find((j) => j.code === a)!.slug}`} className="text-sky underline">{jName(a)} passport profile</Link> · <Link href={`/passport-index/passports/${jurisdictions.find((j) => j.code === b)!.slug}`} className="text-sky underline">{jName(b)} passport profile</Link></p>
         </div>
