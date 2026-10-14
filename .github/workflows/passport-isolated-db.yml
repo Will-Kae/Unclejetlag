@@ -1,0 +1,80 @@
+name: Passport isolated PostgreSQL security
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  passport-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: passport_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d passport_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: local_ci_only
+      PGDATABASE: passport_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap disposable database
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/ci-bootstrap.sql
+      - name: Apply all staged passport migrations in order
+        run: |
+          set -euo pipefail
+          for file in supabase/migrations/*passport*.sql; do
+            echo "Applying $file"
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - name: Assert schema and privilege boundaries
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/structural-security.sql
+      - name: Execute transactional security fixtures
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/transactional-security.sql
+      - name: Assert audit failure atomic rollback
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/audit-rollback.sql
+      - name: Reject concurrent duplicate approvals
+        run: bash tests/passport/concurrent-review.sh
+
+  local-postgrest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Initialize disposable local Supabase
+        run: supabase init
+      - name: Start isolated Auth, PostgREST and PostgreSQL
+        run: supabase start
+      - name: Test PostgREST permissions
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/passport-supabase-local.env
+          set -a
+          source /tmp/passport-supabase-local.env
+          set +a
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          bash tests/passport/local-postgrest-smoke.sh
+          bash tests/passport/local-postgrest-lifecycle.sh
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup || true
