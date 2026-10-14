@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ToolHero } from "@/components/banking/ToolHero";
 import { CoverageBar, PI, SubNav, h2, profileHref } from "@/components/passport/shared";
-import { currentMethodology, flagOf, jurisdictions, rankingStatus, scorePassport } from "@/lib/passport";
+import { currentMethodology, flagOf, jurisdictions, rankingStatus, scorePassport, ruleRecords, sources, DATASET } from "@/lib/passport";
+import { buildCoverageReport } from "@/lib/passport/coverage";
+import { passportReadiness } from "@/lib/passport/readiness";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -14,6 +16,11 @@ export const metadata: Metadata = buildMetadata({
 
 export default function RankingsPage() {
   const status = rankingStatus();
+  const evidence = buildCoverageReport(ruleRecords, sources, DATASET);
+  const readiness = passportReadiness(evidence, currentMethodology.passportCoverageThreshold);
+  const needsReview = readiness.filter((p) => p.reviewDue > 0 || p.disputed > 0 || p.pending > 0);
+  const topGaps = readiness.filter((p) => p.verified + p.reviewDue > 0).slice(0, 10);
+  const jurisdictionByCode = new Map(jurisdictions.map((j) => [j.code, j]));
   const progress = jurisdictions.map((j) => ({ j, s: scorePassport(j.code) })).filter((x) => x.s.verified > 0).sort((a, b) => a.j.name.localeCompare(b.j.name));
   return (
     <>
@@ -28,6 +35,34 @@ export default function RankingsPage() {
             <li>Ties will share a rank (1, 1, 3), and every ranking will show its date, dataset version and methodology version.</li>
           </ul>
           <p className="mt-4">Read the <Link href={`${PI}/methodology`} className="text-sky underline">methodology</Link>.</p>
+        </section>
+        <section aria-labelledby="readiness">
+          <h2 id="readiness" className={h2}>Evidence readiness dashboard</h2>
+          <p className="mt-3">An audit of official-source coverage, not a passport strength ranking. Unknown destinations mean evidence has not been verified, not that a visa is required. Dataset {DATASET.version}, evaluated {DATASET.asOf}.</p>
+          <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[
+              ["Verified pairs", evidence.totals.verified.toLocaleString()],
+              ["Unknown pairs", evidence.totals.unknown.toLocaleString()],
+              ["Passports ready to score", `${readiness.filter((p) => p.readyForScoring).length} / ${readiness.length}`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-white p-5 ring-1 ring-line"><dt className="text-sm text-muted">{label}</dt><dd className="mt-1 text-2xl font-semibold text-ink">{value}</dd></div>
+            ))}
+          </dl>
+          <p className="mt-4 text-sm">Coverage counts include evidence due for re-review, which is tracked separately. The published global ranking remains unavailable until the methodology's worldwide threshold is met.</p>
+          <h3 className="mt-8 text-lg font-semibold text-ink">Closest to scoring threshold</h3>
+          <p className="mt-2 text-sm">Ordered by fewest remaining verified destinations, not passport strength. Only passports with some existing evidence are shown.</p>
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead className="bg-sand/60 text-ink"><tr><th scope="col" className="p-3">Passport</th><th scope="col" className="p-3">Verified / total</th><th scope="col" className="p-3">Still needed</th><th scope="col" className="p-3">Evidence status</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {topGaps.map((p) => {
+                  const j = jurisdictionByCode.get(p.code)!;
+                  return <tr key={p.code}><td className="p-3"><Link href={profileHref(j.slug)} className="font-semibold text-sky underline">{flagOf(p.code)} {j.name}</Link></td><td className="p-3">{p.verified + p.reviewDue} / {p.universe}</td><td className="p-3">{p.remainingToThreshold}</td><td className="p-3">{p.disputed ? "Disputed evidence" : p.reviewDue ? "Review due" : p.pending ? "Pending checks" : "No flagged records"}</td></tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-sm">{needsReview.length} passports have records flagged as review-due, disputed or pending. No unknown destination is treated as a confirmed restriction.</p>
         </section>
         <section aria-labelledby="progress">
           <h2 id="progress" className={h2}>Verification progress</h2>
