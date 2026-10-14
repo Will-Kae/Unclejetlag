@@ -1,21 +1,23 @@
 import "server-only";
-import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { verifyResearchSession } from "@/lib/passport/admin-session.server";
+import { currentResearchIdentity } from "@/lib/passport/admin-auth.server";
 
-/**
- * Restricted read-only admin entry point.
- * Session transport is deliberately not implemented yet: a valid Supabase Auth
- * cookie cannot be safely inferred from arbitrary browser-controlled cookie names.
- * Until SSR Auth and RLS are integrated, this route is closed to everyone.
- */
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Passport Research Admin | Uncle Jetlag", robots: { index: false, follow: false } };
 
 export default async function PassportResearchAdminPage() {
-  await cookies();
-  // Do not use a service-role key or an unauthenticated fallback here.
-  // Supabase SSR cookie/session integration is required before enabling access.
-  void verifyResearchSession;
-  redirect("/passport-index/evidence-review");
+  const identity = await currentResearchIdentity();
+  if (!identity) redirect("/passport-index/research-admin/login");
+  return (
+    <main className="container-uj mx-auto max-w-3xl py-16">
+      <h1 className="text-3xl font-semibold">Passport research administration</h1>
+      <p className="mt-4">Signed in with an active {identity.role} research profile.</p>
+      <p className="mt-4">Evidence review and publishing actions remain disabled until database policies and audit transactions are verified.</p>
+      <p className="mt-6"><Link className="underline" href="/passport-index/evidence-review">View public evidence review queue</Link></p>
+      <form method="post" action="/passport-index/research-admin/logout" className="mt-6">
+        <button className="rounded-xl border px-5 py-3" type="submit">Sign out</button>
+      </form>
+    </main>
+  );
 }
