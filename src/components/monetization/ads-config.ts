@@ -1,4 +1,4 @@
-export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
+export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-6434910360613331";
 
 /**
  * Release switch (Phase 3A). AdSense stays OFF for this release, in every consent state, even when
@@ -9,7 +9,11 @@ export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
 export const ADSENSE_RELEASE_ENABLED = false;
 
 /** Whether AdSense may run at all in this build (before consent is considered). */
-export const ADSENSE_ACTIVE = ADSENSE_RELEASE_ENABLED && Boolean(ADSENSE_CLIENT);
+/** Separate release gate: only set true after certified CMP + live TCF and withdrawal tests pass. */
+export const ADSENSE_CMP_VERIFIED = false;
+export const ADSENSE_ACTIVE = ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED && Boolean(ADSENSE_CLIENT);
+/** Separate slot-rendering hold until the certified CMP and regional ad serving policy are tested. */
+export const ADSENSE_SLOTS_ENABLED = false;
 export const SHOW_AD_PLACEHOLDERS = process.env.NEXT_PUBLIC_SHOW_AD_PLACEHOLDERS === "true";
 export type AdPosition = "after-intro" | "mid-article" | "end-of-article" | "sidebar";
 export const AD_SLOTS: Record<AdPosition, string | undefined> = {

@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 
 test("withdrawal deletes Domain=unclejetlag.test cookies as well as host-only ones", async ({ page, context }) => {
   await page.goto("/about");
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await page.evaluate(() => {
     document.cookie = "_sp_id.43e4=id; Domain=unclejetlag.test; Path=/; Max-Age=3600; SameSite=Lax";
     document.cookie = "_sp_ses.43e4=ses; Domain=unclejetlag.test; Path=/; Max-Age=3600; SameSite=Lax";
@@ -38,7 +38,7 @@ test("withdrawal deletes Domain=unclejetlag.test cookies as well as host-only on
 
 test("a tracker rewriting its cookie while the page unloads is cleared on the next load", async ({ page, context }) => {
   await page.goto("/about");
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   // Simulate a tracker that writes its cookie again on pagehide, after the first clear.
   await page.evaluate(() => {
     document.cookie = "_sp_id.43e4=id; Domain=unclejetlag.test; Path=/; Max-Age=3600; SameSite=Lax";

@@ -8,7 +8,7 @@
  *   navigation;
  * - pressing a tool's "Load" button: only that tool's provider is contacted; advertising consent is
  *   not granted and Travelpayouts Drive / the CJ pixel never load;
- * - "Accept all": Drive and the tools load, except the Travelpayouts flight search, which needs its own
+ * - "Accept site preferences": Drive and the tools load, except the Travelpayouts flight search, which needs its own
  *   analytics permission (e2e/consent-flight-analytics.spec.ts);
  * - withdrawing advertising consent: the page reloads and nothing third-party loads afterwards.
  */
@@ -132,17 +132,17 @@ test("a Load button works before any banner choice and leaves the banner unanswe
   await expect(page.getByRole("dialog", { name: "Cookies, briefly." })).toBeVisible();
 });
 
-test("Accept all: Drive and the embedded tools load, but not the flight search", async ({ page, context }) => {
+test("Accept site preferences: Drive and the embedded tools load, but not the flight search", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto("/");
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await exercise(page);
   await page.goto("/insurance", { waitUntil: "domcontentloaded" });
   await exercise(page);
   await page.goto("/guides/topics/car-rentals", { waitUntil: "domcontentloaded" });
   await exercise(page);
   await expect.poll(() => net.unique()).toEqual(expect.arrayContaining([DRIVE, "creator.expediagroup.com", "widget.discovercars.com", "widgets.genki.world", CJ]));
-  // The flight search needs its own analytics permission; "Accept all" doesn't grant it.
+  // The flight search needs its own analytics permission; "Accept site preferences" doesn't grant it.
   await page.goto("/guides/topics/flights");
   await exercise(page);
   await expect(page.locator('[data-consent-placeholder="travelpayouts-flights"]')).toBeVisible();
@@ -154,7 +154,7 @@ test("Accept all: Drive and the embedded tools load, but not the flight search",
 test("withdrawing advertising consent reloads the page and nothing third-party loads afterwards", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto("/insurance");
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
   expect(net.hosts).toContain(DRIVE);
 
@@ -211,14 +211,14 @@ for (const tool of [
  * Withdrawal removes the first-party tracking cookies Travelpayouts writes on our domain
  * (_sp_id.<hex>, _sp_ses.<hex>, am_user_session) and leaves consent and other cookies alone.
  * Partner scripts are blocked in tests, so the cookies are created the way those scripts create
- * them (document.cookie on our page) after "Accept all".
+ * them (document.cookie on our page) after "Accept site preferences".
  */
 const TRACKING_COOKIES = ["_sp_id.4e6c", "_sp_ses.4e6c", "am_user_session"];
 
 test("withdrawing advertising consent deletes the Travelpayouts tracking cookies and keeps essential ones", async ({ page, context }) => {
   const net = await recordThirdParty(context);
   await page.goto("/insurance");
-  await page.getByRole("button", { name: "Accept all" }).click();
+  await page.getByRole("button", { name: "Accept site preferences" }).click();
   await expect(page.locator("#travelpayouts-drive")).toHaveCount(1);
   await page.evaluate((names) => {
     for (const n of names) document.cookie = `${n}=tracker-value; Path=/; Max-Age=3600; SameSite=Lax`;
