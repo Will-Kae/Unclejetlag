@@ -27,3 +27,19 @@ These functions exist; their implementation, trigger attachments, ownership, and
 6. Require explicit authorisation before altering the live Supabase database. Until then, make no migrations or policy changes.
 
 **Production site and Supabase database unchanged by this inspection.**
+
+## Follow-up inspection (2026-10-14)
+
+All six passport-related user-defined triggers are attached to their intended tables:
+
+- evidence update guard on `passport_evidence_submissions`
+- release candidate guard on `passport_release_candidate_submissions`
+- audit mutation guard on `passport_verification_audit`
+- linked conflict guard on `passport_verification_conflicts`
+- independence and revision guards on `passport_verification_reviews`
+
+Function definitions were inspected. Independent-review trigger locks the submission row, prohibits matching submitter/reviewer IDs, and requires an active reviewer/admin profile. Revision trigger locks the submission row, requires status `submitted`, and checks the reviewed revision. Release candidate trigger requires approved evidence, no open conflict, and a current independent approval by an active reviewer/admin. Audit trigger rejects UPDATE/DELETE.
+
+Three Auth users and three active research profiles exist; no identifying details were accessed or recorded.
+
+**Caution:** Inspection is not an authenticated integration test. No RLS policies are installed. Before writes, validate that the authenticated JWT user cannot impersonate a reviewer by inserting another `reviewer_id`, that the submitter cannot change protected status fields, and that the audit append path is reliable. These require explicit RLS policy design and tests. No database mutations performed.
