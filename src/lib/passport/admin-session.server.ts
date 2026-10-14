@@ -1,4 +1,3 @@
-import "server-only";
 import { mayPerform, type ResearchAction, type ResearchIdentity, type AuthorisationContext } from "./admin-permissions";
 
 /**
