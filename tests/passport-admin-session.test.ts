@@ -31,6 +31,27 @@ describe("Supabase research session boundary", () => {
     expect(await requireResearchPermission("token", config, "review-submission", { submissionOwnerId: id, submissionStatus: "submitted" }, mock())).toBeNull();
     expect(await requireResearchPermission("token", config, "review-submission", { submissionOwnerId: "someone-else", submissionStatus: "submitted" }, mock())).not.toBeNull();
   });
+  it("rejects expired, revoked, or malformed access tokens", async () => {
+    for (const status of [400, 401, 403]) {
+      const fetcher = vi.fn(async () => response({ message: "invalid session" }, status)) as unknown as typeof fetch;
+      expect(await verifyResearchSession("expired-or-revoked", config, fetcher)).toBeNull();
+    }
+    const invalidUser = vi.fn(async () => response({ id: "not-a-uuid" })) as unknown as typeof fetch;
+    expect(await verifyResearchSession("token", config, invalidUser)).toBeNull();
+  });
+  it("denies missing, inactive, or mismatched research profiles", async () => {
+    const cases = [[], [{ user_id: id, role: "researcher", active: false }], [{ user_id: "22222222-2222-4222-8222-222222222222", role: "admin", active: true }]];
+    for (const profiles of cases) {
+      const fetcher = vi.fn(async (url: URL | RequestInfo) =>
+        String(url).includes("/auth/v1/user") ? response({ id }) : response(profiles)) as unknown as typeof fetch;
+      expect(await verifyResearchSession("token", config, fetcher)).toBeNull();
+    }
+  });
+  it("re-reads the current database role on each verification", async () => {
+    expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("admin"))).not.toBeNull();
+    expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("researcher"))).toBeNull();
+    expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("admin", false))).toBeNull();
+  });
   it("rejects untrusted Supabase URL configuration", async () => {
     await expect(verifyResearchSession("token", { ...config, url: "http://example.supabase.co" }, mock())).rejects.toThrow();
   });
