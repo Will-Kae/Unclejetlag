@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { RESEARCH_COOKIE, researchConfig } from "@/lib/passport/admin-auth.server";
 import { verifyResearchSession } from "@/lib/passport/admin-session.server";
@@ -7,6 +7,14 @@ import { verifyResearchSession } from "@/lib/passport/admin-session.server";
 export async function signInResearch(form: FormData) {
   "use server";
   const config = researchConfig();
+  // Reject cross-site form submissions before contacting the identity provider.
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") || "https";
+  if (!origin || !host || !["http", "https"].includes(protocol) || origin !== `${protocol}://${host}`) {
+    redirect("/passport-index/research-admin/login?error=credentials");
+  }
   if (!config) redirect("/passport-index/research-admin/login?error=config");
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
