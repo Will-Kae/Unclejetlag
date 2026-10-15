@@ -7,7 +7,7 @@
  */
 import { ruleRecords, sources } from "@/lib/passport/data";
 import { planDraftImport } from "@/lib/passport/evidence-import-plan";
-import { researchPackage } from "../../../../research/phase-4c3/package";
+import { researchPackage } from "../../../research/phase-4c3/package";
 
 export function PassportDraftEvidencePreview() {
   const plan = planDraftImport(researchPackage, { records: ruleRecords, sources });
