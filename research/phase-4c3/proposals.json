@@ -1,0 +1,507 @@
+{
+  "status": "RESEARCH_PROPOSAL_NOT_APPROVED",
+  "phase": "4C.3",
+  "preparedOn": "2026-10-14",
+  "note": "Research proposals for human review. Not approved records. Do not publish.",
+  "proposals": [
+    {
+      "id": "p4c3-zw-tz-isd",
+      "passport": "ZW",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania; the Kuala Lumpur High Commission lists Zimbabwe as not requiring a visa",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "supportingSourceIds": [
+        "tz-hc-kualalumpur"
+      ],
+      "conflictingSourceIds": [
+        "tz-hc-namibia",
+        "tz-hc-kigali"
+      ],
+      "conflicts": "The Windhoek and Kigali High Commission lists of countries not requiring a visa do not include Zimbabwe. Those lists are undated and appear older.",
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "disputed",
+      "reviewerNotes": "Resolve with the Immigration Services Department (info@immigration.go.tz) or a dated notice before approval. No stay period is stated."
+    },
+    {
+      "id": "p4c3-ng-tz-isd",
+      "passport": "NG",
+      "destination": "TZ",
+      "proposedCategory": "visa-on-arrival",
+      "conditions": "Eligible for both the online visa and the visa on arrival (ordinary visa USD 50).",
+      "evidence": "Section 7, \"Countries whose nationals can obtain a visa upon arrival\", names Nigeria",
+      "evidenceBasis": "listed",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "conflictingSourceIds": [
+        "tz-isd-visa-guidelines-2026"
+      ],
+      "conflicts": "Section 6 of the same document exempts Commonwealth countries (except the UK, Canada, India, Pakistan, Australia and New Zealand) from visas, and Nigeria is a Commonwealth member. None of the three High Commission no-visa lists we read includes Nigeria, which is consistent with section 7.",
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "disputed",
+      "reviewerNotes": "Section 7 names Nigeria explicitly; section 6 is a group rule. Prefer the explicit listing only after confirming with the department."
+    },
+    {
+      "id": "p4c3-gh-tz-isd",
+      "passport": "GH",
+      "destination": "TZ",
+      "proposedCategory": "visa-on-arrival",
+      "conditions": "Eligible for both the online visa and the visa on arrival (ordinary visa USD 50).",
+      "evidence": "Section 7, \"Countries whose nationals can obtain a visa upon arrival\", names Ghana",
+      "evidenceBasis": "listed",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "conflictingSourceIds": [
+        "tz-isd-visa-guidelines-2026",
+        "tz-hc-namibia",
+        "tz-hc-kigali",
+        "tz-hc-kualalumpur"
+      ],
+      "conflicts": "Section 6 of the same document exempts Commonwealth countries, which includes Ghana, and all three High Commission lists we read name Ghana as not requiring a visa. data.ts currently publishes Ghana → Tanzania as visa-free.",
+      "confidence": "medium",
+      "kind": "re-verification",
+      "proposedVerification": "disputed",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Do not change the published record until the department confirms. If confirmed, the published record should move to disputed, then be superseded."
+    },
+    {
+      "id": "p4c3-za-tz-isd",
+      "passport": "ZA",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm ZA is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-bw-tz-isd",
+      "passport": "BW",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm BW is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-na-tz-isd",
+      "passport": "NA",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm NA is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-zm-tz-isd",
+      "passport": "ZM",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm ZM is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-mw-tz-isd",
+      "passport": "MW",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm MW is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-mz-tz-isd",
+      "passport": "MZ",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm MZ is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-ls-tz-isd",
+      "passport": "LS",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm LS is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-sz-tz-isd",
+      "passport": "SZ",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "SADC member state citizens.",
+      "evidence": "Section 6: nationals of \"SADC Member States except Comoros\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm SZ is a current SADC member. The guidelines give no stay period; keep the existing 90-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-ke-tz-isd",
+      "passport": "KE",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "East African Community citizens.",
+      "evidence": "Section 6: nationals of \"EAC Member States\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm KE is a current EAC member. The guidelines give no stay period; keep the existing 180-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-ug-tz-isd",
+      "passport": "UG",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "East African Community citizens.",
+      "evidence": "Section 6: nationals of \"EAC Member States\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm UG is a current EAC member. The guidelines give no stay period; keep the existing 180-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-rw-tz-isd",
+      "passport": "RW",
+      "destination": "TZ",
+      "proposedCategory": "visa-free",
+      "conditions": "East African Community citizens.",
+      "evidence": "Section 6: nationals of \"EAC Member States\" are not required to have a visa to enter Tanzania",
+      "evidenceBasis": "group-membership",
+      "sourceId": "tz-isd-visa-guidelines-2026",
+      "confidence": "high",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-free",
+        "sourceId": "tz-hc-namibia"
+      },
+      "reviewerNotes": "Primary immigration-department source for an existing embassy-sourced record. Confirm RW is a current EAC member. The guidelines give no stay period; keep the existing 180-day figure from tz-hc-namibia."
+    },
+    {
+      "id": "p4c3-za-na-embassy",
+      "passport": "ZA",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-zw-na-embassy",
+      "passport": "ZW",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-bw-na-embassy",
+      "passport": "BW",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-zm-na-embassy",
+      "passport": "ZM",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-mw-na-embassy",
+      "passport": "MW",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-mz-na-embassy",
+      "passport": "MZ",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-ls-na-embassy",
+      "passport": "LS",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-ke-na-embassy",
+      "passport": "KE",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-tz-na-embassy",
+      "passport": "TZ",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "Visitor's Entry Permit endorsed at the port of entry. The London High Commission states no longer than three months per calendar year.",
+      "evidence": "Listed under \"Foreign nationals exempted from visa requirement for holders of all passports\"; also listed by the London High Commission as a visa-exemption agreement country",
+      "evidenceBasis": "listed",
+      "sourceId": "na-embassy-us-exempt",
+      "supportingSourceIds": [
+        "na-hc-london-fees"
+      ],
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Two Namibian missions agree, but neither page is dated and neither is the Ministry of Home Affairs. Try to confirm on mhaiss.gov.na or the Namibia e-visa portal before approval."
+    },
+    {
+      "id": "p4c3-sz-na-hc-london",
+      "passport": "SZ",
+      "destination": "NA",
+      "proposedCategory": "visa-free",
+      "conditions": "No longer than three months per calendar year.",
+      "evidence": "Listed under \"Countries with visa exemption agreement with Namibia\"",
+      "evidenceBasis": "listed",
+      "sourceId": "na-hc-london-fees",
+      "conflictingSourceIds": [
+        "na-embassy-us-exempt"
+      ],
+      "conflicts": "The Washington embassy's all-passports exemption list does not include Eswatini. The London page is partly out of date (it still lists the UK and US as exempt).",
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "disputed"
+    },
+    {
+      "id": "p4c3-ug-na-hc-london",
+      "passport": "UG",
+      "destination": "NA",
+      "proposedCategory": "visa-on-arrival",
+      "evidence": "Named on the list of African countries qualifying for visas on arrival",
+      "evidenceBasis": "listed",
+      "sourceId": "na-hc-london-fees",
+      "confidence": "medium",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-on-arrival",
+        "sourceId": "na-mha-2025"
+      },
+      "reviewerNotes": "Second Namibian source agreeing with the 2025 ministry fact sheet. The Washington embassy lists this passport as exempt for diplomatic and official passports only, which is consistent."
+    },
+    {
+      "id": "p4c3-rw-na-hc-london",
+      "passport": "RW",
+      "destination": "NA",
+      "proposedCategory": "visa-on-arrival",
+      "evidence": "Named on the list of African countries qualifying for visas on arrival",
+      "evidenceBasis": "listed",
+      "sourceId": "na-hc-london-fees",
+      "confidence": "medium",
+      "kind": "corroboration",
+      "proposedVerification": "pending-verification",
+      "existingRecord": {
+        "category": "visa-on-arrival",
+        "sourceId": "na-mha-2025"
+      },
+      "reviewerNotes": "Second Namibian source agreeing with the 2025 ministry fact sheet. The Washington embassy lists this passport as exempt for diplomatic and official passports only, which is consistent."
+    },
+    {
+      "id": "p4c3-ng-mw-evisa",
+      "passport": "NG",
+      "destination": "MW",
+      "proposedCategory": "evisa",
+      "conditions": "Visa or prior authorization required before departure; apply on the Malawi e-Visa portal. Not eligible for visa on arrival.",
+      "evidence": "Listed under \"Category One countries: countries and regions that require a visa well in advance, or prior authorization\"",
+      "evidenceBasis": "listed",
+      "sourceId": "mw-evisa-category-one",
+      "supportingSourceIds": [
+        "mw-evisa-notice-2026"
+      ],
+      "confidence": "high",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Category follows the dataset's convention for advance online clearance (see zm-prior, zw-cat-c). Notice effective 24 February 2026."
+    },
+    {
+      "id": "p4c3-gh-mz-hc-uk",
+      "passport": "GH",
+      "destination": "MZ",
+      "proposedCategory": "eta",
+      "maxStayDays": 30,
+      "conditions": "Visa-exempt for tourism and business; apply for an Electronic Travel Authorisation at evisa.gov.mz before travel. Renewable for a further 30 days on justification.",
+      "evidence": "Ghana is listed as visa-exempt \"for a 30-day stay (renewable for an additional 30 days upon justification)\"; exempt nationals must apply for prior authorization at evisa.gov.mz",
+      "evidenceBasis": "listed",
+      "sourceId": "mz-hc-uk-visa",
+      "confidence": "medium",
+      "kind": "new-pair",
+      "proposedVerification": "pending-verification",
+      "reviewerNotes": "Embassy source. Confirm on the SENAMI e-visa portal (evisa.gov.mz) if it becomes readable."
+    }
+  ]
+}
