@@ -52,6 +52,28 @@ describe("Supabase research session boundary", () => {
     expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("researcher"))).toBeNull();
     expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("admin", false))).toBeNull();
   });
+  it("fails closed when a verified user has no research profile or a forbidden profile lookup", async () => {
+    for (const status of [401, 403, 500]) {
+      const fetcher = vi.fn(async (url: URL | RequestInfo) =>
+        String(url).includes("/auth/v1/user") ? response({ id }) : response({ error: "denied" }, status)) as unknown as typeof fetch;
+      expect(await verifyResearchSession("token", config, fetcher)).toBeNull();
+    }
+  });
+  it("fails closed on ambiguous duplicate research profiles", async () => {
+    const fetcher = vi.fn(async (url: URL | RequestInfo) =>
+      String(url).includes("/auth/v1/user") ? response({ id }) : response([
+        { user_id: id, role: "admin", active: true },
+        { user_id: id, role: "researcher", active: true },
+      ])) as unknown as typeof fetch;
+    expect(await verifyResearchSession("token", config, fetcher)).toBeNull();
+  });
+  it("keeps reviewer, researcher and inactive profiles out of release preparation", async () => {
+    for (const role of ["researcher", "reviewer"]) {
+      expect(await requireResearchPermission("token", config, "prepare-release", {}, mock(role))).toBeNull();
+    }
+    expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("admin", false))).toBeNull();
+    expect(await requireResearchPermission("token", config, "prepare-release", {}, mock("admin"))).not.toBeNull();
+  });
   it("rejects untrusted Supabase URL configuration", async () => {
     await expect(verifyResearchSession("token", { ...config, url: "http://example.supabase.co" }, mock())).rejects.toThrow();
   });
