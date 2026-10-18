@@ -190,7 +190,8 @@ describe("content pages: insurance and health requirement claims", () => {
    * Reviewed pages whose insurance claim has no official insurance source. Remove an entry once the
    * page cites the government or state portal; never add one without a review note in the report.
    */
-  const KNOWN_UNSUPPORTED = ["georgia.mdx"];
+  // Georgia now cites the official Georgian legal regulation; no reviewed page remains flagged.
+  const KNOWN_UNSUPPORTED: string[] = [];
 
   it("lists exactly the reviewed pages with unsupported insurance claims", () => {
     const flagged = pages.filter((f) => {
