@@ -16,7 +16,8 @@ export default async function PassportResearchAdminPage() {
       <h1 className="text-3xl font-semibold">Passport research administration</h1>
       <p className="mt-4">Signed in with an active {identity.role} research profile.</p>
       <p className="mt-4">Evidence review and publishing actions remain disabled until database policies and audit transactions are verified.</p>
-      <p className="mt-6"><Link className="underline" href="/passport-index/evidence-review">View public evidence review queue</Link></p>
+      <p className="mt-6"><Link className="font-semibold underline" href="/passport-index/research-admin/workspace">Open the evidence review workspace</Link> (read-only)</p>
+      <p className="mt-3"><Link className="underline" href="/passport-index/evidence-review">View public evidence review queue</Link></p>
       <PassportDraftEvidencePreview />
       <PassportEvidenceResolutionQueue />
       <form method="post" action="/passport-index/research-admin/logout" className="mt-6">
