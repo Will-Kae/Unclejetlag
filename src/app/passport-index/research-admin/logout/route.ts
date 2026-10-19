@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { RESEARCH_COOKIE } from "@/lib/passport/admin-auth.server";
 
@@ -10,9 +9,16 @@ export async function POST(request: Request) {
     return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
   }
 
-  const jar = await cookies();
-  jar.delete(RESEARCH_COOKIE);
   const response = NextResponse.redirect(new URL("/passport-index/research-admin/login", request.url), 303);
+  // Expire the cookie at the exact path used during sign-in. Deleting at "/" leaves it intact.
+  response.cookies.set(RESEARCH_COOKIE, "", {
+    path: "/passport-index/research-admin",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 0,
+    expires: new Date(0),
+  });
   response.headers.set("Cache-Control", "no-store");
   return response;
 }
