@@ -10,12 +10,17 @@ Status: **NOT APPROVED FOR PRODUCTION**. Research-only, draft PR #18. No merging
 - Georgia guide insurance copy updated to reference Georgian Government Resolution No. 602, including exemptions; content validation must be rerun.
 
 ## Automated verification
-- Preservation harness run 39130776424 passed at commit 45ba010 (unit/typecheck, local build, routes and browser tests).
-- **That run predates Georgia guide changes and new security tests.** A fresh full harness run on the latest commit is mandatory before a release decision.
+- Preservation harness run **39157528010** passed at commit **549242b9f0b61e31eb7f69973befc0b4bb9123c7**, including Georgia guide and security-test changes. Rerun after further code changes.
 - New fail-closed regression tests cover denied/failed profile lookup, duplicate profiles, inactive accounts, and researcher/reviewer inability to prepare release.
 - CI browser tests run sequentially after nine timeouts in an earlier parallel run; keep monitoring performance rather than treating this as a proven application fix.
 
-## Security gates not yet verified live
+## Security gates — owner-reported results and deferrals (19 October 2026)
+- Owner reported PASS for admin, reviewer and researcher read-only dashboard access, logout redirect and session expiry (five checks; independent artifacts not collected).
+- Read-only Supabase inspection: all eight passport tables have RLS enabled; seven evidence/release tables are default-deny; research profile SELECT policy limits authenticated users to their own active profile.
+- Leaked-password protection remains disabled due to current plan limitations, as accepted by owner.
+- Live revocation/deactivation, rate-limit review, and log privacy checks were deferred at owner's request. No Supabase settings, accounts or policies were modified.
+
+## Previously identified live test scope
 - Test separate real Supabase Auth identities with active researcher, reviewer and admin roles.
 - Verify unauthenticated redirects, inactive role denial, role downgrade/revocation, expired sessions, and logout across protected routes.
 - Inspect active RLS policies in the linked Supabase project before permitting any privileged database operations.
