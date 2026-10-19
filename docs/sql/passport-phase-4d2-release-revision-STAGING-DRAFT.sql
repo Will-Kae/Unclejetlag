@@ -1,0 +1,32 @@
+-- STAGING-ONLY PROPOSAL. DO NOT RUN ON PRODUCTION.
+-- Requires independent DBA/security review and migration ordering tests.
+-- Intended to replace the release candidate guard after the atomic review
+-- workflow is implemented. Not a complete migration.
+--
+-- Proposed semantic invariant:
+--   review.reviewed_revision = N, the submitted revision under row lock
+--   approved submission.revision = N + 1, after atomic review + audit
+--   release-link accepts independent approve review for N.
+--
+-- IMPORTANT: the existing guard currently expects equality and must be
+-- changed together with the atomic review transaction, not independently.
+-- SQL sketch below is deliberately non-executable until remaining schema
+-- constraints and mutation pathways are inspected:
+--
+--   IF evidence.status <> 'approved' OR evidence.revision <= 1 THEN reject;
+--   IF EXISTS(open conflict for submission) THEN reject;
+--   IF NOT EXISTS(
+--     SELECT 1 FROM passport_verification_reviews r
+--     JOIN passport_research_profiles p ON p.user_id = r.reviewer_id
+--     WHERE r.submission_id = evidence.id
+--       AND r.reviewed_revision = evidence.revision - 1
+--       AND r.decision = 'approve'
+--       AND r.reviewer_id <> evidence.submitter_id
+--       AND p.active AND p.role IN ('reviewer','admin')
+--   ) THEN reject;
+--
+-- Additionally ensure approved submissions cannot be mutated outside
+-- the reviewed transaction and preserve the existing linked-evidence freeze.
+-- Never bypass the submitted-state or reviewed-revision review triggers.
+-- Rollback: restore prior guard only after migration compatibility check;
+-- do not destroy audit rows or release links.
