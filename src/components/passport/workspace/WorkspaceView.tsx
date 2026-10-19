@@ -6,7 +6,10 @@
 import Link from "next/link";
 import { jName, jurisdictions } from "@/lib/passport/jurisdictions";
 import {
+  CASE_STATUS_DESCRIPTION,
   CASE_STATUS_LABEL,
+  CASE_STATUS_ORDER,
+  EVIDENCE_UNAVAILABLE,
   FOCUS_COUNTRIES,
   OPEN_STATUSES,
   QUALITY_LABEL,
@@ -53,17 +56,36 @@ export function WorkspaceOverviewPanel({ o, asOf, version }: { o: WorkspaceOverv
       </div>
       <div>
         <h3 className="label-mono text-xs text-muted">Research (unapproved, not published)</h3>
-        <dl className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Research proposals" value={o.totalProposals} note={`${o.proposalsPending} pending, ${o.proposalsDisputed} disputed`} />
-          <Stat label="Pending verification" value={o.casesByStatus["pending-verification"]} note="Cases with a readable source, awaiting review" />
-          <Stat label="Disputed cases" value={o.disputedCases} note={`${o.casesByStatus["re-verification"]} involve a published record`} />
-          <Stat label="Blocked: evidence unavailable" value={o.blockedByMissingEvidence} note="No readable official source yet" />
+        <dl className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <Stat label="Research proposals" value={o.totalProposals} note={`${o.proposalsPending} pending, ${o.proposalsDisputed} disputed (as recorded in the proposals)`} />
+          <Stat label={CASE_STATUS_LABEL["pending-verification"]} value={o.pendingHumanVerification} note="Fully read official source, no recorded conflict" />
+          <Stat label={CASE_STATUS_LABEL["re-verification"]} value={o.awaitingReverification} note="Published value unchanged while questioned" />
+          <Stat label={CASE_STATUS_LABEL.disputed} value={o.casesByStatus.disputed} note="Sources or proposals contradict each other" />
+          <Stat label={CASE_STATUS_LABEL.insufficient} value={o.evidenceInsufficient} note="Official sources read, none settles the case" />
+          <Stat label={CASE_STATUS_LABEL.unavailable} value={o.evidenceUnavailable} note="No readable official source linked yet" />
         </dl>
         <p className="mt-2 text-xs text-muted">
           Proposal checks: {o.proposalBlockers} blocking and {o.proposalReviewFindings} review findings across {o.totalProposals} proposals. {o.cases} research cases in total.
         </p>
       </div>
     </section>
+  );
+}
+
+export function StatusLegend() {
+  return (
+    <details className={`${card} text-sm`}>
+      <summary className="cursor-pointer font-semibold text-ink">How evidence statuses are assigned</summary>
+      <dl className="mt-3 space-y-2">
+        {CASE_STATUS_ORDER.map((s) => (
+          <div key={s} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
+            <dt className="shrink-0 sm:w-72"><StatusBadge status={s} /></dt>
+            <dd className="text-ink-2">{CASE_STATUS_DESCRIPTION[s]}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs text-muted">Being listed in the resolution plan or the backlog sets priority only, never the evidence status.</p>
+    </details>
   );
 }
 
@@ -116,8 +138,8 @@ export function FiltersForm({ query, countries }: { query: WorkspaceQuery; count
         <label htmlFor="ws-status" className="text-sm font-medium text-ink">Status</label>
         <select id="ws-status" name="status" defaultValue={query.status} className={field}>
           <option value="">All statuses</option>
-          {Object.entries(CASE_STATUS_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+          {CASE_STATUS_ORDER.map((k) => (
+            <option key={k} value={k}>{CASE_STATUS_LABEL[k]}</option>
           ))}
         </select>
       </div>
@@ -195,7 +217,7 @@ export function CaseTable({ cases, query }: { cases: ResearchCase[]; query: Work
                     <td className="px-3 py-2">{proposedLabel(c)}</td>
                     <td className="px-3 py-2">{publishedLabel(c)}</td>
                     <td className="px-3 py-2"><StatusBadge status={c.status} /></td>
-                    <td className="px-3 py-2">{c.primarySource?.authority ?? <span className="text-muted">Evidence unavailable</span>}</td>
+                    <td className="px-3 py-2">{c.primarySource?.authority ?? <span className="text-muted">{EVIDENCE_UNAVAILABLE}</span>}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{c.primarySource?.checked ?? <span className="text-muted">Not verified</span>}</td>
                     <td className="px-3 py-2"><QualityBadge quality={c.quality} /></td>
                     <td className="px-3 py-2"><PriorityBadge label={c.priority.label} origin={c.priority.origin} /></td>
@@ -216,7 +238,7 @@ export function CaseTable({ cases, query }: { cases: ResearchCase[]; query: Work
                 <dl className="mt-2 grid grid-cols-1 gap-1 text-sm text-ink-2">
                   <div><dt className="inline text-muted">Proposed: </dt><dd className="inline">{proposedLabel(c)}</dd></div>
                   <div><dt className="inline text-muted">Published: </dt><dd className="inline">{publishedLabel(c)}</dd></div>
-                  <div><dt className="inline text-muted">Source: </dt><dd className="inline">{c.primarySource ? `${c.primarySource.authority}, checked ${c.primarySource.checked}` : "Evidence unavailable"}</dd></div>
+                  <div><dt className="inline text-muted">Source: </dt><dd className="inline">{c.primarySource ? `${c.primarySource.authority}, checked ${c.primarySource.checked}` : EVIDENCE_UNAVAILABLE}</dd></div>
                 </dl>
               </li>
             ))}
@@ -280,6 +302,7 @@ export function WorkspaceView({ cases, overview, query, asOf, version }: { cases
     <div className="space-y-10">
       <NotAdviceNotice />
       <WorkspaceOverviewPanel o={overview} asOf={asOf} version={version} />
+      <StatusLegend />
       <PrioritiesPanel cases={cases} />
       <div className="space-y-4">
         <FiltersForm query={query} countries={countries} />

@@ -37,16 +37,26 @@ A **case** is either a passport–destination pair, or a destination-wide topic 
 
 ### Statuses, with the rule used for each
 
+> **Updated by the review remediation** (`Phase-4C7-Review-Remediation-Report.md`). The original "Blocked: evidence unavailable" status was assigned to any case listed in the resolution plan or backlog. Statuses now depend only on the evidence attached to a case. The rules below are applied in order.
+
 | Status | Count | Rule |
 |---|---|---|
-| Published (verified) | 13 | The pair has a published record and no plan entry or disputed proposal |
-| Published, under re-verification | 2 | A published record exists **and** a disputed proposal or a plan entry questions it: Ghana → Tanzania and Ghana → Namibia. The published value is shown unchanged |
-| Pending verification | 11 | No published record; a proposal cites a source that was read in full; nothing disputed |
-| Disputed | 3 | No published record; a proposal is disputed or lists conflicting sources: Zimbabwe → Tanzania, Nigeria → Tanzania, Eswatini → Namibia |
-| Blocked: evidence unavailable | 49 | No published record; no proposal citing a readable source; a documented blocker exists (a plan entry or a backlog blocker) |
-| Not verified | 0 | No evidence and no documented blocker. None currently |
+| Verified, published | 13 | A published record exists, and no disputed proposal, conflicting source or plan entry questions it |
+| Published, awaiting re-verification | 2 | A published record exists **and** a disputed proposal, a conflicting source or a plan entry questions it: Ghana → Tanzania and Ghana → Namibia. The published value is shown unchanged |
+| Pending human verification | 11 | No published record; a proposal cites a source that was read in full; nothing disputed |
+| Disputed: contradictory evidence | 5 | A proposal is disputed or any source is linked as conflicting: Zimbabwe → Tanzania, Nigeria → Tanzania, Eswatini → Namibia, the Malawi visa fee (USD 75 online against USD 50 at two embassies), and the Ghana entry policy for African passports (two Ghana Immigration Service pages disagree) |
+| Evidence available but insufficient | 47 | At least one official source was read, fully or partly, but none settles the classification |
+| Evidence unavailable | 0 | No official source read, or only unreadable ones. None currently; the status is tested with synthetic cases |
 
-"Disputed cases" on the overview counts both the disputed and the under-re-verification statuses, which comes to 5.
+"Disputed cases" on the overview counts both the disputed and the re-verification statuses, which comes to 7.
+
+Sources are linked to cases in three ways:
+
+- through proposals;
+- through a source record's own `relevantPairs`;
+- through the evidence-link register (`research/phase-4c7/evidence-links.ts`).
+
+The register restates four sources already documented in the Phase 4C.4 report. It adds no new evidence.
 
 ### Evidence quality per case
 
@@ -94,7 +104,7 @@ A **case** is either a passport–destination pair, or a destination-wide topic 
 1. **Two priority scales.** The plan uses P0–P2 and the backlog uses P1–P3. When both exist for a case, the workspace uses the plan's priority and always shows the origin. A backlog "P1" isn't directly comparable to a plan "P1".
 2. **98 evidence-quality warnings.** These are the current branch's reviewed baseline (`tests/fixtures/passport-evidence-quality-baseline.json`), up from 83 in Phase 4C.4 after later commits on this branch. The workspace shows the live count; it doesn't re-baseline anything.
 3. **Corroboration proposals on published pairs.** These are the 11 Tanzania proposals backed by the immigration department's guidelines. Their pairs show as "Published (verified)", with the pending proposal listed. Approving them would change only the source, not the category.
-4. **Topic cases have no sources attached.** The plan names the evidence needed, but the research package holds no sources for those topics yet, so they show "Evidence unavailable".
+4. **Topic cases have sources only from earlier phases.** Since the remediation, the four topic cases are linked to sources already read in Phases 4C.3 and 4C.4 (see `evidence-links.ts`). The key primary documents are still unread: Tanzania Government Notice No. 256 of 2026, a current Malawi fee schedule, and Ghana's legal instrument and eligibility result.
 5. **Data is from the repository, not Supabase.** The workspace doesn't read the `passport_evidence_submissions` tables, so submissions made in the database wouldn't appear. That is intentional for this read-only phase.
 
 ## 5. Confirmed unchanged

@@ -4,7 +4,7 @@
  */
 import Link from "next/link";
 import { jName } from "@/lib/passport/jurisdictions";
-import { EVIDENCE_UNAVAILABLE, NOT_VERIFIED, proposedLabel, type CaseSource, type ResearchCase } from "@/lib/passport/review-workspace";
+import { CASE_STATUS_DESCRIPTION, EVIDENCE_UNAVAILABLE, NOT_VERIFIED, proposedLabel, type CaseSource, type ResearchCase } from "@/lib/passport/review-workspace";
 import { categoryMeta } from "@/lib/passport/types";
 import { NotAdviceNotice, PriorityBadge, QualityBadge, StatusBadge } from "./badges";
 import { WORKSPACE_PATH, caseHref } from "./WorkspaceView";
@@ -35,6 +35,7 @@ function SourceList({ items, empty }: { items: CaseSource[]; empty: string }) {
             <div><dt className="inline text-muted">Access: </dt><dd className="inline">{ACCESS_LABEL[s.access]}</dd></div>
             {s.metadataDate && <div className="sm:col-span-3"><dt className="inline text-muted">File metadata only: </dt><dd className="inline">{s.metadataDate}</dd></div>}
           </dl>
+          {s.linkReason && <p className="mt-2 text-xs text-ink"><span className="text-muted">Why linked: </span>{s.linkReason}</p>}
           {s.note && <p className="mt-2 text-xs text-ink-2">{s.note}</p>}
         </li>
       ))}
@@ -46,6 +47,7 @@ export function CaseDetail({ c }: { c: ResearchCase }) {
   const supporting = c.sources.filter((s) => s.role === "supporting");
   const conflicting = c.sources.filter((s) => s.role === "conflicting");
   const publishedSources = c.sources.filter((s) => s.role === "published");
+  const context = c.sources.filter((s) => s.role === "context");
   return (
     <article aria-labelledby="case-title" className="space-y-8">
       <p className="text-sm"><Link href={WORKSPACE_PATH} className="underline">← Back to the workspace</Link></p>
@@ -62,6 +64,7 @@ export function CaseDetail({ c }: { c: ResearchCase }) {
           <PriorityBadge label={c.priority.label} origin={c.priority.origin} />
         </div>
         <p className="text-xs text-muted">Priority source: {c.priority.origin}</p>
+        <p className="text-sm text-ink-2"><span className="text-muted">Evidence status: </span>{CASE_STATUS_DESCRIPTION[c.status]}</p>
       </header>
 
       <NotAdviceNotice />
@@ -87,7 +90,7 @@ export function CaseDetail({ c }: { c: ResearchCase }) {
         <h2 id="case-proposed" className={h2}>Proposed classification</h2>
         <p className="mt-2 font-semibold text-ink">{proposedLabel(c)}</p>
         {c.proposals.length === 0 ? (
-          <p className="mt-1 text-sm text-ink-2">No research proposal exists for this case yet. {EVIDENCE_UNAVAILABLE}.</p>
+          <p className="mt-1 text-sm text-ink-2">No research proposal exists for this case yet.</p>
         ) : (
           <ul className="mt-3 space-y-3">
             {c.proposals.map((p) => (
@@ -105,9 +108,12 @@ export function CaseDetail({ c }: { c: ResearchCase }) {
 
       <section aria-labelledby="case-sources" className={card}>
         <h2 id="case-sources" className={h2}>Supporting official sources</h2>
-        <div className="mt-3"><SourceList items={supporting} empty={`${EVIDENCE_UNAVAILABLE}: no supporting official source has been read.`} /></div>
+        <div className="mt-3"><SourceList items={supporting} empty={c.status === "unavailable" ? `${EVIDENCE_UNAVAILABLE}: no official source has been read for this case.` : "No source supports a classification for this case."} /></div>
         <h2 className={`${h2} mt-6`}>Conflicting sources</h2>
         <div className="mt-3"><SourceList items={conflicting} empty="No conflicting source is recorded for this case." /></div>
+        <h2 className={`${h2} mt-6`}>Other official sources read</h2>
+        <p className="mt-1 text-xs text-muted">Read for this case but neither supporting nor contradicting a classification.</p>
+        <div className="mt-3"><SourceList items={context} empty="None." /></div>
       </section>
 
       <section aria-labelledby="case-questions" className={card}>

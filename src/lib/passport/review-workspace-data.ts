@@ -12,6 +12,7 @@ import { buildOverview, buildWorkspaceCases, type ResearchCase, type WorkspaceIn
 import { researchPackage } from "../../../research/phase-4c3/package";
 import { verificationBacklog } from "../../../research/phase-4c4/backlog";
 import { RESOLUTION_PLAN_DATE, resolutionPlan } from "../../../research/phase-4c5/resolution-plan";
+import { evidenceLinks, supplementarySources } from "../../../research/phase-4c7/evidence-links";
 
 export type Workspace = { input: WorkspaceInput; cases: ResearchCase[]; overview: WorkspaceOverview; dataset: typeof DATASET };
 
@@ -19,6 +20,8 @@ export function loadWorkspace(): Workspace {
   const proposalReport = assessEvidenceQuality(researchPackage, { records: ruleRecords, sources });
   const input: WorkspaceInput = {
     pkg: researchPackage,
+    supplementarySources,
+    evidenceLinks,
     records: ruleRecords,
     published: rules,
     sources,

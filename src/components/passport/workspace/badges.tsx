@@ -1,13 +1,13 @@
 /** Phase 4C.7 workspace badges. Every status carries a text label and a glyph, never colour alone. */
-import { CASE_STATUS_LABEL, QUALITY_LABEL, type CaseStatus, type EvidenceQualityLevel } from "@/lib/passport/review-workspace";
+import { CASE_STATUS_DESCRIPTION, CASE_STATUS_LABEL, QUALITY_LABEL, type CaseStatus, type EvidenceQualityLevel } from "@/lib/passport/review-workspace";
 
 const STATUS_STYLE: Record<CaseStatus, { cls: string; glyph: string }> = {
   published: { cls: "bg-palm-soft text-palm", glyph: "✓" },
   "re-verification": { cls: "bg-amber-soft text-amber", glyph: "↻" },
   "pending-verification": { cls: "bg-sky-soft text-sky", glyph: "…" },
   disputed: { cls: "bg-jet-soft text-jet-ink", glyph: "⚠" },
-  blocked: { cls: "bg-sand text-ink-2", glyph: "■" },
-  "not-verified": { cls: "bg-sand text-ink-2", glyph: "?" },
+  insufficient: { cls: "bg-sky-soft text-ink-2", glyph: "◐" },
+  unavailable: { cls: "bg-sand text-ink-2", glyph: "○" },
 };
 
 const QUALITY_STYLE: Record<EvidenceQualityLevel, { cls: string; glyph: string }> = {
@@ -22,7 +22,7 @@ const base = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px
 export function StatusBadge({ status }: { status: CaseStatus }) {
   const s = STATUS_STYLE[status];
   return (
-    <span className={`${base} ${s.cls}`} data-status={status}>
+    <span className={`${base} ${s.cls}`} data-status={status} title={CASE_STATUS_DESCRIPTION[status]}>
       <span aria-hidden="true">{s.glyph}</span>
       {CASE_STATUS_LABEL[status]}
     </span>
@@ -52,7 +52,7 @@ export function PriorityBadge({ label, origin }: { label: string; origin: string
 export function NotAdviceNotice({ className = "" }: { className?: string }) {
   return (
     <p className={`rounded-2xl border border-dashed border-ink/25 bg-white p-4 text-sm text-ink-2 ${className}`} role="note">
-      <strong className="text-ink">Research data, not travel advice.</strong> Proposed classifications are unapproved research. Only records marked “Published (verified)” appear on the public index, and nothing here changes them.
+      <strong className="text-ink">Research data, not travel advice.</strong> Proposed classifications are unapproved research. Only records marked “Verified, published” appear on the public index, and nothing here changes them.
     </p>
   );
 }

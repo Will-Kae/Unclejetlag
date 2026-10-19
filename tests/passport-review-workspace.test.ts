@@ -15,6 +15,7 @@ import type { EvidenceProposal, ResearchPackage, ResearchSource } from "@/lib/pa
 import { assessEvidenceQuality } from "@/lib/passport/proposal-quality";
 import {
   CASE_STATUS_LABEL,
+  CASE_STATUS_ORDER,
   EVIDENCE_UNAVAILABLE,
   NOT_SHOWN,
   NOT_VERIFIED,
@@ -95,7 +96,10 @@ describe("research overview figures come from repository data", () => {
     const sum = Object.values(o.casesByStatus).reduce((a, b) => a + b, 0);
     expect(sum).toBe(ws.cases.length);
     expect(o.disputedCases).toBe(o.casesByStatus.disputed + o.casesByStatus["re-verification"]);
-    expect(o.blockedByMissingEvidence).toBe(ws.cases.filter((c) => c.status === "blocked").length);
+    expect(o.evidenceUnavailable).toBe(ws.cases.filter((c) => c.status === "unavailable").length);
+    expect(o.evidenceInsufficient).toBe(ws.cases.filter((c) => c.status === "insufficient").length);
+    expect(o.pendingHumanVerification).toBe(ws.cases.filter((c) => c.status === "pending-verification").length);
+    expect(o.awaitingReverification).toBe(ws.cases.filter((c) => c.status === "re-verification").length);
   });
 
   it("covers every proposal, backlog row and plan entry exactly once", () => {
@@ -202,19 +206,24 @@ describe("case detail rendering", () => {
     expect(html).not.toMatch(/<form|<button/);
   });
 
-  it("shows Not verified and Evidence unavailable for a backlog-only case", () => {
+  it("shows Not verified and the partly read official source for a backlog-only case", () => {
     const c = byId("pair-bw-gh");
     expect(c.proposals).toEqual([]);
     expect(c.published).toEqual([]);
+    expect(c.status).toBe("insufficient");
     const html = renderToStaticMarkup(createElement(CaseDetail, { c }));
     expect(html).toContain(`${NOT_VERIFIED}. The public index shows this pair as not yet verified.`);
-    expect(html).toContain(EVIDENCE_UNAVAILABLE);
+    expect(html).toContain("Evidence available but insufficient");
+    expect(html).toContain("Other official sources read");
+    expect(html).toContain("gh-gis-evisa-launch-2026");
+    expect(html).toContain("Partly readable");
+    expect(html).not.toContain(`${EVIDENCE_UNAVAILABLE}:`);
     expect(html).toContain("Date not recorded");
   });
 
   it("renders the workspace overview, priorities, table and coverage without any write controls", () => {
     const html = renderToStaticMarkup(createElement(WorkspaceView, { cases: ws.cases, overview: ws.overview, query: parseWorkspaceQuery({}), asOf: DATASET.asOf, version: DATASET.version }));
-    for (const s of ["Research overview", "Research priorities", "Evidence review table", "Country coverage", "Verified published records", "Blocked: evidence unavailable", "Not published"]) expect(html).toContain(s);
+    for (const s of ["Research overview", "Research priorities", "Evidence review table", "Country coverage", "Verified published records", "Evidence available but insufficient", "How evidence statuses are assigned", "Not published"]) expect(html).toContain(s);
     expect(html).toContain(`>${rules.length}<`);
     expect(html.match(/<form[^>]*>/g)).toEqual([expect.stringContaining('method="get"')]);
     expect(html).not.toMatch(/method="post"|<button[^>]*\sname=/i);
@@ -261,11 +270,11 @@ describe("missing and contradictory evidence", () => {
     expect(c.history.some((h) => h.event.startsWith("File metadata date (not shown to readers)"))).toBe(true);
   });
 
-  it("marks a plan entry with no evidence as blocked and evidence unavailable", () => {
+  it("marks a plan topic with no linked source as evidence unavailable", () => {
     const plan = [{ id: "plan-x", priority: "P1" as const, case: "Topic", passport: null, destination: "TZ", currentPosition: "Unclear", evidenceNeeded: "A notice", releaseGate: "Review" }];
     const [c] = build([], [], { plan });
     expect(c.kind).toBe("topic");
-    expect(c.status).toBe("blocked");
+    expect(c.status).toBe("unavailable");
     expect(c.quality).toBe("not-assessed");
     expect(c.outstandingQuestions.join(" ")).toContain(EVIDENCE_UNAVAILABLE);
   });
@@ -431,5 +440,153 @@ describe("protection against unintended data mutation", () => {
 
   it("uses only labels defined for case statuses", () => {
     for (const c of ws.cases) expect(Object.keys(CASE_STATUS_LABEL)).toContain(c.status);
+  });
+});
+
+// ── Phase 4C.7 remediation: evidence-status classification ──
+
+describe("evidence status is derived from evidence, not from plan membership", () => {
+  const rs = (over: Partial<ResearchSource>): ResearchSource => ({ id: "s", title: "List", publisher: "Dept", url: "https://dept.example.gov.zz/l", type: "government", authorityJurisdiction: "TZ", publicationDate: null, checked: "2026-10-14", access: "read", note: "n", relevantPairs: [], ...over });
+  const prop = (over: Partial<EvidenceProposal>): EvidenceProposal => ({ id: "p1", passport: "ZW", destination: "TZ", proposedCategory: "visa-free", evidence: "Listed as exempt", evidenceBasis: "listed", sourceId: "s", confidence: "medium", kind: "new-pair", proposedVerification: "pending-verification", ...over });
+  const planEntry = (over: object = {}) => ({ id: "plan-zw-tz", priority: "P0" as const, case: "Zimbabwe → Tanzania", passport: "ZW" as string | null, destination: "TZ", currentPosition: "Unverified", evidenceNeeded: "A notice", releaseGate: "Review", ...over });
+  const backlogRow = { rank: 1, priority: "P1" as const, passport: "ZW", destination: "TZ", currentStatus: "not verified", classification: "UNASSIGNED - research required", reason: "r", researchLead: "https://dept.example.gov.zz", knownBlocker: "No list found" };
+  const pubRule = (over: object = {}) => ({ passport: "ZW", destination: "TZ", category: "visa-free" as const, maxStayDays: 90, evidence: "Listed", sourceId: "ps", verification: "verified" as const, confidence: "high" as const, ...over });
+  const pubSource = { id: "ps", title: "Published list", publisher: "Embassy", url: "https://emb.example.gov.zz", type: "embassy" as const, authorityJurisdiction: "TZ", checked: "2026-10-10" };
+  const build = (opts: { pkgSources?: ResearchSource[]; proposals?: EvidenceProposal[]; extra?: Partial<WorkspaceInput> }) => {
+    const pkg: ResearchPackage = { status: "RESEARCH_PROPOSAL_NOT_APPROVED", phase: "4C.3", preparedOn: "2026-10-14", sources: opts.pkgSources ?? [], proposals: opts.proposals ?? [] };
+    const input: WorkspaceInput = { pkg, records: [], published: [], sources: [], backlog: [], plan: [], planDate: "2026-10-19", proposalFindings: assessEvidenceQuality(pkg, { records: [], sources: [] }).findings, qualityIssues: [], researchIssues: [], ...opts.extra };
+    return buildWorkspaceCases(input);
+  };
+
+  it("1. no official evidence: a backlog blocker or plan entry alone gives Evidence unavailable, never blocked", () => {
+    const [a] = build({ extra: { backlog: [backlogRow] } });
+    expect(a.status).toBe("unavailable");
+    const [b] = build({ extra: { plan: [planEntry()] } });
+    expect(b.status).toBe("unavailable");
+    const [c] = build({ pkgSources: [rs({ access: "blocked", relevantPairs: ["ZW>TZ"] })], extra: { backlog: [backlogRow] } });
+    expect(c.status).toBe("unavailable");
+    expect(CASE_STATUS_LABEL.unavailable).toBe(EVIDENCE_UNAVAILABLE);
+  });
+
+  it("2. partially readable evidence is available but insufficient", () => {
+    const [a] = build({ pkgSources: [rs({ access: "partial" })], proposals: [prop({})] });
+    expect(a.status).toBe("insufficient");
+    const [b] = build({ pkgSources: [rs({ access: "partial", relevantPairs: ["ZW>TZ"] })], extra: { backlog: [backlogRow] } });
+    expect(b.status).toBe("insufficient");
+    expect(b.outstandingQuestions.join(" ")).toContain("Evidence available but insufficient");
+    expect(b.outstandingQuestions.join(" ")).not.toContain(`${EVIDENCE_UNAVAILABLE}:`);
+  });
+
+  it("3. conflicting official sources make a case disputed, from proposals or from linked sources", () => {
+    const [a] = build({ pkgSources: [rs({}), rs({ id: "s2" })], proposals: [prop({ conflictingSourceIds: ["s2"], proposedVerification: "disputed", conflicts: "x" })] });
+    expect(a.status).toBe("disputed");
+    const links = [{ caseIds: ["pair-zw-tz"], sourceId: "s", role: "supporting" as const, reason: "a" }, { caseIds: ["pair-zw-tz"], sourceId: "s2", role: "conflicting" as const, reason: "b" }];
+    const [b] = build({ pkgSources: [rs({}), rs({ id: "s2" })], extra: { backlog: [backlogRow], evidenceLinks: links } });
+    expect(b.status).toBe("disputed");
+    for (const id of ["pair-zw-tz", "pair-ng-tz", "pair-sz-na", "topic-mw-visa-fee", "topic-gh-african-entry-policy"]) expect(byId(id).status, id).toBe("disputed");
+  });
+
+  it("4. a fully read source with no conflict awaits human verification", () => {
+    const [a] = build({ pkgSources: [rs({})], proposals: [prop({})], extra: { plan: [planEntry()] } });
+    expect(a.status).toBe("pending-verification");
+    expect(byId("pair-ng-mw").status).toBe("pending-verification");
+    expect(byId("pair-gh-mz").status).toBe("pending-verification");
+  });
+
+  it("5. a published record questioned by a dispute or the plan is awaiting re-verification, value unchanged", () => {
+    const [a] = build({ extra: { published: [pubRule()], records: [pubRule()], sources: [pubSource], plan: [planEntry()] } });
+    expect(a.status).toBe("re-verification");
+    expect(a.published.map((p) => p.category)).toEqual(["visa-free"]);
+    const [b] = build({ extra: { published: [pubRule()], records: [pubRule()], sources: [pubSource], backlog: [backlogRow] } });
+    expect(b.status).toBe("published");
+    expect(byId("pair-gh-tz").status).toBe("re-verification");
+    expect(byId("pair-gh-na").status).toBe("re-verification");
+    expect(byId("pair-gh-na").published.map((p) => p.category)).toEqual(["visa-on-arrival"]);
+  });
+
+  it("6. destination-wide topics take their status from linked sources", () => {
+    expect(byId("topic-tz-insurance").status).toBe("insufficient");
+    expect(byId("topic-mw-visa-fee").status).toBe("disputed");
+    expect(byId("topic-gh-african-entry-policy").status).toBe("disputed");
+    expect(byId("topic-mw-exemption-list").status).toBe("insufficient");
+    for (const c of ws.cases.filter((x) => x.kind === "topic")) {
+      expect(c.published).toEqual([]);
+      expect(c.sources.length).toBeGreaterThan(0);
+    }
+    const fee = byId("topic-mw-visa-fee");
+    expect(fee.sources.filter((s) => s.role === "conflicting").map((s) => s.id).sort()).toEqual(["mw-embassy-berlin-visa-fees", "mw-embassy-brussels-visa-fees"]);
+  });
+
+  it("removing the resolution plan changes no unpublished case's status", () => {
+    const without = buildWorkspaceCases({ ...ws.input, plan: [] });
+    for (const c of ws.cases.filter((x) => x.kind === "pair" && x.published.length === 0)) {
+      expect(without.find((x) => x.id === c.id)?.status, c.id).toBe(c.status);
+    }
+  });
+
+  it("7. status counts, badges and filters agree", () => {
+    const total = CASE_STATUS_ORDER.reduce((n, s) => n + ws.overview.casesByStatus[s], 0);
+    expect(total).toBe(ws.cases.length);
+    for (const s of CASE_STATUS_ORDER) {
+      expect(filterCases(ws.cases, { ...allQuery, status: s })).toHaveLength(ws.overview.casesByStatus[s]);
+      expect(parseWorkspaceQuery({ status: s }).status).toBe(s);
+    }
+    expect(parseWorkspaceQuery({ status: "blocked" }).status).toBe("");
+    expect(parseWorkspaceQuery({ status: "not-verified" }).status).toBe("");
+    const html = renderToStaticMarkup(createElement(WorkspaceView, { cases: ws.cases, overview: ws.overview, query: parseWorkspaceQuery({}), asOf: DATASET.asOf, version: DATASET.version }));
+    for (const s of CASE_STATUS_ORDER) expect(html).toContain(CASE_STATUS_LABEL[s]);
+    expect(html).not.toContain("Blocked: evidence unavailable");
+  });
+
+  it("8. no published classification changes, and published pairs are only published or awaiting re-verification", () => {
+    for (const c of ws.cases.filter((x) => x.published.length > 0)) expect(["published", "re-verification"]).toContain(c.status);
+    for (const c of ws.cases.filter((x) => x.published.length === 0)) expect(["published", "re-verification"]).not.toContain(c.status);
+    const byPair = new Map(rules.map((r) => [`${r.passport}>${r.destination}`, r.category]));
+    for (const c of ws.cases) for (const p of c.published) expect(p.category).toBe(byPair.get(`${c.passport}>${c.destination}`));
+    expect(rules).toHaveLength(640);
+  });
+
+  it("never fabricates source dates", () => {
+    const all = [...ws.input.pkg.sources, ...(ws.input.supplementarySources ?? [])];
+    for (const c of ws.cases) for (const s of c.sources) {
+      const research = all.find((x) => x.id === s.id);
+      const published = sources.find((x) => x.id === s.id);
+      const expected = research ? research.publicationDate ?? NOT_SHOWN : published?.sourceUpdated ?? NOT_SHOWN;
+      expect(s.sourceDate, `${c.id}/${s.id}`).toBe(expected);
+    }
+    expect(byId("topic-mw-visa-fee").sources.find((s) => s.id === "mw-embassy-berlin-visa-fees")?.sourceDate).toBe(NOT_SHOWN);
+  });
+
+  it("treats unknown classifications as not verified", () => {
+    const [a] = build({ extra: { published: [pubRule({ category: "unknown" })], records: [pubRule({ category: "unknown" })], sources: [pubSource], backlog: [backlogRow] } });
+    expect(a.published).toEqual([]);
+    expect(a.status).toBe("unavailable");
+    expect(publishedLabel(a)).toBe(NOT_VERIFIED);
+    expect(proposedLabel({ proposedCategory: "unknown" })).toContain(NOT_VERIFIED);
+  });
+});
+
+describe("evidence-link register", () => {
+  const report = fs.readFileSync(path.join(ROOT, "research/phase-4c4/Phase-4C4-Evidence-Quality-Report.md"), "utf8");
+
+  it("only restates sources documented in the Phase 4C.4 report, with the same access date", async () => {
+    const { supplementarySources } = await import("../research/phase-4c7/evidence-links");
+    for (const s of supplementarySources) {
+      const row = report.split("\n").find((l) => l.includes(s.url));
+      expect(row, s.url).toBeTruthy();
+      expect(row).toContain(s.checked);
+      expect(ws.input.pkg.sources.some((x) => x.id === s.id)).toBe(false);
+    }
+  });
+
+  it("links only existing sources to existing cases, each with a reason", async () => {
+    const { evidenceLinks, supplementarySources } = await import("../research/phase-4c7/evidence-links");
+    const ids = new Set([...ws.input.pkg.sources, ...supplementarySources].map((s) => s.id));
+    const caseIds = new Set(ws.cases.map((c) => c.id));
+    for (const l of evidenceLinks) {
+      expect(ids.has(l.sourceId), l.sourceId).toBe(true);
+      expect(l.reason.trim().length).toBeGreaterThan(10);
+      for (const id of l.caseIds) expect(caseIds.has(id), id).toBe(true);
+    }
   });
 });

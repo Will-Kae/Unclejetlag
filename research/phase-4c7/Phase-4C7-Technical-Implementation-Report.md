@@ -2,7 +2,7 @@
 
 **Branch:** `phase-4c7/evidence-review-workspace`. It is based on `phase-4c5/integrated-quality-staging` (PR #18) at `127d74e`.
 
-**Status:** draft, for review only.
+**Status:** draft, for review only. Status logic was revised by the review remediation; see `Phase-4C7-Review-Remediation-Report.md`.
 
 - Nothing is merged or deployed.
 - No database or authentication change was made.
@@ -147,5 +147,5 @@ There is no live staging URL for the authenticated pages. These screenshots are 
 3. **The data comes from the repository, not from submissions in the database.** Next step, once the Phase 4C.2 policies are verified on staging: a read-only, server-side query of `passport_evidence_submissions` using the user's own session (never a service-role key).
 4. **Evidence history isn't an audit log.** It shows only dates that exist in the files. A real audit trail depends on the staged `passport_verification_audit` table.
 5. **Priority scales differ** between the plan (P0–P2) and the backlog (P1–P3). Next step: adopt one scale in the next plan revision.
-6. **Topic cases have no sources yet.** Next step: add the Tanzania Gazette Notice 256/2026, the Malawi fee schedule and others to a research package once they've been read.
+6. **Topic cases rely on sources from earlier phases** (linked in the remediation). Next step: read Tanzania Gazette Notice No. 256 of 2026, a current Malawi fee schedule and Ghana's legal instrument, and add them to a research package.
 7. **No pull request was opened from here**, because the GitHub API refused it. You open it as a draft that targets `phase-4c5/integrated-quality-staging`.
