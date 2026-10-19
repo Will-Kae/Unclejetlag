@@ -1,8 +1,8 @@
 /** Phase 4D.1 pure editorial review gate. No database, network or publication side effects. */
 import { mayPerform, type ResearchIdentity } from "./admin-permissions";
 
-export type EditorialDecision = "approve" | "request-changes" | "reject" | "dispute";
-export type EditorialStatus = "draft" | "submitted" | "changes_requested" | "approved" | "rejected" | "disputed";
+export type EditorialDecision = "approve" | "request_changes" | "reject";
+export type EditorialStatus = "draft" | "submitted" | "changes_requested" | "approved" | "rejected";
 export type EditorialReviewInput = {
   actor: ResearchIdentity | null;
   ownerId: string;
@@ -40,9 +40,8 @@ export function validateEditorialReview(input: EditorialReviewInput): EditorialR
   }
   const nextStatus: EditorialStatus = {
     approve: "approved",
-    "request-changes": "changes_requested",
+    request_changes: "changes_requested",
     reject: "rejected",
-    dispute: "disputed",
   }[input.decision] as EditorialStatus;
   return { nextStatus, nextRevision: input.actualRevision + 1, auditAction: "editorial-review:" + input.decision };
 }
