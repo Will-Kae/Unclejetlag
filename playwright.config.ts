@@ -10,8 +10,11 @@ const PORT = Number(process.env.HARNESS_PORT ?? 3210);
 export default defineConfig({
   testDir: "e2e",
   timeout: 120_000,
-  fullyParallel: true,
-  workers: process.env.CI ? 2 : 4,
+  // Keep CI browser tests isolated: long consent navigation sweeps can compete for
+  // the same Next.js server and trigger page.goto aborts under concurrent load.
+  // Preserve parallel local development runs; CI prioritizes reliable evidence.
+  fullyParallel: !process.env.CI,
+  workers: process.env.CI ? 1 : 4,
   retries: 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]] : "list",
   use: { baseURL: `http://127.0.0.1:${PORT}` },
