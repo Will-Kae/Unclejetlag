@@ -72,3 +72,22 @@
 -- 5. Test BEFORE INSERT and UPDATE, stale approvals, conflict races, and
 --    immutability of approved evidence in disposable staging.
 -- No executable guard replacement is authorized by this document.
+
+-- Step 45 verified evidence update trigger (disposable DB):
+-- Only passport_linked_evidence_update_guard is attached to
+-- public.passport_evidence_submissions. It calls
+-- public.passport_protect_linked_evidence(), which blocks changed rows ONLY
+-- when already linked in passport_release_candidate_submissions.
+-- Consequently this trigger alone does not prevent modification of an
+-- approved but unlinked submission. Actual exploitability depends on
+-- effective grants/RLS and other write pathways; those must be inspected.
+--
+-- Required remediation before approval is enabled:
+-- * Establish an explicit approved-evidence immutability policy.
+-- * For any authorized correction, create a new review cycle (or a new
+--   submission) with source verification and independent approval.
+-- * Prevent direct updates to approved evidence that would bypass the
+--   audit/revision workflow, without breaking the atomic approval RPC.
+-- * Test direct UPDATE under all applicable roles, approved-to-linked race,
+--   and that existing linked-evidence freeze remains intact.
+-- This is a documented finding, not an executable migration.
