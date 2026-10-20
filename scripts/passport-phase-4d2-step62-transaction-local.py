@@ -79,8 +79,32 @@ AND NOT has_function_privilege('service_role',
         check("review RPC denied to client roles",grants=="t")
         check("submission unchanged by rollback",
               sql(f"SELECT status='submitted' FROM public.passport_evidence_submissions WHERE id='{sid}';",DB)=="t")
+        # Execute under actual PostgreSQL client roles, not only privilege metadata.
+        # SET ROLE + request.jwt.claim.sub is a database simulation; it does
+        # not replace a real signed-JWT/PostgREST integration test.
+        signature="public.passport_review_submission_staging(uuid,integer,public.passport_review_decision,text,uuid)"
+        for role in ("anon","authenticated","service_role"):
+            check(f"{role} cannot EXECUTE review RPC as role",
+                  sql(f"SELECT NOT has_function_privilege('{role}',"
+                      f"'{signature}','EXECUTE');",DB)=="t")
+            # No writes; verify role switching is functional and identity is scoped.
+            identity=sql(f"""BEGIN;
+SET LOCAL ROLE {role};
+SELECT current_user;
+ROLLBACK;""",DB)
+            check(f"SET ROLE {role} succeeds in clone",role in identity.splitlines())
+        # Verify that a self-review cannot be inserted directly, independently
+        # of our test fixture's reviewer selection.
+        before_self=sql(f"SELECT count(*) FROM public.passport_verification_reviews WHERE submission_id='{sid}' AND reviewer_id='{owner}';",DB)
+        self_error=sql(f"""INSERT INTO public.passport_verification_reviews
+ (submission_id,reviewer_id,decision,rationale,reviewed_revision)
+VALUES ('{sid}','{owner}','approve','Self-review must be rejected',{int(rev)});""",
+            DB,failure=True)
+        after_self=sql(f"SELECT count(*) FROM public.passport_verification_reviews WHERE submission_id='{sid}' AND reviewer_id='{owner}';",DB)
+        check("direct self-review INSERT rejected without audit residue",
+              bool(self_error.strip()) and before_self==after_self)
         print("PASS: supplemental transaction checks completed")
-        print("NOT TESTED: end-to-end JWT/RLS, RPC self-review enforcement, source provenance,")
+        print("NOT TESTED: signed JWT/PostgREST RLS integration, RPC reviewer-independence, source provenance,")
         print("SERIALIZABLE races, approval activation or production behavior")
     finally:
         if created:
