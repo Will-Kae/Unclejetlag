@@ -87,7 +87,7 @@ SELECT pg_get_functiondef('public.passport_protect_linked_conflicts()'::regproce
                 CLONE,expected_failure="Approved evidence cannot be deleted")
             print("PASS: approved evidence DELETE rejected")
         else:
-            print("NOT TESTED: approved UPDATE/DELETE behavior (no approved fixture in source clone)")
+            raise RuntimeError("INCOMPLETE: approved UPDATE/DELETE behavior requires an approved fixture in the disposable clone")
         print("PASS: local hardening candidate validation completed")
     finally:
         if created:
