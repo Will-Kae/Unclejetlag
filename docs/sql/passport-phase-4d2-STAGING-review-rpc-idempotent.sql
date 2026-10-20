@@ -89,7 +89,7 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.passport_review_submission_staging(
   uuid,integer,public.passport_review_decision,text,uuid)
-  FROM PUBLIC,anon,authenticated;
+  FROM PUBLIC,anon,authenticated,service_role;
 COMMIT;
 -- SECURITY REVIEW REMAINING:
 -- 1. sha256(bytea) availability must be verified in isolated staging.
