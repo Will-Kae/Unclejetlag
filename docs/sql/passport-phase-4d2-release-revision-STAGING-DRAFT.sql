@@ -30,3 +30,26 @@
 -- Never bypass the submitted-state or reviewed-revision review triggers.
 -- Rollback: restore prior guard only after migration compatibility check;
 -- do not destroy audit rows or release links.
+
+-- Phase 4D.2 cutover review update (20 October 2026):
+-- Disposable DB passport_concurrency_test: legacy lifetime reviewer constraint
+-- was reported removed, replacement indexes preserved, and post-cutover
+-- concurrency suite reported 6/6 passed. These results do NOT validate
+-- approval or release linking: the five-argument review RPC still rejects
+-- all approve decisions unconditionally.
+--
+-- REQUIRED BEFORE THIS DRAFT CAN BECOME EXECUTABLE:
+-- A. Inspect exact live definition of public.passport_check_release_candidate,
+--    associated triggers, table columns and constraints in disposable staging.
+-- B. Enforce the N -> N+1 approval transition in ONE server-side transaction
+--    with an independent reviewer, verified official source, conflict lock,
+--    request-id idempotency and immutable audit.
+-- C. Keep the current approval-disabled RPC in place until B is implemented.
+-- D. Validate release guard against approved N+1 and review N; reject review
+--    of N-1 or earlier, self-review, inactive reviewer and open conflicts.
+-- E. Guard against direct DML, edits between approval and linking, and
+--    unauthorized publication. A release link is not publication permission.
+-- F. Test same-submission races, cross-submission request-id collisions,
+--    rollback on audit failure, stale approvals, and source revocation.
+-- G. Independently review security/DBA signoff and migration/rollback order.
+-- DO NOT deploy this SQL sketch, enable approvals or public rankings.
