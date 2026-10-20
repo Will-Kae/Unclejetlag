@@ -53,3 +53,22 @@
 --    rollback on audit failure, stale approvals, and source revocation.
 -- G. Independently review security/DBA signoff and migration/rollback order.
 -- DO NOT deploy this SQL sketch, enable approvals or public rankings.
+
+-- Verified disposable-DB function inspection, Step 44:
+-- passport_check_release_candidate() is a BEFORE INSERT OR UPDATE trigger on
+-- public.passport_release_candidate_submissions, named
+-- passport_release_candidate_guard. Existing function locks evidence FOR UPDATE,
+-- requires approved status, rejects open conflicts, and requires an independent
+-- active reviewer/admin approve review. It currently compares
+-- r.reviewed_revision = evidence.revision, which is incompatible with N -> N+1.
+--
+-- Proposed surgical replacement for later reviewed implementation:
+-- 1. Preserve row lock, approved-status requirement, open-conflict rejection,
+--    reviewer independence and active reviewer/admin checks.
+-- 2. Require evidence.revision > 1 before computing evidence.revision - 1.
+-- 3. Compare r.reviewed_revision = evidence.revision - 1.
+-- 4. Keep approvals disabled until verified official-source checks and atomic
+--    approval+audit exist; release linking is NOT publication authorization.
+-- 5. Test BEFORE INSERT and UPDATE, stale approvals, conflict races, and
+--    immutability of approved evidence in disposable staging.
+-- No executable guard replacement is authorized by this document.
