@@ -77,17 +77,36 @@ SELECT pg_get_functiondef('public.passport_check_release_candidate()'::regproced
 SELECT pg_get_functiondef('public.passport_protect_linked_conflicts()'::regprocedure)
  LIKE '%FOR UPDATE%';
 """)
-        # Behavior: use existing approved fixture, if present; otherwise report gap.
-        approved=run("SELECT id FROM public.passport_evidence_submissions WHERE status='approved' LIMIT 1;",CLONE)
-        if approved:
-            run(f"BEGIN; UPDATE public.passport_evidence_submissions SET revision=revision+1 WHERE id='{approved}'; ROLLBACK;",
-                CLONE,expected_failure="Approved evidence is immutable")
-            print("PASS: approved evidence UPDATE rejected")
-            run(f"BEGIN; DELETE FROM public.passport_evidence_submissions WHERE id='{approved}'; ROLLBACK;",
-                CLONE,expected_failure="Approved evidence cannot be deleted")
-            print("PASS: approved evidence DELETE rejected")
-        else:
-            raise RuntimeError("INCOMPLETE: approved UPDATE/DELETE behavior requires an approved fixture in the disposable clone")
+        # Create a synthetic approved fixture exclusively in the throwaway clone.
+        # This is test setup, NOT an editorial approval or a production pathway.
+        # Choose a submitted, unlinked row and perform one setup transition.
+        approved=run("""
+UPDATE public.passport_evidence_submissions e
+SET status='approved', revision=e.revision+1
+WHERE e.id=(
+  SELECT s.id FROM public.passport_evidence_submissions s
+  WHERE s.status='submitted'
+    AND NOT EXISTS (
+      SELECT 1 FROM public.passport_release_candidate_submissions l
+      WHERE l.submission_id=s.id
+    )
+  ORDER BY s.id LIMIT 1
+)
+RETURNING e.id;
+""",CLONE)
+        if not approved or len(approved.splitlines()) != 1:
+            raise RuntimeError("INCOMPLETE: could not create isolated approved fixture")
+        approved=approved.strip()
+        assert_true("approved fixture created in disposable clone",
+            f"SELECT EXISTS (SELECT 1 FROM public.passport_evidence_submissions WHERE id='{approved}' AND status='approved');")
+        run(f"UPDATE public.passport_evidence_submissions SET revision=revision+1 WHERE id='{approved}';",
+            CLONE,expected_failure="Approved evidence is immutable")
+        print("PASS: approved evidence UPDATE rejected")
+        run(f"DELETE FROM public.passport_evidence_submissions WHERE id='{approved}';",
+            CLONE,expected_failure="Approved evidence cannot be deleted")
+        print("PASS: approved evidence DELETE rejected")
+        assert_true("approved fixture survives both rejected operations",
+            f"SELECT EXISTS (SELECT 1 FROM public.passport_evidence_submissions WHERE id='{approved}' AND status='approved');")
         print("PASS: local hardening candidate validation completed")
     finally:
         if created:
