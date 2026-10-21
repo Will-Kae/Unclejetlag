@@ -7,6 +7,7 @@ HTTP checks, then removes both. Never touches the existing API configuration.
 Does not validate signed JWTs or approval flows.
 """
 import json
+import re
 import http.client
 import re
 import os
@@ -121,6 +122,24 @@ def main():
             # allowlisted, non-sensitive diagnosis instead of raw logs.
             print(f"DIAGNOSTIC: temporary service status={status}; "
                   f"last connection error={last_issue}")
+            logs_result = call(["docker", "logs", "--tail", "120", EPHEMERAL], check=False)
+            # Never output raw logs: they can contain credentials and connection strings.
+            logs = logs_result.stdout + logs_result.stderr
+            signatures = {
+                "database connection refused": r"connection refused|could not connect to server",
+                "database authentication failed": r"password authentication failed|authentication failed",
+                "database missing": r"database .+ does not exist",
+                "role missing": r"role .+ does not exist",
+                "schema cache startup failure": r"schema cache|failed to load",
+                "configuration parsing error": r"failed to parse|invalid configuration|unexpected parameter",
+                "database connection timeout": r"connection timed out|timeout expired",
+                "database host not found": r"could not translate host name|name or service not known",
+            }
+            matches = [label for label, pattern in signatures.items()
+                       if re.search(pattern, logs, re.IGNORECASE)]
+            print("DIAGNOSTIC: startup categories:",
+                  ", ".join(matches) if matches else "unclassified (logs withheld)")
+            print("DIAGNOSTIC: container exit code:", state.get("ExitCode", "unknown"))
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
         print("PASS: isolated PostgREST started on loopback", flush=True)
