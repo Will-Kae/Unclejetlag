@@ -180,6 +180,27 @@ def main():
             print("DIAGNOSTIC: internal Docker TCP port 3000:",
                   "reachable" if probe.returncode == 0 else "unreachable or probe unavailable")
             print("DIAGNOSTIC: localhost HTTP still disconnected despite direct port mapping")
+            # HTTP probe from the DB container, not the host. We inspect only
+            # the numeric HTTP status and never print response headers or bodies.
+            probe_script = (
+                "import http.client,sys;"
+                "h=http.client.HTTPConnection(sys.argv[1],3000,timeout=3);"
+                "h.request('GET','/');"
+                "r=h.getresponse();"
+                "print(r.status)"
+            )
+            internal_http = call([
+                "docker", "exec", DB_CONTAINER, "python3", "-c",
+                probe_script, EPHEMERAL
+            ], check=False, timeout=8)
+            if internal_http.returncode == 0 and internal_http.stdout.strip().isdigit():
+                print("DIAGNOSTIC: internal Docker HTTP status:",
+                      internal_http.stdout.strip())
+            else:
+                print("DIAGNOSTIC: internal Docker HTTP probe:",
+                      "unavailable or failed (details withheld)")
+            print("DIAGNOSTIC: HTTP response from inside Docker distinguishes "
+                  "host forwarding issues from service response failures")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
