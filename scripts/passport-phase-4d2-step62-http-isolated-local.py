@@ -200,7 +200,14 @@ def main():
                 print("DIAGNOSTIC: internal Docker HTTP:",
                       {11: "TCP connection failed", 12: "no HTTP status line received",
                        13: "non-HTTP response"}.get(
-                           internal_http.returncode, "probe failed (details withheld)"))
+                           internal_http.returncode, "unclassified probe failure"))
+                print("DIAGNOSTIC: internal HTTP probe exit code:",
+                      internal_http.returncode)
+                print("DIAGNOSTIC: probe stderr category:",
+                      "bash command missing" if internal_http.returncode == 127
+                      else "shell or I/O error" if internal_http.returncode in (1, 2)
+                      else "timeout" if internal_http.returncode == 124
+                      else "unclassified (raw stderr withheld)")
             print("DIAGNOSTIC: internal HTTP readiness is not an authorization assertion")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
