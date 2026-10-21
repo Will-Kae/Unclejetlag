@@ -169,6 +169,17 @@ def main():
                   safe.get("PGRST_SERVER_PORT", "(default)"))
             print("DIAGNOSTIC: Docker port forwarding may be healthy even when "
                   "PostgREST does not listen on its published container port.")
+            # Docker-internal TCP probe: connect directly to the disposable
+            # PostgREST container from the existing local database container.
+            # Python is available in Supabase's PostgreSQL image only if present;
+            # use bash /dev/tcp when available, without network downloads.
+            probe = call([
+                "docker", "exec", DB_CONTAINER, "bash", "-c",
+                "timeout 3 bash -c 'echo > /dev/tcp/" + EPHEMERAL + "/3000'"
+            ], check=False, timeout=8)
+            print("DIAGNOSTIC: internal Docker TCP port 3000:",
+                  "reachable" if probe.returncode == 0 else "unreachable or probe unavailable")
+            print("DIAGNOSTIC: localhost HTTP still disconnected despite direct port mapping")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
