@@ -7,6 +7,8 @@ HTTP checks, then removes both. Never touches the existing API configuration.
 Does not validate signed JWTs or approval flows.
 """
 import json
+import http.client
+import re
 import os
 import subprocess
 import tempfile
@@ -98,6 +100,7 @@ def main():
         port = int(port_line.rsplit(":", 1)[1])
         base = f"http://127.0.0.1:{port}"
         ready = False
+        last_issue = "none"
         for _ in range(30):
             try:
                 with urlopen(base + "/", timeout=2) as response:
@@ -107,10 +110,19 @@ def main():
                 if exc.code < 500:
                     ready = True
                     break
-            except URLError:
-                time.sleep(0.5)
+            except (URLError, http.client.RemoteDisconnected, ConnectionResetError,
+                    ConnectionAbortedError, TimeoutError, OSError) as exc:
+                last_issue = type(exc).__name__
+            time.sleep(0.5)
         if not ready:
-            raise RuntimeError("Temporary PostgREST did not become ready")
+            state = inspect(EPHEMERAL)["State"]
+            status = state.get("Status", "unknown")
+            # Docker logs may contain connection information: display only an
+            # allowlisted, non-sensitive diagnosis instead of raw logs.
+            print(f"DIAGNOSTIC: temporary service status={status}; "
+                  f"last connection error={last_issue}")
+            raise RuntimeError("Temporary PostgREST did not become ready; "
+                               "no HTTP authorization checks executed")
         print("PASS: isolated PostgREST started on loopback", flush=True)
         # No bearer token and no API key: deny-by-default expected.
         for resource in ("passport_evidence_submissions", "passport_verification_reviews",
