@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, ProxyHandler
 
 REST = "supabase_rest_unclejetlag-passport-staging"
 DB_CONTAINER = "supabase_db_unclejetlag-passport-staging"
@@ -100,11 +100,12 @@ def main():
             raise RuntimeError("STOP: ephemeral API must bind exclusively to loopback")
         port = int(port_line.rsplit(":", 1)[1])
         base = f"http://127.0.0.1:{port}"
+        opener = build_opener(ProxyHandler({}))  # Bypass system proxies for loopback only.
         ready = False
         last_issue = "none"
         for _ in range(30):
             try:
-                with urlopen(base + "/", timeout=2) as response:
+                with opener.open(base + "/", timeout=2) as response:
                     ready = response.status < 500
                     break
             except HTTPError as exc:
@@ -151,13 +152,13 @@ def main():
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
-        print("PASS: isolated PostgREST started on loopback", flush=True)
+        print("PASS: isolated PostgREST started on loopback (system proxies bypassed)", flush=True)
         # No bearer token and no API key: deny-by-default expected.
         for resource in ("passport_evidence_submissions", "passport_verification_reviews",
                          "passport_research_profiles"):
             request = Request(base + "/" + resource + "?select=*", method="GET")
             try:
-                with urlopen(request, timeout=5) as response:
+                with opener.open(request, timeout=5) as response:
                     raise AssertionError(f"FAIL: anonymous GET unexpectedly returned {response.status}: {resource}")
             except HTTPError as exc:
                 if exc.code not in (401, 403):
