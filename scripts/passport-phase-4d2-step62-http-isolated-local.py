@@ -88,6 +88,10 @@ def main():
             safe["PGRST_DB_URI"] = new_uri
             # Prevent PostgREST from silently using a different schema.
             safe["PGRST_DB_SCHEMAS"] = "public"
+            # Container port publishing targets 3000: explicitly bind the API
+            # to 0.0.0.0:3000 inside this disposable container only.
+            safe["PGRST_SERVER_HOST"] = "0.0.0.0"
+            safe["PGRST_SERVER_PORT"] = "3000"
             path.write_text("".join(f"{k}={v}\n" for k, v in safe.items()))
             path.chmod(0o600)
             call(["docker", "run", "-d", "--rm", "--name", EPHEMERAL,
