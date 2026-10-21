@@ -9,7 +9,6 @@ Does not validate signed JWTs or approval flows.
 import json
 import re
 import http.client
-import re
 import os
 import subprocess
 import tempfile
@@ -149,6 +148,23 @@ def main():
                   ", ".join(matches) if matches else "none classified")
             print("DIAGNOSTIC: error-level log entries:", len(error_lines))
             print("DIAGNOSTIC: container exit code:", state.get("ExitCode", "unknown"))
+            # Safe port/network metadata only; never print docker inspect environment.
+            net = inspect(EPHEMERAL)["NetworkSettings"]
+            ports = net.get("Ports", {}).get("3000/tcp") or []
+            print("DIAGNOSTIC: published port mappings:",
+                  len(ports), "loopback_only:",
+                  all(p.get("HostIp") in ("127.0.0.1", "::1") for p in ports))
+            print("DIAGNOSTIC: shared Docker network attached:",
+                  network in net.get("Networks", {}))
+            cfg = inspect(EPHEMERAL)["Config"]
+            exposed = sorted((cfg.get("ExposedPorts") or {}).keys())
+            print("DIAGNOSTIC: declared container exposed ports:", exposed)
+            print("DIAGNOSTIC: PostgREST server host override present:",
+                  "PGRST_SERVER_HOST" in safe)
+            print("DIAGNOSTIC: PostgREST server port override:",
+                  safe.get("PGRST_SERVER_PORT", "(default)"))
+            print("DIAGNOSTIC: Docker port forwarding may be healthy even when "
+                  "PostgREST does not listen on its published container port.")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
