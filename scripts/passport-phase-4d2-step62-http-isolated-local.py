@@ -125,21 +125,30 @@ def main():
             logs_result = call(["docker", "logs", "--tail", "120", EPHEMERAL], check=False)
             # Never output raw logs: they can contain credentials and connection strings.
             logs = logs_result.stdout + logs_result.stderr
+            # Classify actual error-level events, not benign startup messages
+            # such as "schema cache loaded". Never print raw logs.
+            error_lines = [
+                line for line in logs.splitlines()
+                if re.search(r"\\b(error|fatal|critical|panic)\\b|\\bFATAL\\b", line, re.I)
+            ]
             signatures = {
                 "database connection refused": r"connection refused|could not connect to server",
                 "database authentication failed": r"password authentication failed|authentication failed",
                 "database missing": r"database .+ does not exist",
                 "role missing": r"role .+ does not exist",
-                "schema cache startup failure": r"schema cache|failed to load",
+                "schema cache load error": r"failed to load.*schema cache|schema cache.*(failed|error)",
                 "configuration parsing error": r"failed to parse|invalid configuration|unexpected parameter",
                 "database connection timeout": r"connection timed out|timeout expired",
                 "database host not found": r"could not translate host name|name or service not known",
             }
             matches = [label for label, pattern in signatures.items()
-                       if re.search(pattern, logs, re.IGNORECASE)]
-            print("DIAGNOSTIC: startup categories:",
-                  ", ".join(matches) if matches else "unclassified (logs withheld)")
+                       if any(re.search(pattern, line, re.IGNORECASE)
+                              for line in error_lines)]
+            print("DIAGNOSTIC: startup error categories:",
+                  ", ".join(matches) if matches else "none classified")
+            print("DIAGNOSTIC: error-level log entries:", len(error_lines))
             print("DIAGNOSTIC: container exit code:", state.get("ExitCode", "unknown"))
+            print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
         print("PASS: isolated PostgREST started on loopback", flush=True)
