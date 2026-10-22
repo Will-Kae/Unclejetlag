@@ -133,7 +133,7 @@ def main():
             # such as "schema cache loaded". Never print raw logs.
             error_lines = [
                 line for line in logs.splitlines()
-                if re.search(r"\\b(error|fatal|critical|panic)\\b|\\bFATAL\\b", line, re.I)
+                if re.search(r"\b(error|fatal|critical|panic)\b", line, re.I)
             ]
             signatures = {
                 "database connection refused": r"connection refused|could not connect to server",
