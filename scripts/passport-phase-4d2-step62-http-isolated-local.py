@@ -218,6 +218,23 @@ def main():
                   bool(re.search(r"set role|cannot set role|role.*not permitted",
                                  logs, re.IGNORECASE)))
 
+            # Classify only fixed, non-sensitive startup signals.
+            # No raw logs, exception bodies, connection URIs, or SQL are emitted.
+            startup_signals = {
+                "schema_cache_loading": r"loading schema cache|schema cache.*loading",
+                "schema_cache_loaded": r"schema cache (loaded|reloaded|built)",
+                "schema_cache_failed": r"schema cache.*(fail|error)|failed.*schema cache",
+                "db_connection_established": r"connection (established|successful)|connected to database",
+                "db_connection_lost": r"connection (lost|terminated|closed)",
+                "prepared_statement_error": r"prepared statement.*(error|fail|does not exist)",
+                "db_schema_config_error": r"schema.*(not found|does not exist|invalid)",
+                "retry_delay": r"retrying in [0-9]+",
+            }
+            for label, pattern in startup_signals.items():
+                print("DIAGNOSTIC: startup signal", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+
 
             database_exists = psql("SELECT current_database();", database=CLONE)
             print("DIAGNOSTIC: disposable clone identity verified:",
