@@ -1,0 +1,15 @@
+-- Phase 4D.1: DESIGN-ONLY security/migration checklist. NOT EXECUTABLE MIGRATION.
+-- DO NOT APPLY TO SUPABASE. Existing RLS denies ordinary writes.
+-- Before drafting SQL: inspect existing enum labels, trigger functions, constraints,
+-- permissions, policies, foreign keys, indexes, revision guards and release freeze.
+-- Future atomic review operation must:
+--   (1) authenticate actor and recheck active reviewer/admin profile;
+--   (2) lock target submission and verify expected revision;
+--   (3) reject self-review and illegal status transitions;
+--   (4) record mandatory rationale and source checks;
+--   (5) insert decision and audit event in same transaction;
+--   (6) never change public passport classifications or publish rankings.
+-- Future SECURITY DEFINER functions require fixed search_path, explicit grants,
+-- least-privilege ownership, and negative RLS tests. No broad client write grants.
+-- Rollback must preserve audit history and prevent reverting approved data silently.
+-- All actual DDL must be prepared in a separate reviewed migration PR.
