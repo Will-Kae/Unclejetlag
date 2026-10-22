@@ -209,6 +209,28 @@ def main():
                 database=CLONE
             )
             print("DIAGNOSTIC: public schema and anon DB privileges:", grants)
+
+            # Evaluate schema existence, namespace ownership and read-only
+            # catalog visibility in the disposable clone. No grant changes.
+            schema_catalog = psql(
+                "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='public'), "
+                "has_schema_privilege('postgres', 'public', 'USAGE'), "
+                "EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='public' "
+                "AND nspowner=(SELECT oid FROM pg_roles WHERE rolname='authenticator'));",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema exists/postgres USAGE/authenticator owner:",
+                  schema_catalog)
+            config_signals = {
+                "missing_schema": r"schema .{0,70} does not exist|schema .{0,70} not found",
+                "schema_cache_query_failure": r"(failed|error).{0,70}(schema cache|schema-cache)",
+                "database_query_failure": r"(sqlstate|postgresql error|failed to run query)",
+                "role_or_grant_issue": r"(permission denied|must be member of role|insufficient privilege)",
+            }
+            for label, pattern in config_signals.items():
+                print("DIAGNOSTIC: schema failure category", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
             print("DIAGNOSTIC: schema cache messages present:",
                   bool(re.search(r"schema cache", logs, re.IGNORECASE)))
             print("DIAGNOSTIC: permissions-related log signal:",
