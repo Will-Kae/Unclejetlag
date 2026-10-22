@@ -199,6 +199,25 @@ def main():
                 database=CLONE
             )
             print("DIAGNOSTIC: authenticator membership in anon:", role_switch)
+            # Evaluate schema cache prerequisites without changing grants.
+            # This mirrors essential checks as the DB login role, using only
+            # read-only SET ROLE in a disposable session.
+            grants = psql(
+                "SELECT has_schema_privilege('authenticator', 'public', 'USAGE'), "
+                "has_schema_privilege('anon', 'public', 'USAGE'), "
+                "has_database_privilege('anon', current_database(), 'CONNECT');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema and anon DB privileges:", grants)
+            print("DIAGNOSTIC: schema cache messages present:",
+                  bool(re.search(r"schema cache", logs, re.IGNORECASE)))
+            print("DIAGNOSTIC: permissions-related log signal:",
+                  bool(re.search(r"permission denied|insufficient privilege|42501",
+                                 logs, re.IGNORECASE)))
+            print("DIAGNOSTIC: role-switch log signal:",
+                  bool(re.search(r"set role|cannot set role|role.*not permitted",
+                                 logs, re.IGNORECASE)))
+
 
             database_exists = psql("SELECT current_database();", database=CLONE)
             print("DIAGNOSTIC: disposable clone identity verified:",
