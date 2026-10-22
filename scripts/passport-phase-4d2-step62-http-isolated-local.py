@@ -179,6 +179,27 @@ def main():
                 database=CLONE
             )
             print("DIAGNOSTIC: authenticator CONNECT grant:", local_connect)
+            # Local-only, read-only role and schema visibility probes.
+            # Do not print SQL bodies, connection strings or credentials.
+            role_flags = psql(
+                "SELECT rolcanlogin, rolinherit FROM pg_roles WHERE rolname = 'authenticator';",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator login/inherit flags:",
+                  role_flags or "(role absent)")
+            schema_access = psql(
+                "SELECT has_schema_privilege('authenticator', 'public', 'USAGE'), "
+                "has_schema_privilege('anon', 'public', 'USAGE');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema USAGE authenticator/anon:",
+                  schema_access)
+            role_switch = psql(
+                "SELECT pg_has_role('authenticator', 'anon', 'MEMBER');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator membership in anon:", role_switch)
+
             database_exists = psql("SELECT current_database();", database=CLONE)
             print("DIAGNOSTIC: disposable clone identity verified:",
                   database_exists == CLONE)
