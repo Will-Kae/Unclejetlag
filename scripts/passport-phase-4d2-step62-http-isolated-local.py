@@ -195,7 +195,7 @@ def main():
             # A status line can include carriage return, extra whitespace,
             # or a valid HTTP status code not present in the old allowlist.
             raw_status = internal_http.stdout.strip()
-            status_match = re.search(r"\\b([1-5][0-9]{2})\\b", raw_status)
+            status_match = re.search(r"\b([1-5][0-9]{2})\b", raw_status)
             status = status_match.group(1) if status_match else None
             if internal_http.returncode == 0 and status is not None:
                 print("DIAGNOSTIC: internal Docker HTTP status:", status)
