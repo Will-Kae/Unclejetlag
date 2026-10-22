@@ -192,9 +192,12 @@ def main():
                 "printf '%s\\n' \"$status_line\" | cut -d' ' -f2 ;; "
                 "*) exit 13 ;; esac"
             ], check=False, timeout=8)
-            status = internal_http.stdout.strip()
-            if internal_http.returncode == 0 and status in (
-                    "200", "204", "301", "302", "400", "401", "403", "404", "405"):
+            # A status line can include carriage return, extra whitespace,
+            # or a valid HTTP status code not present in the old allowlist.
+            raw_status = internal_http.stdout.strip()
+            status_match = re.search(r"\\b([1-5][0-9]{2})\\b", raw_status)
+            status = status_match.group(1) if status_match else None
+            if internal_http.returncode == 0 and status is not None:
                 print("DIAGNOSTIC: internal Docker HTTP status:", status)
             else:
                 print("DIAGNOSTIC: internal Docker HTTP:",
