@@ -151,6 +151,24 @@ def main():
             print("DIAGNOSTIC: startup error categories:",
                   ", ".join(matches) if matches else "none classified")
             print("DIAGNOSTIC: error-level log entries:", len(error_lines))
+            # Read-only server-side evidence from the disposable database.
+            # Never print connection strings, role secrets, or query text.
+            session_count = psql(
+                "SELECT count(*) FROM pg_stat_activity "
+                "WHERE datname = current_setting('passport_probe_target', true);"
+            ) if False else psql(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = '" + CLONE + "';"
+            )
+            print("DIAGNOSTIC: disposable database connections:", session_count)
+            local_connect = psql(
+                "SELECT has_database_privilege('authenticator', current_database(), 'CONNECT');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator CONNECT grant:", local_connect)
+            database_exists = psql("SELECT current_database();", database=CLONE)
+            print("DIAGNOSTIC: disposable clone identity verified:",
+                  database_exists == CLONE)
+
             print("DIAGNOSTIC: container exit code:", state.get("ExitCode", "unknown"))
             # Safe port/network metadata only; never print docker inspect environment.
             net = inspect(EPHEMERAL)["NetworkSettings"]
