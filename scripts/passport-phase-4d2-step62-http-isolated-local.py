@@ -200,6 +200,15 @@ def main():
             if internal_http.returncode == 0 and status is not None:
                 print("DIAGNOSTIC: internal Docker HTTP status:", status)
             else:
+                # stdout may be blank, include a truncated/non-HTTP status line,
+                # or contain only a carriage return; report shape, not content.
+                print("DIAGNOSTIC: internal HTTP stdout shape:",
+                      "empty" if not raw_status else
+                      "nonempty_without_http_status",
+                      "length_bucket:",
+                      "0" if not raw_status else
+                      "1-8" if len(raw_status) <= 8 else
+                      "9-64" if len(raw_status) <= 64 else "65+")
                 print("DIAGNOSTIC: internal Docker HTTP:",
                       {11: "TCP connection failed", 12: "no HTTP status line received",
                        13: "non-HTTP response"}.get(
