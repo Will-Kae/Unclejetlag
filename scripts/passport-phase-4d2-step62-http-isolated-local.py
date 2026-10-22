@@ -157,6 +157,23 @@ def main():
                 "SELECT count(*) FROM pg_stat_activity WHERE datname = '" + CLONE + "';"
             )
             print("DIAGNOSTIC: disposable database connections:", session_count)
+            # Only group sessions by database role and state. Avoid SQL text,
+            # client addresses, secrets, and application-specific identifiers.
+            roles = psql(
+                "SELECT usename, count(*) FROM pg_stat_activity WHERE datname = '" +
+                CLONE + "' GROUP BY usename ORDER BY usename;"
+            )
+            print("DIAGNOSTIC: clone sessions by database role:",
+                  roles.replace("\\n", "; ") if roles else "(none)")
+            markers = {
+                "schema_cache_loaded": r"schema cache (loaded|reloaded|built)",
+                "schema_cache_retry": r"retrying|retry in",
+                "database_connectivity_notice": r"connection to the database",
+            }
+            for label, pattern in markers.items():
+                print("DIAGNOSTIC:", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
             local_connect = psql(
                 "SELECT has_database_privilege('authenticator', current_database(), 'CONNECT');",
                 database=CLONE
