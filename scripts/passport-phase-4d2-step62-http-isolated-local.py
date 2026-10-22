@@ -154,9 +154,6 @@ def main():
             # Read-only server-side evidence from the disposable database.
             # Never print connection strings, role secrets, or query text.
             session_count = psql(
-                "SELECT count(*) FROM pg_stat_activity "
-                "WHERE datname = current_setting('passport_probe_target', true);"
-            ) if False else psql(
                 "SELECT count(*) FROM pg_stat_activity WHERE datname = '" + CLONE + "';"
             )
             print("DIAGNOSTIC: disposable database connections:", session_count)
