@@ -52,6 +52,61 @@ def replace_database(uri, database):
     return urlunsplit((parsed.scheme, parsed.netloc, "/" + database,
                        parsed.query, parsed.fragment)), parsed.hostname
 
+def diagnose_config_prerequisites(env):
+    """Read-only checks of allowlisted configuration in the disposable clone."""
+    if psql("SELECT current_database();", database=CLONE) != CLONE:
+        raise RuntimeError("STOP: diagnostic database identity mismatch")
+    settings = [
+        (key.lower().removeprefix("pgrst_"), env[key])
+        for key in ("PGRST_DB_SCHEMAS", "PGRST_DB_EXTRA_SEARCH_PATH",
+                    "PGRST_DB_PRE_CONFIG", "PGRST_DB_PRE_REQUEST")
+        if key in env
+    ]
+    # Role-level settings can override environment configuration. Never select
+    # jwt_secret, connection strings, arbitrary GUC values, or function bodies.
+    rows = psql("""
+        SELECT split_part(item, '=', 1),
+               substr(item, strpos(item, '=') + 1)
+        FROM pg_db_role_setting s
+        CROSS JOIN LATERAL unnest(s.setconfig) item
+        WHERE s.setrole IN (0, (SELECT oid FROM pg_roles WHERE rolname='authenticator'))
+          AND s.setdatabase IN (0, (SELECT oid FROM pg_database WHERE datname=current_database()))
+          AND split_part(item, '=', 1) IN
+            ('pgrst.db_schemas', 'pgrst.db_extra_search_path',
+             'pgrst.db_pre_config', 'pgrst.db_pre_request');
+    """, database=CLONE)
+    for row in rows.splitlines():
+        key, separator, value = row.partition("|")
+        if separator:
+            settings.append((key.removeprefix("pgrst."), value))
+    for key, value in settings:
+        if key in ("db_schemas", "db_extra_search_path"):
+            for name in value.split(","):
+                name = name.strip()
+                if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}", name):
+                    print("PREREQUISITE:", key, "non-simple schema name withheld")
+                    continue
+                # Identifier allowlist above makes this fixed SQL literal safe.
+                result = psql(
+                    "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='" +
+                    name + "');", database=CLONE)
+                print("PREREQUISITE:", key, "schema", name, "exists:", result)
+        elif key in ("db_pre_config", "db_pre_request"):
+            if not value:
+                print("PREREQUISITE:", key, "unset")
+                continue
+            if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}\.[a-zA-Z_][a-zA-Z0-9_]{0,62}", value):
+                print("PREREQUISITE:", key, "non-simple function name withheld")
+                continue
+            schema, function = value.split(".")
+            result = psql(
+                "SELECT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n "
+                "ON n.oid=p.pronamespace WHERE n.nspname='" + schema +
+                "' AND p.proname='" + function + "' AND p.pronargs=0);",
+                database=CLONE)
+            print("PREREQUISITE:", key, "function", value, "exists:", result)
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_DB") != "yes":
         raise SystemExit("Requires ALLOW_LOCAL_DISPOSABLE_DB=yes")
@@ -145,6 +200,7 @@ def main():
             logs_result = call(["docker", "logs", "--tail", "120", EPHEMERAL], check=False)
             # Never output raw logs: they can contain credentials and connection strings.
             logs = logs_result.stdout + logs_result.stderr
+            diagnose_config_prerequisites(safe)
             # Classify actual error-level events, not benign startup messages
             # such as "schema cache loaded". Never print raw logs.
             error_lines = [
