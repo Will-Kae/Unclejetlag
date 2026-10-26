@@ -40,3 +40,50 @@
 
 ## Release gating
 The current draft cannot be declared production-ready merely because GitHub CI passes: GitHub's preservation tests do not execute these SQL files against an isolated database. A sanitized staging clone, database migration runner, verified source policy and independent security review are required before any execution grant or production authorization.
+
+
+## Step 62 local HTTP checkpoint — 26 October 2026
+
+Evidence: user-supplied Mac terminal output from
+`scripts/passport-phase-4d2-step62-http-isolated-local.py` at commit
+`094e09074b22a6fc31d5761b1c69c03129dc06ce`. These are reported local
+results, not an independently executed CI or production test.
+
+| Check | Reported result |
+| --- | --- |
+| Disposable PostgREST startup | Ready with public-only schemas and extra search path |
+| Anonymous GET submissions, reviews and profiles | HTTP 401 for all three |
+| JWT signed with wrong key | HTTP 401 |
+| Expired synthetic JWT | HTTP 401 |
+| Valid synthetic authenticated JWT GET all three resources | HTTP 403; harness requires PostgreSQL code 42501 |
+| Five-argument review RPC catalog privileges | Function exists; EXECUTE denied to anon, authenticated and service_role |
+| Anonymous POST to disabled review RPC | Database privilege rejection |
+| Authenticated synthetic JWT POST to disabled review RPC | Database privilege rejection |
+| Temporary API and database clone cleanup | Both removed |
+
+The readiness experiment isolated an inherited `extensions` extra-search-path
+entry absent from this passport clone. Restricting the disposable API's extra
+search path to `public` restored readiness. No schema creation, database grants,
+existing service reconfiguration, production changes or approval activation
+were performed by this HTTP test.
+
+### Limits and next gates
+
+**Step 62 remains OPEN.** Blanket privilege denial prevents these requests from
+demonstrating ownership-policy behavior or reaching the review RPC body.
+The synthetic signing key belongs only to the disposable API; this does not test
+Supabase Auth issuance, actual research identities, session revocation or logout.
+
+Next isolated acceptance work must establish synthetic identities and a positive
+control for the intended active-own-profile read path, then compare another
+user's profile, inactive profile and unauthenticated requests. Any fixture grants
+must match a separately reviewed application access contract, exist only inside
+the disposable database, and must not enable review execution or publication.
+Do not weaken grants simply to obtain a passing ownership test.
+
+RPC self-review, stale revision, idempotency, source provenance, atomic
+review/status/audit rollback and alternative isolation-level races remain
+unverified by this checkpoint. The previously reported manual transaction and
+trigger tests are separate evidence and do not close these RPC-level gates.
+Keep PR #21 draft; no production migration, merge, deployment, approval
+enablement or ranking publication is authorized by these results.
