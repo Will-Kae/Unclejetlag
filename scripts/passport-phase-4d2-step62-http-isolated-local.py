@@ -7,6 +7,10 @@ HTTP checks, then removes both. Never touches the existing API configuration.
 Does not validate signed JWTs or approval flows.
 """
 import json
+import base64
+import hashlib
+import hmac
+import secrets
 import re
 import http.client
 import os
@@ -107,6 +111,55 @@ def diagnose_config_prerequisites(env):
             print("PREREQUISITE:", key, "function", value, "exists:", result)
 
 
+def local_test_jwt(secret, subject, expires):
+    """Synthetic token for the disposable API only; never print tokens or keys."""
+    def encode(value):
+        return base64.urlsafe_b64encode(value).rstrip(b"=")
+    header = encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    claims = encode(json.dumps({
+        "role": "authenticated", "sub": subject, "aud": "authenticated",
+        "exp": expires,
+    }).encode())
+    unsigned = header + b"." + claims
+    signature = encode(hmac.new(secret.encode(), unsigned, hashlib.sha256).digest())
+    return (unsigned + b"." + signature).decode()
+
+def check_signed_denials(opener, base, secret):
+    """JWT verification and blanket privilege denial, NOT ownership-policy tests."""
+    subject = str(uuid.uuid4())
+    now = int(time.time())
+    tokens = [
+        ("wrong-signature", local_test_jwt(secrets.token_hex(32), subject, now + 300), 401),
+        ("expired", local_test_jwt(secret, subject, now - 120), 401),
+        ("valid", local_test_jwt(secret, subject, now + 300), 403),
+    ]
+    for label, token, expected in tokens:
+        resources = ("passport_evidence_submissions", "passport_verification_reviews",
+                     "passport_research_profiles") if label == "valid" else ("passport_research_profiles",)
+        for resource in resources:
+            request = Request(base + "/" + resource + "?select=*",
+                              headers={"Authorization": "Bearer " + token})
+            try:
+                with opener.open(request, timeout=5) as response:
+                    raise AssertionError("FAIL: signed-token denial expected; HTTP " + str(response.status))
+            except HTTPError as exc:
+                if exc.code != expected:
+                    raise AssertionError("FAIL: " + label + " expected HTTP " +
+                                         str(expected) + ", received " + str(exc.code)) from None
+                if label == "valid":
+                    # Require PostgreSQL insufficient_privilege, not an arbitrary
+                    # 403. Never display response bodies or database messages.
+                    try:
+                        body = json.loads(exc.read(8192))
+                    except (ValueError, TypeError):
+                        raise AssertionError("FAIL: expected JSON permission error") from None
+                    if not isinstance(body, dict) or body.get("code") != "42501":
+                        raise AssertionError("FAIL: valid JWT did not reach expected database privilege denial")
+                print("PASS:", label, "JWT GET", resource, "rejected (HTTP " + str(exc.code) + ")")
+    print("PASS: synthetic signed-JWT denial smoke test")
+    print("NOT TESTED: Supabase Auth issuance/sessions, ownership RLS, RPC, approval or publication")
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_DB") != "yes":
         raise SystemExit("Requires ALLOW_LOCAL_DISPOSABLE_DB=yes")
@@ -136,8 +189,16 @@ def main():
         psql(f'CREATE DATABASE "{CLONE}" TEMPLATE "{SOURCE}";')
         created = True
         print("PASS: disposable database clone created", flush=True)
+        signed_smoke = os.getenv("ALLOW_LOCAL_SIGNED_JWT_SMOKE") == "yes"
+        test_secret = secrets.token_hex(32) if signed_smoke else None
         experiment = os.getenv("ALLOW_LOCAL_SCHEMA_USAGE_EXPERIMENT") == "yes"
         search_experiment = os.getenv("ALLOW_LOCAL_SEARCH_PATH_EXPERIMENT") == "yes"
+        if signed_smoke and (experiment or search_experiment):
+            raise RuntimeError("STOP: signed JWT smoke cannot combine with readiness experiments")
+        if signed_smoke:
+            membership = psql("SELECT pg_has_role('authenticator', 'authenticated', 'MEMBER');", database=CLONE)
+            if membership != "t":
+                raise RuntimeError("STOP: authenticator cannot assume authenticated; no grants changed")
         if experiment and search_experiment:
             raise RuntimeError("STOP: run one readiness experiment at a time")
         if experiment:
@@ -160,6 +221,12 @@ def main():
             path = Path(folder) / "postgrest.env"
             safe = {k: v for k, v in env.items() if k.startswith("PGRST_")}
             safe["PGRST_DB_URI"] = new_uri
+            if signed_smoke:
+                safe["PGRST_JWT_SECRET"] = test_secret
+                safe["PGRST_JWT_SECRET_IS_BASE64"] = "false"
+                safe["PGRST_JWT_AUD"] = "authenticated"
+                safe["PGRST_JWT_ROLE_CLAIM_KEY"] = ".role"
+                print("CONFIG: synthetic JWT key for disposable API only; no Auth or database changes")
             # Prevent PostgREST from silently using a different schema.
             safe["PGRST_DB_SCHEMAS"] = "public"
             # The isolated passport clone has no extensions schema. Do not
@@ -502,7 +569,10 @@ def main():
                     raise AssertionError(f"FAIL: unexpected anonymous HTTP {exc.code} for {resource}")
                 print(f"PASS: anonymous GET {resource} rejected (HTTP {exc.code})")
         print("PASS: isolated anonymous HTTP denial smoke test")
-        print("NOT TESTED: signed JWT, authenticated RLS, PostgREST RPC, approval or publication")
+        if signed_smoke:
+            check_signed_denials(opener, base, test_secret)
+        else:
+            print("NOT TESTED: signed JWT, authenticated RLS, PostgREST RPC, approval or publication")
     finally:
         if launched:
             call(["docker", "rm", "-f", EPHEMERAL], check=False)
