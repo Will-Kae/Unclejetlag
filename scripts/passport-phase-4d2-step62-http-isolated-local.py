@@ -160,6 +160,53 @@ def check_signed_denials(opener, base, secret):
     print("NOT TESTED: Supabase Auth issuance/sessions, ownership RLS, RPC, approval or publication")
 
 
+def check_rpc_unavailable(opener, base, secret):
+    """Require catalog EXECUTE denial before sending a synthetic HTTP request."""
+    signature = "public.passport_review_submission_staging(uuid,integer,public.passport_review_decision,text,uuid)"
+    result = psql(
+        "SELECT json_build_object('exists', to_regprocedure('" + signature +
+        "') IS NOT NULL, 'denied', NOT EXISTS (SELECT 1 FROM "
+        "unnest(ARRAY['anon','authenticated','service_role']) r "
+        "WHERE has_function_privilege(r, to_regprocedure('" + signature +
+        "'), 'EXECUTE')));", database=CLONE)
+    try:
+        facts = json.loads(result)
+    except (ValueError, TypeError):
+        raise AssertionError("STOP: RPC privilege preflight unreadable") from None
+    if facts.get("exists") is not True or facts.get("denied") is not True:
+        raise AssertionError("STOP: expected RPC absent or client EXECUTE enabled; HTTP invocation skipped")
+    print("PASS: review RPC exists; EXECUTE denied to anon/authenticated/service_role")
+    payload = json.dumps({
+        "p_submission_id": str(uuid.uuid4()), "p_expected_revision": 1,
+        "p_decision": "reject", "p_rationale": "Disposable denial test only",
+        "p_request_id": str(uuid.uuid4()),
+    }).encode()
+    for label, token in (("anonymous", None), ("authenticated", local_test_jwt(
+            secret, str(uuid.uuid4()), int(time.time()) + 300))):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = "Bearer " + token
+        request = Request(base + "/rpc/passport_review_submission_staging",
+                          data=payload, headers=headers, method="POST")
+        try:
+            with opener.open(request, timeout=5) as response:
+                raise AssertionError("FAIL: disabled review RPC returned HTTP " + str(response.status))
+        except HTTPError as exc:
+            try:
+                body = json.loads(exc.read(8192))
+            except (ValueError, TypeError):
+                raise AssertionError("FAIL: RPC denial response is not JSON") from None
+            code = body.get("code") if isinstance(body, dict) else None
+            expected = 403 if token else 401
+            if exc.code == expected and code == "42501":
+                print("PASS:", label, "review RPC rejected by database privilege check")
+            elif exc.code == 404 and code == "PGRST202":
+                print("PASS:", label, "review RPC not exposed in schema cache")
+                print("SCOPE: HTTP hiding verified; EXECUTE denial verified separately by catalog")
+            else:
+                raise AssertionError("FAIL: unexpected review RPC denial status/code") from None
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_DB") != "yes":
         raise SystemExit("Requires ALLOW_LOCAL_DISPOSABLE_DB=yes")
@@ -571,6 +618,8 @@ def main():
         print("PASS: isolated anonymous HTTP denial smoke test")
         if signed_smoke:
             check_signed_denials(opener, base, test_secret)
+            check_rpc_unavailable(opener, base, test_secret)
+            print("NOT TESTED: RPC internals, real Auth sessions, ownership RLS, approval or publication")
         else:
             print("NOT TESTED: signed JWT, authenticated RLS, PostgREST RPC, approval or publication")
     finally:
