@@ -74,9 +74,8 @@ demonstrating ownership-policy behavior or reaching the review RPC body.
 The synthetic signing key belongs only to the disposable API; this does not test
 Supabase Auth issuance, actual research identities, session revocation or logout.
 
-Next isolated acceptance work must establish synthetic identities and a positive
-control for the intended active-own-profile read path, then compare another
-user's profile, inactive profile and unauthenticated requests. Any fixture grants
+The profile-policy acceptance work identified at this checkpoint was subsequently
+run with synthetic identities; see the profile RLS checkpoint below. Any fixture grants
 must match a separately reviewed application access contract, exist only inside
 the disposable database, and must not enable review execution or publication.
 Do not weaken grants simply to obtain a passing ownership test.
@@ -87,3 +86,54 @@ unverified by this checkpoint. The previously reported manual transaction and
 trigger tests are separate evidence and do not close these RPC-level gates.
 Keep PR #21 draft; no production migration, merge, deployment, approval
 enablement or ranking publication is authorized by these results.
+
+
+## Step 62 profile RLS checkpoint — 26 October 2026
+
+Evidence: user-supplied terminal output from commit
+`7960865e9306dd77b94340e7a4cf82d56ef57eba`, running
+`ALLOW_LOCAL_PROFILE_RLS=yes` in the disposable local clone.
+This is reported local evidence, not CI or production verification.
+
+The test preserved the existing `passport_active_profile_self_read` policy.
+It added candidate schema USAGE and SELECT on only `user_id,role,active`
+for authenticated inside the clone. These fixture grants were necessary because
+the source test database's blanket privilege denial prevents the policy from
+being exercised. This is evidence for the existing policy under that candidate
+access contract; it does not establish current production access behavior or
+authorize applying grants elsewhere.
+
+| Scenario | Reported outcome |
+| --- | --- |
+| Active researcher A, unfiltered read | Exactly own profile |
+| Active reviewer B, unfiltered read | Exactly own profile |
+| A explicitly filters for B | No rows |
+| B explicitly filters for A | No rows |
+| Inactive profile identity | No rows |
+| Identity with no profile | No rows |
+| Anonymous profile request | Denied |
+| A deactivated after initial successful read, same token reused | No rows |
+| Review RPC EXECUTE for anon/authenticated/service_role | Denied by catalog preflight |
+| Anonymous and authenticated RPC HTTP requests | Rejected by database privilege check |
+| Temporary API and clone | Both removed |
+
+### Current gate state
+
+- Local anonymous/JWT denial and existing-profile-policy read scenarios above:
+  reported PASS within their stated scope. Do not repeat unchanged smoke tests.
+- The minimal profile-read access contract still needs independent review before
+  any production grant or migration. No broad evidence-table grants are implied.
+- Real Supabase Auth issuance, application login/logout, session revocation and
+  the actual server `verifyResearchSession` path are not tested by these synthetic
+  PostgREST requests.
+- RPC internal authorization, self-review, stale revision, idempotency, trusted
+  source/provenance validation, atomic review/status/audit rollback and remaining
+  isolation/concurrency acceptance remain open. HTTP rejection cannot prove RPC
+  internals because EXECUTE remains denied.
+- Step 62 remains OPEN; source verification and atomic approval gates remain
+  blocked. Keep approvals and publication disabled and PR #21 draft. No
+  production migration, merge or deployment follows from these local results.
+
+The next distinct verification boundary is the real application/Auth session
+path in a separately isolated test environment. Do not point an Auth service at
+production or retarget an existing local service to the disposable database.
