@@ -162,6 +162,11 @@ def main():
             safe["PGRST_DB_URI"] = new_uri
             # Prevent PostgREST from silently using a different schema.
             safe["PGRST_DB_SCHEMAS"] = "public"
+            # The isolated passport clone has no extensions schema. Do not
+            # inherit the full Supabase service search path into this test API.
+            # This changes only the disposable container, never database grants.
+            safe["PGRST_DB_EXTRA_SEARCH_PATH"] = "public"
+            print("CONFIG: disposable API schemas and extra search path are public-only")
             if search_experiment:
                 # Override only this disposable API container configuration.
                 # Do not create schemas, grant privileges, or change DB settings.
