@@ -231,6 +231,29 @@ def main():
                 print("DIAGNOSTIC: schema failure category", label,
                       bool(re.search(pattern, logs, re.IGNORECASE)))
 
+            # Extract SQLSTATE only when explicitly labeled in logs.
+            # Never emit raw log lines, schema names, query text or secrets.
+            sqlstates = sorted(set(re.findall(
+                r"(?i)\\b(?:SQLSTATE|sql_state|sqlstate_code)\\s*[:= ]\\s*[\"']?([0-9A-Z]{5})\\b",
+                logs
+            )))
+            print("DIAGNOSTIC: explicit SQLSTATE codes:",
+                  ",".join(sqlstates) if sqlstates else "not present")
+            # Fixed-category diagnostics avoid reproducing sensitive errors.
+            failure_signals = {
+                "undefined_schema_3F000": r"\\b3F000\\b",
+                "insufficient_privilege_42501": r"\\b42501\\b",
+                "undefined_table_42P01": r"\\b42P01\\b",
+                "undefined_function_42883": r"\\b42883\\b",
+                "undefined_column_42703": r"\\b42703\\b",
+                "invalid_schema_name": r"invalid schema name",
+                "schema_not_exposed": r"schema.{0,80}(not exposed|not in the exposed)",
+                "schema_cache_recovery": r"retrying|retry in|schema cache.*recover",
+            }
+            for label, pattern in failure_signals.items():
+                print("DIAGNOSTIC: failure signature", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
             print("DIAGNOSTIC: schema cache messages present:",
                   bool(re.search(r"schema cache", logs, re.IGNORECASE)))
             print("DIAGNOSTIC: permissions-related log signal:",
