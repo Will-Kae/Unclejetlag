@@ -254,6 +254,39 @@ def main():
                 print("DIAGNOSTIC: failure signature", label,
                       bool(re.search(pattern, logs, re.IGNORECASE)))
 
+            # Classify structured PostgREST log messages without displaying
+            # free-form message text, database identifiers, or credentials.
+            structured_events = []
+            for line in logs.splitlines():
+                try:
+                    event = json.loads(line)
+                except (ValueError, TypeError):
+                    continue
+                if not isinstance(event, dict):
+                    continue
+                structured_events.append(event)
+            print("DIAGNOSTIC: structured log event count:", len(structured_events))
+            for field in ("code", "sqlstate"):
+                codes = sorted({
+                    str(event[field]).upper()
+                    for event in structured_events
+                    if isinstance(event.get(field), str)
+                    and re.fullmatch(r"[0-9A-Z]{5}", event[field].upper())
+                })
+                print("DIAGNOSTIC: structured", field, "codes:",
+                      ",".join(codes) if codes else "none")
+            # These are classification booleans only, not raw PostgREST logs.
+            detail_patterns = {
+                "missing_public_schema_explicit": r"schema ['\\\"]?public['\\\"]? (does not exist|not found)",
+                "missing_nonpublic_schema": r"schema ['\\\"]?(?!public\\b)[a-z_]+['\\\"]? (does not exist|not found)",
+                "missing_catalog_relation": r"(relation|table) .{0,80}(does not exist|not found)",
+                "cache_retry_due_to_connection": r"schema cache.{0,150}connection|connection.{0,150}schema cache",
+                "cache_retry_due_to_schema": r"schema cache.{0,150}schema|schema.{0,150}schema cache",
+            }
+            for label, pattern in detail_patterns.items():
+                print("DIAGNOSTIC: cache detail category", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
             print("DIAGNOSTIC: schema cache messages present:",
                   bool(re.search(r"schema cache", logs, re.IGNORECASE)))
             print("DIAGNOSTIC: permissions-related log signal:",
