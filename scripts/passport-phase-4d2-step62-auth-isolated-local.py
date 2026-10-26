@@ -137,6 +137,40 @@ def exercise_auth(opener, base, secret, db):
     print("NOT TESTED: application verifyResearchSession, browser cookies, application logout, RLS or RPC internals")
 
 
+def compare_migration_histories(db):
+    """Read-only version comparison; emit only counts and numeric version IDs."""
+    query = ("BEGIN READ ONLY; SELECT coalesce(json_agg(version ORDER BY version),"
+             "'[]'::json)::text FROM auth.schema_migrations; ROLLBACK;")
+    histories = {}
+    for label, database in (("passport_test", SOURCE), ("existing_local_auth", "postgres")):
+        try:
+            values = json.loads(db.psql(query, database=database))
+        except (ValueError, TypeError):
+            raise TestFailure("Auth migration history is not a JSON array; raw details withheld") from None
+        if not isinstance(values, list) or any(
+                not isinstance(x, (str, int)) or isinstance(x, bool) for x in values):
+            raise TestFailure("Unsupported Auth migration version format; raw details withheld")
+        versions = [str(x) for x in values]
+        histories[label] = set(versions)
+        print("MIGRATIONS:", label, "rows:", len(versions), "unique:", len(set(versions)))
+        numeric = sorted(x for x in versions if re.fullmatch(r"[0-9]{1,20}", x))
+        print("MIGRATIONS:", label, "latest numeric versions:", ",".join(numeric[-5:]) or "(none)")
+        print("MIGRATIONS:", label, "non-numeric version count:", len(versions) - len(numeric))
+        if len(versions) != len(set(versions)):
+            raise TestFailure("Duplicate Auth migration versions; STOP before startup")
+    test = histories["passport_test"]
+    existing = histories["existing_local_auth"]
+    for label, versions in (("missing_from_passport_test", existing - test),
+                            ("only_in_passport_test", test - existing)):
+        sample = sorted(x for x in versions if re.fullmatch(r"[0-9]{1,20}", x))[:10]
+        print("MIGRATION DIFFERENCE:", label, "count:", len(versions),
+              "numeric sample:", ",".join(sample) or "(none)")
+    if test != existing:
+        print("UNCHANGED: no clone, temporary Auth service, migration or database writes")
+        raise TestFailure("Auth migration histories differ; isolated login test NOT RUN")
+    print("PASS: Auth migration version sets match (schema compatibility not implied)")
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_AUTH") != "yes":
         raise SystemExit("Set ALLOW_LOCAL_DISPOSABLE_AUTH=yes")
@@ -158,9 +192,7 @@ def main():
         raise TestFailure("Auth DB URI must identify expected local DB and Auth administrator role")
     # Compare migration histories before startup; don't auto-upgrade a mismatched
     # passport test clone just to get the Auth service running.
-    query = "SELECT coalesce(json_agg(version ORDER BY version),'[]'::json)::text FROM auth.schema_migrations;"
-    if db.psql(query, database=SOURCE) != db.psql(query, database="postgres"):
-        raise TestFailure("Auth migration history differs from existing local Auth DB; STOP before clone/startup")
+    compare_migration_histories(db)
     secret = secrets.token_hex(32)
     created = launched = False
     try:
