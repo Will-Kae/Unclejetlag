@@ -207,6 +207,107 @@ def check_rpc_unavailable(opener, base, secret):
                 raise AssertionError("FAIL: unexpected review RPC denial status/code") from None
 
 
+def prepare_profile_rls_fixture():
+    """Candidate column-read grant ONLY in clone; preserve the existing policy."""
+    if psql("SELECT current_database();", database=CLONE) != CLONE:
+        raise RuntimeError("STOP: profile fixture database identity mismatch")
+    checks = psql("""
+        SELECT json_build_object(
+          'rls', (SELECT relrowsecurity FROM pg_class
+                  WHERE oid='public.passport_research_profiles'::regclass),
+          'bypass', (SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname='authenticated'),
+          'policies', (SELECT count(*) FROM pg_policies
+             WHERE schemaname='public' AND tablename='passport_research_profiles'),
+          'self_read', EXISTS(SELECT 1 FROM pg_policies
+             WHERE schemaname='public' AND tablename='passport_research_profiles'
+               AND policyname='passport_active_profile_self_read'
+               AND cmd='SELECT' AND roles=ARRAY['authenticated']::name[]),
+          'member', pg_has_role('authenticator','authenticated','MEMBER'),
+          'writes', has_any_column_privilege('authenticated','public.passport_research_profiles','INSERT,UPDATE')
+              OR has_table_privilege('authenticated','public.passport_research_profiles','DELETE'));
+
+    """, database=CLONE)
+    facts = json.loads(checks)
+    if not (facts.get("rls") is True and facts.get("bypass") is False
+            and facts.get("policies") == 1 and facts.get("self_read") is True
+            and facts.get("member") is True and facts.get("writes") is False):
+        raise RuntimeError("STOP: expected single self-read policy/RLS/role baseline missing; policy not changed")
+    ids = [str(uuid.uuid4()) for _ in range(4)]
+    # Only fresh UUIDs generated here are interpolated. Never accept fixture IDs
+    # from HTTP or disable foreign keys/triggers to insert fixtures.
+    user_table = psql("SELECT to_regclass('auth.users') IS NOT NULL;", database=CLONE)
+    setup = "BEGIN;\n"
+    if user_table == "t":
+        setup += "INSERT INTO auth.users(id) VALUES " + ",".join(
+            "('" + subject + "')" for subject in ids[:3]) + ";\n"
+    setup += (
+        "INSERT INTO public.passport_research_profiles(user_id,role,active) VALUES "
+        "('" + ids[0] + "','researcher',true),"
+        "('" + ids[1] + "','reviewer',true),"
+        "('" + ids[2] + "','researcher',false);\n"
+        "GRANT USAGE ON SCHEMA public TO authenticated;\n"
+        "GRANT SELECT(user_id,role,active) ON public.passport_research_profiles TO authenticated;\n"
+        "COMMIT;"
+    )
+    psql(setup, database=CLONE)
+    # Positive fixture control runs as postgres; HTTP tests must also prove
+    # each active subject can read their own row through the existing policy.
+    count = psql("SELECT count(*) FROM public.passport_research_profiles WHERE user_id IN (" +
+                 ",".join("'" + x + "'" for x in ids[:3]) + ");", database=CLONE)
+    if count != "3":
+        raise AssertionError("STOP: profile fixtures incomplete")
+    print("FIXTURE: two active and one inactive profile in disposable clone")
+    print("CANDIDATE ONLY: authenticated schema USAGE and three-column profile SELECT")
+    print("UNCHANGED: existing RLS policy, review RPC grants, source database and live services")
+    return ids
+
+def check_profile_rls(opener, base, secret, ids):
+    a, b, inactive, absent = ids
+    path = "/passport_research_profiles?select=user_id,role,active"
+    tokens = {subject: local_test_jwt(secret, subject, int(time.time()) + 300) for subject in ids}
+    def read(subject, suffix=""):
+        token = tokens[subject]
+        request = Request(base + path + suffix, headers={"Authorization": "Bearer " + token})
+        try:
+            with opener.open(request, timeout=5) as response:
+                if response.status != 200:
+                    raise AssertionError("FAIL: profile read expected HTTP 200")
+                rows = json.loads(response.read(65536))
+        except HTTPError as exc:
+            raise AssertionError("FAIL: profile policy request returned HTTP " + str(exc.code)) from None
+        if not isinstance(rows, list):
+            raise AssertionError("FAIL: expected profile row array")
+        return rows
+    def expect_rows(label, subject, expected, suffix=""):
+        if read(subject, suffix) != expected:
+            raise AssertionError("FAIL: " + label + "; response content withheld")
+        print("PASS:", label)
+    row_a = [{"user_id": a, "role": "researcher", "active": True}]
+    row_b = [{"user_id": b, "role": "reviewer", "active": True}]
+    # Unfiltered positive reads ensure the caller cannot enumerate other rows.
+    expect_rows("active A reads exactly own profile", a, row_a)
+    expect_rows("active B reads exactly own profile", b, row_b)
+    expect_rows("A cannot read B by explicit user_id filter", a, [], "&user_id=eq." + b)
+    expect_rows("B cannot read A by explicit user_id filter", b, [], "&user_id=eq." + a)
+    expect_rows("inactive identity sees no profiles", inactive, [])
+    expect_rows("identity without profile sees no profiles", absent, [])
+    request = Request(base + path)
+    try:
+        with opener.open(request, timeout=5):
+            raise AssertionError("FAIL: anonymous profile read unexpectedly succeeded")
+    except HTTPError as exc:
+        if exc.code != 401:
+            raise AssertionError("FAIL: anonymous profile read expected HTTP 401") from None
+    print("PASS: anonymous profile read denied")
+    # Test immediate database-state change with the same subject/token identity.
+    psql("UPDATE public.passport_research_profiles SET active=false WHERE user_id='" + a + "';",
+         database=CLONE)
+    expect_rows("profile deactivation removes read access", a, [])
+    check_rpc_unavailable(opener, base, secret)
+    print("PASS: existing profile RLS with candidate clone-only column grants")
+    print("NOT TESTED: production grants, real Supabase Auth/login/logout, review internals or publication")
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_DB") != "yes":
         raise SystemExit("Requires ALLOW_LOCAL_DISPOSABLE_DB=yes")
@@ -237,9 +338,13 @@ def main():
         created = True
         print("PASS: disposable database clone created", flush=True)
         signed_smoke = os.getenv("ALLOW_LOCAL_SIGNED_JWT_SMOKE") == "yes"
-        test_secret = secrets.token_hex(32) if signed_smoke else None
+        profile_rls = os.getenv("ALLOW_LOCAL_PROFILE_RLS") == "yes"
+        test_secret = secrets.token_hex(32) if signed_smoke or profile_rls else None
         experiment = os.getenv("ALLOW_LOCAL_SCHEMA_USAGE_EXPERIMENT") == "yes"
         search_experiment = os.getenv("ALLOW_LOCAL_SEARCH_PATH_EXPERIMENT") == "yes"
+        if profile_rls and (signed_smoke or experiment or search_experiment):
+            raise RuntimeError("STOP: profile RLS must run separately from other modes")
+        profile_ids = prepare_profile_rls_fixture() if profile_rls else None
         if signed_smoke and (experiment or search_experiment):
             raise RuntimeError("STOP: signed JWT smoke cannot combine with readiness experiments")
         if signed_smoke:
@@ -268,12 +373,12 @@ def main():
             path = Path(folder) / "postgrest.env"
             safe = {k: v for k, v in env.items() if k.startswith("PGRST_")}
             safe["PGRST_DB_URI"] = new_uri
-            if signed_smoke:
+            if signed_smoke or profile_rls:
                 safe["PGRST_JWT_SECRET"] = test_secret
                 safe["PGRST_JWT_SECRET_IS_BASE64"] = "false"
                 safe["PGRST_JWT_AUD"] = "authenticated"
                 safe["PGRST_JWT_ROLE_CLAIM_KEY"] = ".role"
-                print("CONFIG: synthetic JWT key for disposable API only; no Auth or database changes")
+                print("CONFIG: synthetic JWT key for disposable API only; no real Auth changes")
             # Prevent PostgREST from silently using a different schema.
             safe["PGRST_DB_SCHEMAS"] = "public"
             # The isolated passport clone has no extensions schema. Do not
@@ -602,6 +707,9 @@ def main():
         if experiment:
             print("EXPERIMENT: temporary PostgREST became HTTP-ready after clone-only schema grant")
             print("NOT TESTED: authorization; this experiment cannot establish safe grants")
+            return
+        if profile_rls:
+            check_profile_rls(opener, base, test_secret, profile_ids)
             return
         print("PASS: isolated PostgREST started on loopback (system proxies bypassed)", flush=True)
         # No bearer token and no API key: deny-by-default expected.
