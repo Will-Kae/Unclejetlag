@@ -81,6 +81,22 @@ def main():
         psql(f'CREATE DATABASE "{CLONE}" TEMPLATE "{SOURCE}";')
         created = True
         print("PASS: disposable database clone created", flush=True)
+        experiment = os.getenv("ALLOW_LOCAL_SCHEMA_USAGE_EXPERIMENT") == "yes"
+        if experiment:
+            # The schema belongs to this disposable database. Roles remain
+            # cluster-wide and are NEVER modified. This is not a staging grant.
+            if psql("SELECT current_database();", database=CLONE) != CLONE:
+                raise RuntimeError("STOP: disposable database identity mismatch")
+            if psql("SELECT has_schema_privilege('authenticator', 'public', 'USAGE');",
+                    database=CLONE) != "f":
+                raise RuntimeError("STOP: expected deny-by-default baseline missing")
+            psql("GRANT USAGE ON SCHEMA public TO authenticator;", database=CLONE)
+            if psql("SELECT has_schema_privilege('authenticator', 'public', 'USAGE');",
+                    database=CLONE) != "t":
+                raise RuntimeError("STOP: clone-only schema grant verification failed")
+            print("EXPERIMENT: disposable clone authenticator public USAGE enabled")
+            print("EXPERIMENT: no role membership, anon grant, or source database changes")
+
         # Never print the connection string, JWT secret, or temporary env file.
         with tempfile.TemporaryDirectory(prefix="passport-http-") as folder:
             path = Path(folder) / "postgrest.env"
@@ -389,8 +405,14 @@ def main():
                       else "unclassified (raw stderr withheld)")
             print("DIAGNOSTIC: internal HTTP readiness is not an authorization assertion")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
+            if experiment:
+                print("EXPERIMENT: schema USAGE alone did not restore HTTP readiness")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
+        if experiment:
+            print("EXPERIMENT: temporary PostgREST became HTTP-ready after clone-only schema grant")
+            print("NOT TESTED: authorization; this experiment cannot establish safe grants")
+            return
         print("PASS: isolated PostgREST started on loopback (system proxies bypassed)", flush=True)
         # No bearer token and no API key: deny-by-default expected.
         for resource in ("passport_evidence_submissions", "passport_verification_reviews",
