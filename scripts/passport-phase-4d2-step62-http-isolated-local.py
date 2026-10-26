@@ -137,6 +137,9 @@ def main():
         created = True
         print("PASS: disposable database clone created", flush=True)
         experiment = os.getenv("ALLOW_LOCAL_SCHEMA_USAGE_EXPERIMENT") == "yes"
+        search_experiment = os.getenv("ALLOW_LOCAL_SEARCH_PATH_EXPERIMENT") == "yes"
+        if experiment and search_experiment:
+            raise RuntimeError("STOP: run one readiness experiment at a time")
         if experiment:
             # The schema belongs to this disposable database. Roles remain
             # cluster-wide and are NEVER modified. This is not a staging grant.
@@ -159,6 +162,12 @@ def main():
             safe["PGRST_DB_URI"] = new_uri
             # Prevent PostgREST from silently using a different schema.
             safe["PGRST_DB_SCHEMAS"] = "public"
+            if search_experiment:
+                # Override only this disposable API container configuration.
+                # Do not create schemas, grant privileges, or change DB settings.
+                safe["PGRST_DB_EXTRA_SEARCH_PATH"] = "public"
+                print("EXPERIMENT: temporary API extra search path restricted to public")
+                print("EXPERIMENT: no database grants or existing service changes")
             # Container port publishing targets 3000: explicitly bind the API
             # to 0.0.0.0:3000 inside this disposable container only.
             safe["PGRST_SERVER_HOST"] = "0.0.0.0"
@@ -461,10 +470,16 @@ def main():
                       else "unclassified (raw stderr withheld)")
             print("DIAGNOSTIC: internal HTTP readiness is not an authorization assertion")
             print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
+            if search_experiment:
+                print("EXPERIMENT: public-only extra search path did not restore HTTP readiness")
             if experiment:
                 print("EXPERIMENT: schema USAGE alone did not restore HTTP readiness")
             raise RuntimeError("Temporary PostgREST did not become ready; "
                                "no HTTP authorization checks executed")
+        if search_experiment:
+            print("EXPERIMENT: temporary PostgREST became HTTP-ready with public-only extra search path")
+            print("NOT TESTED: authorization; readiness alone is not a security pass")
+            return
         if experiment:
             print("EXPERIMENT: temporary PostgREST became HTTP-ready after clone-only schema grant")
             print("NOT TESTED: authorization; this experiment cannot establish safe grants")
