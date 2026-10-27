@@ -171,11 +171,38 @@ def compare_migration_histories(db, test_database=SOURCE):
     print("PASS: Auth migration version sets match (schema compatibility not implied)")
 
 
+def checked_stage(label, function, *args, **kwargs):
+    """Expose the failing operation and a fixed category, never raw exceptions."""
+    print("STAGE:", label, flush=True)
+    try:
+        return function(*args, **kwargs)
+    except TestFailure:
+        raise
+    except Exception as exc:
+        detail = str(exc).lower()  # classify internally; never print this text
+        if "docker.sock" in detail or "cannot connect to the docker daemon" in detail:
+            category = "Docker engine/socket unavailable"
+        elif "no such object" in detail or "no such container" in detail:
+            category = "expected local container missing"
+        elif "permission denied" in detail or "must be member" in detail or "must be owner" in detail:
+            category = "database or local permission denied"
+        elif "does not exist" in detail:
+            category = "required database object or role missing"
+        elif "timeout" in detail or type(exc).__name__ in ("TimeoutExpired", "TimeoutError"):
+            category = "local operation timed out"
+        elif isinstance(exc, FileNotFoundError):
+            category = "local executable or helper file missing"
+        else:
+            category = "unclassified local operation failure"
+        raise TestFailure(label + ": " + category + "; raw details withheld") from None
+
+
 def main():
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_AUTH") != "yes":
         raise SystemExit("Set ALLOW_LOCAL_DISPOSABLE_AUTH=yes")
-    db = helpers()
-    auth, database = db.inspect(AUTH), db.inspect(db.DB_CONTAINER)
+    db = checked_stage("load local helpers", helpers)
+    auth = checked_stage("inspect existing local Auth service", db.inspect, AUTH)
+    database = checked_stage("inspect existing local database service", db.inspect, db.DB_CONTAINER)
     if not auth.get("State", {}).get("Running") or not database.get("State", {}).get("Running"):
         raise TestFailure("Expected local Uncle Jetlag services are not running")
     common = set(auth["NetworkSettings"]["Networks"]) & set(database["NetworkSettings"]["Networks"])
@@ -184,7 +211,7 @@ def main():
     network = next(iter(common))
     env = dict(x.split("=", 1) for x in auth["Config"].get("Env", []) if "=" in x)
     uri = env.get("GOTRUE_DB_DATABASE_URL") or env.get("DATABASE_URL") or ""
-    new_uri, host = db.replace_database(uri, CLONE)
+    new_uri, host = checked_stage("validate disposable database URI", db.replace_database, uri, CLONE)
     aliases = set(database["NetworkSettings"]["Networks"][network].get("Aliases") or [])
     aliases.add(db.DB_CONTAINER)
     parsed = urlsplit(uri)
@@ -202,14 +229,18 @@ def main():
             # Bootstrap a new empty database, never stamp migration records or
             # upgrade the hand-built passport fixture. Existing cluster roles
             # and their privileges are not changed.
-            db.psql('CREATE DATABASE "' + CLONE + '" TEMPLATE template0 OWNER supabase_auth_admin;')
+            checked_stage("create fresh disposable Auth database", db.psql,
+                          'CREATE DATABASE "' + CLONE + '" TEMPLATE template0 OWNER supabase_auth_admin;')
         else:
-            db.psql('CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
+            checked_stage("clone disposable Auth database", db.psql,
+                          'CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
         created = True
-        if db.psql("SELECT current_database();", database=CLONE) != CLONE:
+        if checked_stage("verify disposable database identity", db.psql,
+                         "SELECT current_database();", database=CLONE) != CLONE:
             raise TestFailure("Disposable Auth database identity mismatch")
         if fresh_auth:
-            db.psql("CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;", database=CLONE)
+            checked_stage("create empty disposable Auth schema", db.psql,
+                          "CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;", database=CLONE)
             print("PASS: fresh disposable Auth database and empty auth schema created", flush=True)
             print("BOOTSTRAP: installed Auth image must run its own migrations; no migration records copied")
         else:
@@ -239,7 +270,8 @@ def main():
                 handle.write("".join(key + "=" + value + "\n" for key, value in safe.items()))
             # Immutable, already-installed image ID. No remote image pull.
             launched = True  # cleanup also covers interrupted docker run.
-            db.call(["docker", "run", "-d", "--pull", "never", "--name", SERVICE,
+            checked_stage("start temporary Auth container", db.call,
+                         ["docker", "run", "-d", "--pull", "never", "--name", SERVICE,
                      "--network", network, "-p", "127.0.0.1::9999",
                      "--env-file", str(path), auth["Image"]])
         port_line = db.call(["docker", "port", SERVICE, "9999/tcp"]).stdout.strip()
@@ -275,7 +307,7 @@ def main():
         if fresh_auth:
             compare_migration_histories(db, test_database=CLONE)
             print("PASS: freshly migrated Auth version history matches existing local Auth")
-        exercise_auth(opener, base, secret, db)
+        checked_stage("exercise disposable Auth login and logout", exercise_auth, opener, base, secret, db)
     finally:
         if launched:
             result = db.call(["docker", "rm", "-f", SERVICE], check=False)
