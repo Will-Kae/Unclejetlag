@@ -137,12 +137,12 @@ def exercise_auth(opener, base, secret, db):
     print("NOT TESTED: application verifyResearchSession, browser cookies, application logout, RLS or RPC internals")
 
 
-def compare_migration_histories(db):
+def compare_migration_histories(db, test_database=SOURCE):
     """Read-only version comparison; emit only counts and numeric version IDs."""
     query = ("BEGIN READ ONLY; SELECT coalesce(json_agg(version ORDER BY version),"
              "'[]'::json)::text FROM auth.schema_migrations; ROLLBACK;")
     histories = {}
-    for label, database in (("passport_test", SOURCE), ("existing_local_auth", "postgres")):
+    for label, database in (("candidate_auth", test_database), ("existing_local_auth", "postgres")):
         try:
             values = json.loads(db.psql(query, database=database))
         except (ValueError, TypeError):
@@ -158,16 +158,16 @@ def compare_migration_histories(db):
         print("MIGRATIONS:", label, "non-numeric version count:", len(versions) - len(numeric))
         if len(versions) != len(set(versions)):
             raise TestFailure("Duplicate Auth migration versions; STOP before startup")
-    test = histories["passport_test"]
+    test = histories["candidate_auth"]
     existing = histories["existing_local_auth"]
-    for label, versions in (("missing_from_passport_test", existing - test),
-                            ("only_in_passport_test", test - existing)):
+    for label, versions in (("missing_from_candidate_auth", existing - test),
+                            ("only_in_candidate_auth", test - existing)):
         sample = sorted(x for x in versions if re.fullmatch(r"[0-9]{1,20}", x))[:10]
         print("MIGRATION DIFFERENCE:", label, "count:", len(versions),
               "numeric sample:", ",".join(sample) or "(none)")
     if test != existing:
-        print("UNCHANGED: no clone, temporary Auth service, migration or database writes")
-        raise TestFailure("Auth migration histories differ; isolated login test NOT RUN")
+        print("SAFETY: existing databases and services unchanged; caller cleans temporary resources")
+        raise TestFailure("Auth migration histories differ; login assertions NOT RUN")
     print("PASS: Auth migration version sets match (schema compatibility not implied)")
 
 
@@ -192,15 +192,28 @@ def main():
         raise TestFailure("Auth DB URI must identify expected local DB and Auth administrator role")
     # Compare migration histories before startup; don't auto-upgrade a mismatched
     # passport test clone just to get the Auth service running.
-    compare_migration_histories(db)
+    fresh_auth = os.getenv("ALLOW_LOCAL_FRESH_AUTH_DB") == "yes"
+    if not fresh_auth:
+        compare_migration_histories(db)
     secret = secrets.token_hex(32)
     created = launched = False
     try:
-        db.psql('CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
+        if fresh_auth:
+            # Bootstrap a new empty database, never stamp migration records or
+            # upgrade the hand-built passport fixture. Existing cluster roles
+            # and their privileges are not changed.
+            db.psql('CREATE DATABASE "' + CLONE + '" TEMPLATE template0 OWNER supabase_auth_admin;')
+        else:
+            db.psql('CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
         created = True
         if db.psql("SELECT current_database();", database=CLONE) != CLONE:
             raise TestFailure("Disposable Auth database identity mismatch")
-        print("PASS: disposable Auth database clone created; migration histories match", flush=True)
+        if fresh_auth:
+            db.psql("CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;", database=CLONE)
+            print("PASS: fresh disposable Auth database and empty auth schema created", flush=True)
+            print("BOOTSTRAP: installed Auth image must run its own migrations; no migration records copied")
+        else:
+            print("PASS: disposable Auth database clone created; migration histories match", flush=True)
         safe = {
             "GOTRUE_API_HOST": "0.0.0.0", "GOTRUE_API_PORT": "9999",
             "API_EXTERNAL_URL": "http://127.0.0.1:9999",
@@ -226,7 +239,7 @@ def main():
                 handle.write("".join(key + "=" + value + "\n" for key, value in safe.items()))
             # Immutable, already-installed image ID. No remote image pull.
             launched = True  # cleanup also covers interrupted docker run.
-            db.call(["docker", "run", "-d", "--rm", "--pull", "never", "--name", SERVICE,
+            db.call(["docker", "run", "-d", "--pull", "never", "--name", SERVICE,
                      "--network", network, "-p", "127.0.0.1::9999",
                      "--env-file", str(path), auth["Image"]])
         port_line = db.call(["docker", "port", SERVICE, "9999/tcp"]).stdout.strip()
@@ -247,9 +260,21 @@ def main():
         if not ready:
             state = db.inspect(SERVICE).get("State", {}).get("Status", "unknown")
             print("DIAGNOSTIC: disposable Auth container state:", state)
+            result = db.call(["docker", "logs", "--tail", "80", SERVICE], check=False)
+            logs = result.stdout + result.stderr
+            for label, pattern in (
+                ("database_permission", r"permission denied|insufficient privilege"),
+                ("missing_database_object", r"does not exist|undefined"),
+                ("migration_failure", r"migration.*(fail|error)|failed.*migrat"),
+                ("configuration_failure", r"config.*(invalid|error)|required.*(key|secret)"),
+            ):
+                print("DIAGNOSTIC:", label, bool(re.search(pattern, logs, re.I)))
             print("NOT TESTED: Auth requests; raw logs withheld")
             raise TestFailure("Disposable Auth service did not become healthy")
         print("PASS: separate Auth API healthy on loopback; fresh signing key", flush=True)
+        if fresh_auth:
+            compare_migration_histories(db, test_database=CLONE)
+            print("PASS: freshly migrated Auth version history matches existing local Auth")
         exercise_auth(opener, base, secret, db)
     finally:
         if launched:
@@ -260,7 +285,7 @@ def main():
                 print("CLEANUP CHECK: temporary Auth removal did not confirm success")
         if created:
             db.psql('DROP DATABASE "' + CLONE + '" WITH (FORCE);')
-            print("PASS: disposable Auth database clone removed")
+            print("PASS: disposable Auth database removed")
 
 
 if __name__ == "__main__":
