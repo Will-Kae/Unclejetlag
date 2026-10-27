@@ -137,3 +137,64 @@ authorize applying grants elsewhere.
 The next distinct verification boundary is the real application/Auth session
 path in a separately isolated test environment. Do not point an Auth service at
 production or retarget an existing local service to the disposable database.
+
+
+## Step 62 real Auth service checkpoint — 28 October 2026
+
+Evidence: user-supplied terminal output from
+`scripts/passport-phase-4d2-step62-auth-isolated-local.py` at commit
+`7fea5d70b74cb4299c899ef1074f9449825732eb`, with
+`ALLOW_LOCAL_DISPOSABLE_AUTH=yes ALLOW_LOCAL_FRESH_AUTH_DB=yes`.
+Reported local evidence only; not independently executed CI or production proof.
+
+### Isolated setup and migration provenance
+
+The hand-built passport fixture has zero Auth migration records. The working
+local Auth database has 82. A new database from template0 and separate instance
+of the installed Auth image were used; neither existing database was upgraded.
+
+The fresh Auth service applied 75 migrations. The exact seven IDs present only
+in the working Supabase database were independently matched to the historical
+records seeded by Supabase PostgreSQL's bootstrap:
+`migrations/db/init-scripts/00000000000001-auth-schema.sql`
+(reviewed source blob `ad47aadd9c2acf3cdb78ec569860ca695bea4152`).
+The fresh service's `00_init_auth_schema.up.sql` provides consolidated setup.
+The harness accepts only this exact seven-ID difference for the fresh disposable
+case with matching remaining migration sets and a `00` entry on both sides.
+No migration records were copied or stamped. This does not establish complete
+schema equivalence.
+
+The local postgres role could create databases but could not SET ROLE to
+supabase_auth_admin. The harness therefore retained creator ownership and granted
+USAGE/CREATE on only the disposable auth schema to the existing Auth role.
+No role memberships or existing database/service settings changed.
+
+| Check | Reported outcome |
+| --- | --- |
+| Separate Auth API and fresh signing key | Healthy on loopback |
+| Synthetic confirmed user creation via Auth API | Passed; no email sent |
+| Wrong password | Rejected with invalid_credentials |
+| Correct password | Auth-issued access and refresh tokens |
+| Issued session_id | Matching auth.sessions row |
+| Auth /user before logout | Validated issued identity |
+| Local Auth logout | Matching session removed |
+| Refresh after logout | Rejected |
+| Old access token at Auth /user after logout | Rejected in this installed local Auth configuration |
+| Temporary Auth container and database | Both removed |
+
+### Remaining application and editorial boundaries
+
+The Auth-service smoke scenario above is complete within its stated scope.
+Do not rerun it unchanged. The old-token result applies to this specific
+Auth /user test, not every JWT consumer or production configuration.
+
+Application `verifyResearchSession`, the real login server action, cookie
+attributes/path/clearing, protected browser-route behavior, CSRF handling and
+application logout-to-Auth integration still need an end-to-end test. This Auth
+smoke test did not run Next.js or PostgREST and does not close those boundaries.
+The earlier profile RLS and disabled-RPC evidence is separate.
+
+Step 62 remains OPEN. Editorial RPC internals, transactional review/audit
+guarantees, trusted-source verification and remaining concurrency/isolation
+gates are still open. PR #21 remains draft; approvals and publication stay
+disabled. No production migration, merge or deployment is authorized.
