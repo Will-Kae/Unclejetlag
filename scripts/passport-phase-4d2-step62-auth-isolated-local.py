@@ -166,8 +166,31 @@ def compare_migration_histories(db, test_database=SOURCE):
         print("MIGRATION DIFFERENCE:", label, "count:", len(versions),
               "numeric sample:", ",".join(sample) or "(none)")
     if test != existing:
+        # Historical IDs seeded by Supabase's PostgreSQL bootstrap:
+        # https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000001-auth-schema.sql
+        # Reviewed source blob: ad47aadd9c2acf3cdb78ec569860ca695bea4152.
+        # Auth v2.197.0 migrations/00_init_auth_schema.up.sql supplies the
+        # consolidated initialization in a fresh database. Never insert/stamp
+        # the historical records to make histories appear equal.
+        bootstrap_legacy = {
+            "20171026211738", "20171026211808", "20171026211834",
+            "20180103212743", "20180108183307", "20180119214651",
+            "20180125194653",
+        }
+        fresh_bootstrap_only = (
+            os.getenv("ALLOW_LOCAL_FRESH_AUTH_DB") == "yes"
+            and test_database == CLONE
+            and "00" in test and "00" in existing
+            and existing - test == bootstrap_legacy
+            and not (test - existing)
+        )
+        if fresh_bootstrap_only:
+            print("PASS: fresh Auth modern migration history matches; exactly seven documented bootstrap-only IDs differ")
+            print("SCOPE: historical-record difference accepted only for fresh disposable Auth smoke test")
+            print("UNCHANGED: migration records; schema/production equivalence NOT established")
+            return
         print("SAFETY: existing databases and services unchanged; caller cleans temporary resources")
-        raise TestFailure("Auth migration histories differ; login assertions NOT RUN")
+        raise TestFailure("Auth migration histories differ beyond accepted fresh bootstrap case; login assertions NOT RUN")
     print("PASS: Auth migration version sets match (schema compatibility not implied)")
 
 
@@ -337,7 +360,7 @@ def main():
         print("PASS: separate Auth API healthy on loopback; fresh signing key", flush=True)
         if fresh_auth:
             compare_migration_histories(db, test_database=CLONE)
-            print("PASS: freshly migrated Auth version history matches existing local Auth")
+            print("PASS: installed-image migration history accepted for fresh disposable Auth test")
         checked_stage("exercise disposable Auth login and logout", exercise_auth, opener, base, secret, db)
     finally:
         if launched:
