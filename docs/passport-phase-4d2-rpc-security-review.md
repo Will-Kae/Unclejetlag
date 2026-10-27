@@ -198,3 +198,39 @@ Step 62 remains OPEN. Editorial RPC internals, transactional review/audit
 guarantees, trusted-source verification and remaining concurrency/isolation
 gates are still open. PR #21 remains draft; approvals and publication stay
 disabled. No production migration, merge or deployment is authorized.
+
+
+## Application logout and dependency checkpoint — 28 October 2026
+
+At application commit `f6fdf46`, the user reported 20/20 tests passing across
+`passport-admin-session.test.ts` (11) and `passport-admin-logout.test.ts` (9),
+followed by successful `next typegen && tsc --noEmit`. These exercise mocked
+provider/framework boundaries, not browser end-to-end behavior.
+
+The draft logout fix now calls Auth's local-scope logout endpoint before clearing
+the cookie. Success redirects; a provider/config/network failure still clears
+the local cookie and returns HTTP 503 with revocation explicitly unconfirmed.
+Missing/cross-site origins remain denied before provider calls or cookie changes.
+
+The user's installation reported five audited dependency findings: one moderate,
+one high and three critical. This was independently reproduced against the
+committed lockfile. The audited packages were Next.js, Zod, Vitest, @vitest/mocker
+and tinypool (test dependency findings include inherited severity).
+
+Dependency candidate at `b2893f7` pins Next.js 16.4.1, Zod 4.6.6 and Vitest
+4.1.12, with the npm-generated lockfile. This is a controlled Vitest major update,
+not npm audit fix --force. No install scripts were executed in the isolated
+dependency-check workspace. Independent checks there reported:
+- npm audit: zero findings across production and development dependencies.
+- The actual two session/logout test files: 20/20 pass on Vitest 4.1.12.
+
+The dependency workspace contained the relevant source/test files, not the
+complete application. Full-suite regression, typecheck and production build on
+the complete checkout remain required for this dependency candidate. A zero
+registry audit is not proof that all security risks are eliminated.
+
+Real browser login, cookie behavior, protected routes, CSRF and application
+logout-to-Auth integration remain unverified end-to-end. The existing real Auth
+service and profile-policy local results are separate evidence. Step 62 remains
+OPEN; approvals and publication stay disabled. No production deployment or
+database settings were changed by these draft commits.
