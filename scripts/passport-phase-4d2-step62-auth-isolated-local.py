@@ -184,7 +184,8 @@ def checked_stage(label, function, *args, **kwargs):
             category = "Docker engine/socket unavailable"
         elif "no such object" in detail or "no such container" in detail:
             category = "expected local container missing"
-        elif "permission denied" in detail or "must be member" in detail or "must be owner" in detail:
+        elif ("permission denied" in detail or "must be member" in detail or "must be owner" in detail
+              or "must be able to set role" in detail):
             category = "database or local permission denied"
         elif "does not exist" in detail:
             category = "required database object or role missing"
@@ -195,6 +196,35 @@ def checked_stage(label, function, *args, **kwargs):
         else:
             category = "unclassified local operation failure"
         raise TestFailure(label + ": " + category + "; raw details withheld") from None
+
+
+def create_fresh_database(db):
+    """Avoid changing database ownership or cluster-wide role membership."""
+    facts = json.loads(db.psql("""
+        BEGIN READ ONLY;
+        SELECT json_build_object(
+          'can_create', rolcreatedb OR rolsuper,
+          'can_set_auth_owner', pg_has_role(current_user,'supabase_auth_admin','SET'))
+        FROM pg_roles WHERE rolname=current_user;
+        ROLLBACK;
+    """))
+    print("PREREQUISITE: database creation allowed:", facts.get("can_create") is True)
+    print("PREREQUISITE: can SET ROLE to Auth owner:", facts.get("can_set_auth_owner") is True)
+    if facts.get("can_create") is not True:
+        raise TestFailure("Current local role cannot create databases; no privilege changes made")
+    # The only mutation is creation of this random-named disposable database.
+    # Capture SQLSTATE from verbose psql output, never print free-form errors.
+    result = db.call([
+        "docker", "exec", "-i", db.DB_CONTAINER, "psql", "-X", "-qAt",
+        "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=verbose",
+        "-U", "postgres", "-d", "postgres",
+    ], input='CREATE DATABASE "' + CLONE + '" TEMPLATE template0;',
+        check=False)
+    if result.returncode:
+        match = re.search(r"ERROR:[ \t]+([0-9A-Z]{5}):", result.stderr)
+        state = match.group(1) if match else "unavailable"
+        raise TestFailure("Disposable CREATE DATABASE failed; SQLSTATE=" + state +
+                          "; raw details withheld")
 
 
 def main():
@@ -229,8 +259,7 @@ def main():
             # Bootstrap a new empty database, never stamp migration records or
             # upgrade the hand-built passport fixture. Existing cluster roles
             # and their privileges are not changed.
-            checked_stage("create fresh disposable Auth database", db.psql,
-                          'CREATE DATABASE "' + CLONE + '" TEMPLATE template0 OWNER supabase_auth_admin;')
+            checked_stage("create fresh disposable Auth database", create_fresh_database, db)
         else:
             checked_stage("clone disposable Auth database", db.psql,
                           'CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
@@ -240,9 +269,11 @@ def main():
             raise TestFailure("Disposable Auth database identity mismatch")
         if fresh_auth:
             checked_stage("create empty disposable Auth schema", db.psql,
-                          "CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;", database=CLONE)
+                          "BEGIN; CREATE SCHEMA auth; "
+                          "GRANT USAGE, CREATE ON SCHEMA auth TO supabase_auth_admin; COMMIT;", database=CLONE)
             print("PASS: fresh disposable Auth database and empty auth schema created", flush=True)
             print("BOOTSTRAP: installed Auth image must run its own migrations; no migration records copied")
+            print("SCOPE: schema USAGE/CREATE grant only in disposable DB; no ownership transfer or role changes")
         else:
             print("PASS: disposable Auth database clone created; migration histories match", flush=True)
         safe = {
