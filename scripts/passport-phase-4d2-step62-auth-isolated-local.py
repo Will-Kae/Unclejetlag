@@ -250,7 +250,7 @@ def create_fresh_database(db):
                           "; raw details withheld")
 
 
-def main():
+def main(exercise=exercise_auth):
     if os.getenv("ALLOW_LOCAL_DISPOSABLE_AUTH") != "yes":
         raise SystemExit("Set ALLOW_LOCAL_DISPOSABLE_AUTH=yes")
     db = checked_stage("load local helpers", helpers)
@@ -361,7 +361,8 @@ def main():
         if fresh_auth:
             compare_migration_histories(db, test_database=CLONE)
             print("PASS: installed-image migration history accepted for fresh disposable Auth test")
-        checked_stage("exercise disposable Auth login and logout", exercise_auth, opener, base, secret, db)
+        print("STAGE: exercise disposable Auth acceptance", flush=True)
+        exercise(opener, base, secret, db)
     finally:
         if launched:
             result = db.call(["docker", "rm", "-f", SERVICE], check=False)
