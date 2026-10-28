@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""Real GoTrue password/session smoke test, ONLY in a disposable local DB clone.
+
+Does not test the Next.js app, cookies, profile RLS, or production. Uses the
+already-installed local Auth image and a fresh signing key; no existing Auth
+configuration, credentials, users, role grants, or network attachments change.
+"""
+import base64
+import hashlib
+import hmac
+import http.client
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import tempfile
+import time
+import uuid
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.request import Request, ProxyHandler, build_opener
+
+AUTH = "supabase_auth_unclejetlag-passport-staging"
+SOURCE = "passport_concurrency_test"
+CLONE = "passport_auth_" + uuid.uuid4().hex[:10]
+SERVICE = "passport-auth-test-" + uuid.uuid4().hex[:10]
+
+
+class TestFailure(RuntimeError):
+    """Only fixed, non-sensitive test failure messages."""
+
+
+def helpers():
+    path = Path(__file__).with_name("passport-phase-4d2-step62-http-isolated-local.py")
+    spec = importlib.util.spec_from_file_location("passport_http_helpers", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def signed_admin(secret):
+    def enc(value):
+        return base64.urlsafe_b64encode(value).rstrip(b"=")
+    header = enc(b'{"alg":"HS256","typ":"JWT"}')
+    claims = enc(json.dumps({"role": "service_role", "aud": "authenticated",
+                             "sub": str(uuid.uuid4()), "exp": int(time.time()) + 600}).encode())
+    body = header + b"." + claims
+    return (body + b"." + enc(hmac.new(secret.encode(), body, hashlib.sha256).digest())).decode()
+
+
+def request_json(opener, base, path, method="GET", payload=None, token=None):
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    req = Request(base + path, method=method, headers=headers,
+                  data=None if payload is None else json.dumps(payload).encode())
+    try:
+        with opener.open(req, timeout=8) as response:
+            status, raw = response.status, response.read(131072)
+    except HTTPError as exc:
+        status, raw = exc.code, exc.read(131072)
+    try:
+        body = json.loads(raw) if raw else {}
+    except (ValueError, TypeError):
+        raise TestFailure("Auth returned non-JSON response; body withheld") from None
+    return status, body
+
+
+def exercise_auth(opener, base, secret, db):
+    email = "passport-" + uuid.uuid4().hex + "@example.invalid"
+    password = secrets.token_urlsafe(32)
+    status, user = request_json(opener, base, "/admin/users", "POST",
+                               {"email": email, "password": password, "email_confirm": True},
+                               signed_admin(secret))
+    if status not in (200, 201) or not isinstance(user, dict):
+        raise TestFailure("Synthetic user creation failed (HTTP " + str(status) + "); body withheld")
+    try:
+        user_id = str(uuid.UUID(user["id"]))
+    except (KeyError, ValueError, TypeError):
+        raise TestFailure("Synthetic Auth user ID missing or invalid") from None
+    print("PASS: synthetic user created by disposable Auth API; no email sent")
+    status, rejected = request_json(opener, base, "/token?grant_type=password", "POST",
+                                   {"email": email, "password": secrets.token_urlsafe(32)})
+    if status not in (400, 401) or not isinstance(rejected, dict) or rejected.get("error_code") != "invalid_credentials":
+        raise TestFailure("Wrong-password test did not return invalid_credentials; body withheld")
+    print("PASS: wrong password rejected by real Auth service")
+    status, session = request_json(opener, base, "/token?grant_type=password", "POST",
+                                  {"email": email, "password": password})
+    if status != 200 or not isinstance(session, dict):
+        raise TestFailure("Real password login failed (HTTP " + str(status) + "); body withheld")
+    access, refresh = session.get("access_token"), session.get("refresh_token")
+    if not isinstance(access, str) or not isinstance(refresh, str):
+        raise TestFailure("Real login did not return access and refresh tokens")
+    try:
+        encoded = access.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        session_id = str(uuid.UUID(claims["session_id"]))
+    except (IndexError, KeyError, ValueError, TypeError):
+        raise TestFailure("Auth-issued session_id claim missing or invalid") from None
+    if claims.get("sub") != user_id or claims.get("role") != "authenticated":
+        raise TestFailure("Auth-issued identity/role mismatch")
+    # This only reads the temporary clone; the session ID is validated as a UUID.
+    def session_exists():
+        return db.psql("SELECT EXISTS(SELECT 1 FROM auth.sessions WHERE id='" +
+                       session_id + "' AND user_id='" + user_id + "');", database=CLONE)
+    if session_exists() != "t":
+        raise TestFailure("Auth-issued token has no matching disposable database session")
+    print("PASS: real password login issued tokens and a matching database session")
+    status, verified = request_json(opener, base, "/user", token=access)
+    if status != 200 or not isinstance(verified, dict) or verified.get("id") != user_id:
+        raise TestFailure("Auth /user did not validate the issued identity")
+    print("PASS: real Auth /user validates issued access token")
+    status, _ = request_json(opener, base, "/logout?scope=local", "POST", token=access)
+    if status not in (200, 204):
+        raise TestFailure("Auth local logout failed (HTTP " + str(status) + ")")
+    if session_exists() != "f":
+        raise TestFailure("Local logout left the disposable session present")
+    print("PASS: Auth logout removed the matching database session")
+    status, rejected = request_json(opener, base, "/token?grant_type=refresh_token", "POST",
+                                   {"refresh_token": refresh})
+    code = rejected.get("error_code", "") if isinstance(rejected, dict) else ""
+    if status not in (400, 401) or not isinstance(code, str) or not (
+            code.startswith("refresh_token_") or code == "invalid_refresh_token"):
+        raise TestFailure("Post-logout refresh token was not explicitly rejected")
+    print("PASS: logged-out refresh token rejected")
+    status, _ = request_json(opener, base, "/user", token=access)
+    if status in (401, 403):
+        print("OBSERVED: Auth /user rejects old access token after logout")
+    elif status == 200:
+        print("OBSERVED: old access token still accepted by /user until expiry")
+        print("OPEN GATE: immediate access-token revocation is NOT established")
+    else:
+        raise TestFailure("Unexpected post-logout /user HTTP status " + str(status))
+    print("PASS: disposable real-Auth login/session smoke test completed")
+    print("NOT TESTED: application verifyResearchSession, browser cookies, application logout, RLS or RPC internals")
+
+
+def compare_migration_histories(db, test_database=SOURCE):
+    """Read-only version comparison; emit only counts and numeric version IDs."""
+    query = ("BEGIN READ ONLY; SELECT coalesce(json_agg(version ORDER BY version),"
+             "'[]'::json)::text FROM auth.schema_migrations; ROLLBACK;")
+    histories = {}
+    for label, database in (("candidate_auth", test_database), ("existing_local_auth", "postgres")):
+        try:
+            values = json.loads(db.psql(query, database=database))
+        except (ValueError, TypeError):
+            raise TestFailure("Auth migration history is not a JSON array; raw details withheld") from None
+        if not isinstance(values, list) or any(
+                not isinstance(x, (str, int)) or isinstance(x, bool) for x in values):
+            raise TestFailure("Unsupported Auth migration version format; raw details withheld")
+        versions = [str(x) for x in values]
+        histories[label] = set(versions)
+        print("MIGRATIONS:", label, "rows:", len(versions), "unique:", len(set(versions)))
+        numeric = sorted(x for x in versions if re.fullmatch(r"[0-9]{1,20}", x))
+        print("MIGRATIONS:", label, "latest numeric versions:", ",".join(numeric[-5:]) or "(none)")
+        print("MIGRATIONS:", label, "non-numeric version count:", len(versions) - len(numeric))
+        if len(versions) != len(set(versions)):
+            raise TestFailure("Duplicate Auth migration versions; STOP before startup")
+    test = histories["candidate_auth"]
+    existing = histories["existing_local_auth"]
+    for label, versions in (("missing_from_candidate_auth", existing - test),
+                            ("only_in_candidate_auth", test - existing)):
+        sample = sorted(x for x in versions if re.fullmatch(r"[0-9]{1,20}", x))[:10]
+        print("MIGRATION DIFFERENCE:", label, "count:", len(versions),
+              "numeric sample:", ",".join(sample) or "(none)")
+    if test != existing:
+        # Historical IDs seeded by Supabase's PostgreSQL bootstrap:
+        # https://github.com/supabase/postgres/blob/develop/migrations/db/init-scripts/00000000000001-auth-schema.sql
+        # Reviewed source blob: ad47aadd9c2acf3cdb78ec569860ca695bea4152.
+        # Auth v2.197.0 migrations/00_init_auth_schema.up.sql supplies the
+        # consolidated initialization in a fresh database. Never insert/stamp
+        # the historical records to make histories appear equal.
+        bootstrap_legacy = {
+            "20171026211738", "20171026211808", "20171026211834",
+            "20180103212743", "20180108183307", "20180119214651",
+            "20180125194653",
+        }
+        fresh_bootstrap_only = (
+            os.getenv("ALLOW_LOCAL_FRESH_AUTH_DB") == "yes"
+            and test_database == CLONE
+            and "00" in test and "00" in existing
+            and existing - test == bootstrap_legacy
+            and not (test - existing)
+        )
+        if fresh_bootstrap_only:
+            print("PASS: fresh Auth modern migration history matches; exactly seven documented bootstrap-only IDs differ")
+            print("SCOPE: historical-record difference accepted only for fresh disposable Auth smoke test")
+            print("UNCHANGED: migration records; schema/production equivalence NOT established")
+            return
+        print("SAFETY: existing databases and services unchanged; caller cleans temporary resources")
+        raise TestFailure("Auth migration histories differ beyond accepted fresh bootstrap case; login assertions NOT RUN")
+    print("PASS: Auth migration version sets match (schema compatibility not implied)")
+
+
+def checked_stage(label, function, *args, **kwargs):
+    """Expose the failing operation and a fixed category, never raw exceptions."""
+    print("STAGE:", label, flush=True)
+    try:
+        return function(*args, **kwargs)
+    except TestFailure:
+        raise
+    except Exception as exc:
+        detail = str(exc).lower()  # classify internally; never print this text
+        if "docker.sock" in detail or "cannot connect to the docker daemon" in detail:
+            category = "Docker engine/socket unavailable"
+        elif "no such object" in detail or "no such container" in detail:
+            category = "expected local container missing"
+        elif ("permission denied" in detail or "must be member" in detail or "must be owner" in detail
+              or "must be able to set role" in detail):
+            category = "database or local permission denied"
+        elif "does not exist" in detail:
+            category = "required database object or role missing"
+        elif "timeout" in detail or type(exc).__name__ in ("TimeoutExpired", "TimeoutError"):
+            category = "local operation timed out"
+        elif isinstance(exc, FileNotFoundError):
+            category = "local executable or helper file missing"
+        else:
+            category = "unclassified local operation failure"
+        raise TestFailure(label + ": " + category + "; raw details withheld") from None
+
+
+def create_fresh_database(db):
+    """Avoid changing database ownership or cluster-wide role membership."""
+    facts = json.loads(db.psql("""
+        BEGIN READ ONLY;
+        SELECT json_build_object(
+          'can_create', rolcreatedb OR rolsuper,
+          'can_set_auth_owner', pg_has_role(current_user,'supabase_auth_admin','SET'))
+        FROM pg_roles WHERE rolname=current_user;
+        ROLLBACK;
+    """))
+    print("PREREQUISITE: database creation allowed:", facts.get("can_create") is True)
+    print("PREREQUISITE: can SET ROLE to Auth owner:", facts.get("can_set_auth_owner") is True)
+    if facts.get("can_create") is not True:
+        raise TestFailure("Current local role cannot create databases; no privilege changes made")
+    # The only mutation is creation of this random-named disposable database.
+    # Capture SQLSTATE from verbose psql output, never print free-form errors.
+    result = db.call([
+        "docker", "exec", "-i", db.DB_CONTAINER, "psql", "-X", "-qAt",
+        "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=verbose",
+        "-U", "postgres", "-d", "postgres",
+    ], input='CREATE DATABASE "' + CLONE + '" TEMPLATE template0;',
+        check=False)
+    if result.returncode:
+        match = re.search(r"ERROR:[ \t]+([0-9A-Z]{5}):", result.stderr)
+        state = match.group(1) if match else "unavailable"
+        raise TestFailure("Disposable CREATE DATABASE failed; SQLSTATE=" + state +
+                          "; raw details withheld")
+
+
+def main(exercise=exercise_auth):
+    if os.getenv("ALLOW_LOCAL_DISPOSABLE_AUTH") != "yes":
+        raise SystemExit("Set ALLOW_LOCAL_DISPOSABLE_AUTH=yes")
+    db = checked_stage("load local helpers", helpers)
+    auth = checked_stage("inspect existing local Auth service", db.inspect, AUTH)
+    database = checked_stage("inspect existing local database service", db.inspect, db.DB_CONTAINER)
+    if not auth.get("State", {}).get("Running") or not database.get("State", {}).get("Running"):
+        raise TestFailure("Expected local Uncle Jetlag services are not running")
+    common = set(auth["NetworkSettings"]["Networks"]) & set(database["NetworkSettings"]["Networks"])
+    if len(common) != 1:
+        raise TestFailure("Expected exactly one shared local Docker network")
+    network = next(iter(common))
+    env = dict(x.split("=", 1) for x in auth["Config"].get("Env", []) if "=" in x)
+    uri = env.get("GOTRUE_DB_DATABASE_URL") or env.get("DATABASE_URL") or ""
+    new_uri, host = checked_stage("validate disposable database URI", db.replace_database, uri, CLONE)
+    aliases = set(database["NetworkSettings"]["Networks"][network].get("Aliases") or [])
+    aliases.add(db.DB_CONTAINER)
+    parsed = urlsplit(uri)
+    if host not in aliases or parsed.username != "supabase_auth_admin":
+        raise TestFailure("Auth DB URI must identify expected local DB and Auth administrator role")
+    # Compare migration histories before startup; don't auto-upgrade a mismatched
+    # passport test clone just to get the Auth service running.
+    fresh_auth = os.getenv("ALLOW_LOCAL_FRESH_AUTH_DB") == "yes"
+    if not fresh_auth:
+        compare_migration_histories(db)
+    secret = secrets.token_hex(32)
+    created = launched = False
+    try:
+        if fresh_auth:
+            # Bootstrap a new empty database, never stamp migration records or
+            # upgrade the hand-built passport fixture. Existing cluster roles
+            # and their privileges are not changed.
+            checked_stage("create fresh disposable Auth database", create_fresh_database, db)
+        else:
+            checked_stage("clone disposable Auth database", db.psql,
+                          'CREATE DATABASE "' + CLONE + '" TEMPLATE "' + SOURCE + '";')
+        created = True
+        if checked_stage("verify disposable database identity", db.psql,
+                         "SELECT current_database();", database=CLONE) != CLONE:
+            raise TestFailure("Disposable Auth database identity mismatch")
+        if fresh_auth:
+            checked_stage("create empty disposable Auth schema", db.psql,
+                          "BEGIN; CREATE SCHEMA auth; "
+                          "GRANT USAGE, CREATE ON SCHEMA auth TO supabase_auth_admin; COMMIT;", database=CLONE)
+            print("PASS: fresh disposable Auth database and empty auth schema created", flush=True)
+            print("BOOTSTRAP: installed Auth image must run its own migrations; no migration records copied")
+            print("SCOPE: schema USAGE/CREATE grant only in disposable DB; no ownership transfer or role changes")
+        else:
+            print("PASS: disposable Auth database clone created; migration histories match", flush=True)
+        safe = {
+            "GOTRUE_API_HOST": "0.0.0.0", "GOTRUE_API_PORT": "9999",
+            "API_EXTERNAL_URL": "http://127.0.0.1:9999",
+            "GOTRUE_SITE_URL": "http://127.0.0.1:3000",
+            "GOTRUE_DB_DRIVER": "postgres", "GOTRUE_DB_DATABASE_URL": new_uri,
+            "GOTRUE_DB_NAMESPACE": "auth",
+            "GOTRUE_JWT_SECRET": secret, "GOTRUE_JWT_EXP": "3600",
+            "GOTRUE_JWT_AUD": "authenticated", "GOTRUE_JWT_ADMIN_ROLES": "service_role",
+            "GOTRUE_JWT_DEFAULT_GROUP_NAME": "authenticated",
+            "GOTRUE_DISABLE_SIGNUP": "true", "GOTRUE_EXTERNAL_EMAIL_ENABLED": "true",
+            "GOTRUE_MAILER_AUTOCONFIRM": "true",
+        }
+        # No inherited JWT/JWK keys, SMTP settings, OAuth secrets or hooks.
+        migrations = env.get("GOTRUE_DB_MIGRATIONS_PATH")
+        if migrations:
+            safe["GOTRUE_DB_MIGRATIONS_PATH"] = migrations
+        if any("\n" in value or "\r" in value for value in safe.values()):
+            raise TestFailure("Unsupported multiline disposable Auth config")
+        with tempfile.TemporaryDirectory(prefix="passport-auth-") as folder:
+            path = Path(folder) / "auth.env"
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(fd, "w") as handle:
+                handle.write("".join(key + "=" + value + "\n" for key, value in safe.items()))
+            # Immutable, already-installed image ID. No remote image pull.
+            launched = True  # cleanup also covers interrupted docker run.
+            checked_stage("start temporary Auth container", db.call,
+                         ["docker", "run", "-d", "--pull", "never", "--name", SERVICE,
+                     "--network", network, "-p", "127.0.0.1::9999",
+                     "--env-file", str(path), auth["Image"]])
+        port_line = db.call(["docker", "port", SERVICE, "9999/tcp"]).stdout.strip()
+        if not re.fullmatch(r"127\.0\.0\.1:[0-9]+", port_line):
+            raise TestFailure("Temporary Auth API must be published only on loopback")
+        base = "http://" + port_line
+        opener = build_opener(ProxyHandler({}))
+        ready = False
+        for _ in range(25):
+            try:
+                status, _ = request_json(opener, base, "/health")
+                if status == 200:
+                    ready = True
+                    break
+            except (URLError, http.client.HTTPException, OSError, RuntimeError):
+                pass
+            time.sleep(0.3)
+        if not ready:
+            state = db.inspect(SERVICE).get("State", {}).get("Status", "unknown")
+            print("DIAGNOSTIC: disposable Auth container state:", state)
+            result = db.call(["docker", "logs", "--tail", "80", SERVICE], check=False)
+            logs = result.stdout + result.stderr
+            for label, pattern in (
+                ("database_permission", r"permission denied|insufficient privilege"),
+                ("missing_database_object", r"does not exist|undefined"),
+                ("migration_failure", r"migration.*(fail|error)|failed.*migrat"),
+                ("configuration_failure", r"config.*(invalid|error)|required.*(key|secret)"),
+            ):
+                print("DIAGNOSTIC:", label, bool(re.search(pattern, logs, re.I)))
+            print("NOT TESTED: Auth requests; raw logs withheld")
+            raise TestFailure("Disposable Auth service did not become healthy")
+        print("PASS: separate Auth API healthy on loopback; fresh signing key", flush=True)
+        if fresh_auth:
+            compare_migration_histories(db, test_database=CLONE)
+            print("PASS: installed-image migration history accepted for fresh disposable Auth test")
+        print("STAGE: exercise disposable Auth acceptance", flush=True)
+        exercise(opener, base, secret, db)
+    finally:
+        if launched:
+            result = db.call(["docker", "rm", "-f", SERVICE], check=False)
+            if result.returncode == 0:
+                print("PASS: temporary Auth container removed")
+            else:
+                print("CLEANUP CHECK: temporary Auth removal did not confirm success")
+        if created:
+            db.psql('DROP DATABASE "' + CLONE + '" WITH (FORCE);')
+            print("PASS: disposable Auth database removed")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except TestFailure as exc:
+        raise SystemExit("STOP: " + str(exc)) from None
+    except Exception:
+        # Neither response bodies nor subprocess/URI exceptions are safe to echo.
+        raise SystemExit("STOP: real-Auth smoke test incomplete; raw error details withheld. "
+                         "Report the last PASS/DIAGNOSTIC and cleanup lines.") from None

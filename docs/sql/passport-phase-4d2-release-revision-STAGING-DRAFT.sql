@@ -1,0 +1,93 @@
+-- STAGING-ONLY PROPOSAL. DO NOT RUN ON PRODUCTION.
+-- Requires independent DBA/security review and migration ordering tests.
+-- Intended to replace the release candidate guard after the atomic review
+-- workflow is implemented. Not a complete migration.
+--
+-- Proposed semantic invariant:
+--   review.reviewed_revision = N, the submitted revision under row lock
+--   approved submission.revision = N + 1, after atomic review + audit
+--   release-link accepts independent approve review for N.
+--
+-- IMPORTANT: the existing guard currently expects equality and must be
+-- changed together with the atomic review transaction, not independently.
+-- SQL sketch below is deliberately non-executable until remaining schema
+-- constraints and mutation pathways are inspected:
+--
+--   IF evidence.status <> 'approved' OR evidence.revision <= 1 THEN reject;
+--   IF EXISTS(open conflict for submission) THEN reject;
+--   IF NOT EXISTS(
+--     SELECT 1 FROM passport_verification_reviews r
+--     JOIN passport_research_profiles p ON p.user_id = r.reviewer_id
+--     WHERE r.submission_id = evidence.id
+--       AND r.reviewed_revision = evidence.revision - 1
+--       AND r.decision = 'approve'
+--       AND r.reviewer_id <> evidence.submitter_id
+--       AND p.active AND p.role IN ('reviewer','admin')
+--   ) THEN reject;
+--
+-- Additionally ensure approved submissions cannot be mutated outside
+-- the reviewed transaction and preserve the existing linked-evidence freeze.
+-- Never bypass the submitted-state or reviewed-revision review triggers.
+-- Rollback: restore prior guard only after migration compatibility check;
+-- do not destroy audit rows or release links.
+
+-- Phase 4D.2 cutover review update (20 October 2026):
+-- Disposable DB passport_concurrency_test: legacy lifetime reviewer constraint
+-- was reported removed, replacement indexes preserved, and post-cutover
+-- concurrency suite reported 6/6 passed. These results do NOT validate
+-- approval or release linking: the five-argument review RPC still rejects
+-- all approve decisions unconditionally.
+--
+-- REQUIRED BEFORE THIS DRAFT CAN BECOME EXECUTABLE:
+-- A. Inspect exact live definition of public.passport_check_release_candidate,
+--    associated triggers, table columns and constraints in disposable staging.
+-- B. Enforce the N -> N+1 approval transition in ONE server-side transaction
+--    with an independent reviewer, verified official source, conflict lock,
+--    request-id idempotency and immutable audit.
+-- C. Keep the current approval-disabled RPC in place until B is implemented.
+-- D. Validate release guard against approved N+1 and review N; reject review
+--    of N-1 or earlier, self-review, inactive reviewer and open conflicts.
+-- E. Guard against direct DML, edits between approval and linking, and
+--    unauthorized publication. A release link is not publication permission.
+-- F. Test same-submission races, cross-submission request-id collisions,
+--    rollback on audit failure, stale approvals, and source revocation.
+-- G. Independently review security/DBA signoff and migration/rollback order.
+-- DO NOT deploy this SQL sketch, enable approvals or public rankings.
+
+-- Verified disposable-DB function inspection, Step 44:
+-- passport_check_release_candidate() is a BEFORE INSERT OR UPDATE trigger on
+-- public.passport_release_candidate_submissions, named
+-- passport_release_candidate_guard. Existing function locks evidence FOR UPDATE,
+-- requires approved status, rejects open conflicts, and requires an independent
+-- active reviewer/admin approve review. It currently compares
+-- r.reviewed_revision = evidence.revision, which is incompatible with N -> N+1.
+--
+-- Proposed surgical replacement for later reviewed implementation:
+-- 1. Preserve row lock, approved-status requirement, open-conflict rejection,
+--    reviewer independence and active reviewer/admin checks.
+-- 2. Require evidence.revision > 1 before computing evidence.revision - 1.
+-- 3. Compare r.reviewed_revision = evidence.revision - 1.
+-- 4. Keep approvals disabled until verified official-source checks and atomic
+--    approval+audit exist; release linking is NOT publication authorization.
+-- 5. Test BEFORE INSERT and UPDATE, stale approvals, conflict races, and
+--    immutability of approved evidence in disposable staging.
+-- No executable guard replacement is authorized by this document.
+
+-- Step 45 verified evidence update trigger (disposable DB):
+-- Only passport_linked_evidence_update_guard is attached to
+-- public.passport_evidence_submissions. It calls
+-- public.passport_protect_linked_evidence(), which blocks changed rows ONLY
+-- when already linked in passport_release_candidate_submissions.
+-- Consequently this trigger alone does not prevent modification of an
+-- approved but unlinked submission. Actual exploitability depends on
+-- effective grants/RLS and other write pathways; those must be inspected.
+--
+-- Required remediation before approval is enabled:
+-- * Establish an explicit approved-evidence immutability policy.
+-- * For any authorized correction, create a new review cycle (or a new
+--   submission) with source verification and independent approval.
+-- * Prevent direct updates to approved evidence that would bypass the
+--   audit/revision workflow, without breaking the atomic approval RPC.
+-- * Test direct UPDATE under all applicable roles, approved-to-linked race,
+--   and that existing linked-evidence freeze remains intact.
+-- This is a documented finding, not an executable migration.
