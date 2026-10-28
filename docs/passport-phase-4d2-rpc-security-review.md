@@ -234,3 +234,37 @@ logout-to-Auth integration remain unverified end-to-end. The existing real Auth
 service and profile-policy local results are separate evidence. Step 62 remains
 OPEN; approvals and publication stay disabled. No production deployment or
 database settings were changed by these draft commits.
+
+
+## Complete-checkout regression checkpoint — 28 October 2026
+
+Evidence: user-supplied Mac terminal output at `6467958` after a clean
+`npm ci --include=dev`, followed by the entire command chain below:
+
+| Check | Reported outcome |
+| --- | --- |
+| Full Vitest 4.1.12 run | 28 files passed, 3 skipped; 442 tests passed, 4 skipped |
+| Monitor security suite | 27 passed, including six-process concurrent store writes |
+| Typecheck | next typegen and tsc --noEmit passed |
+| Prebuild assets | Fonts copied; 67/67 photos ready |
+| Next.js 16.4.1 production build | Compiled and generated 442/442 static pages |
+| Final npm audit | Zero reported vulnerabilities |
+
+The earlier missing-esbuild failure is resolved by declaring esbuild 0.28.2 as a
+direct development dependency. The complete-checkout results above supersede
+the dependency candidate's earlier partial-workspace validation limit.
+
+Non-failing notices remain: npm install-script approvals for optional/native
+packages, Vite's future native-config-loader compatibility warning, and Next's
+ignored parent-directory lockfile notice. None prevented this reported run;
+the harness/test assertions were not weakened or baselines regenerated.
+
+These are local user-reported results, not independent CI or browser evidence.
+The existing Playwright preservation harness is the next regression gate:
+run against the new local production build with one worker and no reuse of an
+existing server. Its public/anonymous coverage does not establish authenticated
+browser login, cookie or logout-to-Auth behavior. Real authenticated application
+integration and the editorial RPC/source/transaction gates remain open.
+
+Step 62 remains OPEN. No merge, production deployment, database change,
+approval enablement or ranking publication is authorized by this checkpoint.
