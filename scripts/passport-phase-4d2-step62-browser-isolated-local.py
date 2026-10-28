@@ -138,6 +138,43 @@ SELECT json_build_object(
     print("PASS: isolated active/inactive profile fixtures; existing RLS preserved; RPC execution denied")
 
 
+def report_build_failure(project, logfile):
+    """Bounded compiler summaries only; never emit source snippets or full logs."""
+    raw = logfile.read_text(errors="replace")
+    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", raw)
+    modules = sorted(set(re.findall(
+        r"(?:Cannot find module|Can't resolve|Cannot resolve) ['\"]([@A-Za-z0-9_./-]{1,160})['\"]",
+        text)))
+    print("BUILD DIAGNOSTIC: missing module identifiers:", ",".join(modules[:8]) or "(none)")
+    print("BUILD DIAGNOSTIC: TypeScript codes:",
+          ",".join(sorted(set(re.findall(r"\bTS[0-9]{4,5}\b", text)))) or "(none)")
+    markers = ("Error:", "Type error:", "Module not found:", "Build error occurred",
+               "Failed to compile", "Turbopack build failed", "Error evaluating Node.js code")
+    summaries = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not any(line.startswith(marker) for marker in markers):
+            continue
+        for path, replacement in ((str(project), "<isolated-app>"),
+                                  (str(logfile.parent), "<temporary>"),
+                                  (str(ROOT), "<repository>"),
+                                  (str(Path.home()), "<home>")):
+            line = line.replace(path, replacement)
+        line = re.sub(r"https?://[^\s'\"]+", "<url>", line)
+        line = re.sub(r"(?i)Bearer\s+\S+", "Bearer <redacted>", line)
+        line = re.sub(r"(?i)(password|secret|token|apikey)\s*[:=]\s*\S+",
+                      r"\1=<redacted>", line)
+        line = re.sub(r"\beyJ[A-Za-z0-9_.-]+", "<redacted-jwt>", line)
+        line = re.sub(r"\b[A-Za-z0-9_+/=-]{48,}\b", "<redacted-long-value>", line)
+        if line not in summaries:
+            summaries.append(line[:350])
+    for line in summaries[:6]:
+        print("BUILD SUMMARY:", line)
+    if not summaries:
+        print("BUILD SUMMARY: no recognized compiler-summary line; full log withheld")
+    print("BUILD DIAGNOSTIC: existing .next and environment files were not modified")
+
+
 def exercise_browser(opener_unused, auth_base, secret, db):
     auth = AUTH_MODULE
     created = launched = False
@@ -235,7 +272,8 @@ def exercise_browser(opener_unused, auth_base, secret, db):
             })
             print("STAGE: build isolated production app (existing .next and .env files untouched)", flush=True)
             if run_child([node,str(next_bin),"build"],project,clean_env,folder/"build.log") != 0:
-                raise Failure("Isolated Next build failed; private build log withheld")
+                report_build_failure(project, folder/"build.log")
+                raise Failure("Isolated Next build failed; see sanitized BUILD diagnostics")
             server_cfg = {"appDir":str(project),"port":app_port,
                           "authPort":urlsplit(auth_base).port,"restPort":rest_port,
                           "cert":str(cert),"key":str(key)}
