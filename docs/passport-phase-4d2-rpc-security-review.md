@@ -268,3 +268,44 @@ integration and the editorial RPC/source/transaction gates remain open.
 
 Step 62 remains OPEN. No merge, production deployment, database change,
 approval enablement or ranking publication is authorized by this checkpoint.
+
+
+## Browser preservation checkpoint — 28 October 2026
+
+Evidence: user-uploaded terminal log `Pasted text(20261028-044955).txt`.
+The log includes the initial missing-browser run and a subsequent successful run
+after installation of Playwright Chromium 1194. This is user-reported local
+browser evidence, not an independently executed production audit.
+
+Command: `CI=1 npm run test:e2e -- --workers=1`.
+
+Result: **108 passed, 1 skipped, 0 failed (2.6 minutes)**. The skipped case is
+the opt-in baseline writer `write tests/fixtures/noindex-paths.json`; no reviewed
+baseline was regenerated.
+
+Reported passing coverage includes:
+- Desktop/mobile automated accessibility checks, keyboard navigation and focus.
+- Consent before choice, Essential Only, Accept All, provider-specific loading,
+  separate flight analytics permission, withdrawal and tracking-cookie cleanup.
+- Mobile consent layouts at 375, 390 and 768 pixels.
+- AdSense remaining disabled across consent states.
+- Affiliate widget attribution and provider isolation assertions.
+- Internal-link baseline, sitemap, noindex, redirects and 404 behavior.
+- Anonymous research workspace/case denial, forged session-cookie rejection,
+  workspace sitemap exclusion and absence of exposed research API.
+
+The earlier 89 launch failures were all the missing Chromium executable and
+did not execute browser assertions. They are superseded for this preservation
+suite by the successful run, not reclassified as website regressions.
+
+The public/anonymous browser preservation gate is now reported PASS. Do not
+rerun the unchanged suite solely to accumulate evidence. "No new broken internal
+links" preserves a reviewed baseline; it is not a claim that every historical
+broken link has been repaired.
+
+Authenticated browser login, actual production-mode cookie behavior and
+application logout-to-Auth integration are still unverified end-to-end. The
+isolated Auth-service pass and mocked application tests are separate evidence.
+Step 62 and the editorial/source/atomic transaction release gates remain OPEN.
+PR #21 stays draft; no merge, production deployment, approval activation or
+publication is authorized by these browser results.
