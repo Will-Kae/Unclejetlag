@@ -30,7 +30,7 @@ for (const width of [375, 390, 768]) {
         await blockThirdParty(page);
         await page.goto(entry.path, { waitUntil: "domcontentloaded" });
         await noOverflow(page);
-        for (const name of ["Customise", "Essential only", "Accept all"]) await fitsViewport(page, name);
+        for (const name of ["Customise", "Essential only", "Accept site preferences"]) await fitsViewport(page, name);
         await page.getByRole("button", { name: "Essential only", exact: true }).click();
         for (let i = 0; i < entry.buttons.length; i++) {
           if (entry.path === "/") {

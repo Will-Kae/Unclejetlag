@@ -54,11 +54,13 @@ describe("partner identifiers are unchanged", () => {
     expect(read("src/components/partners/TravelInsuranceSection.tsx")).toContain('"https://widgets.genki.world/calculator?hue=111&saturation=46&with=unclejetlag"');
     expect(read("public/embeds/expedia-stays.html")).toContain('data-camref="1011l6tK2n"');
   });
-  it("keeps AdSense out of the server-rendered head and behind advertising consent", () => {
+  it("keeps AdSense out of the server-rendered head and behind the independent release gate", () => {
     const layout = read("src/app/layout.tsx");
     const scripts = read("src/components/monetization/ThirdPartyScripts.tsx");
     expect(layout).not.toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
-    expect(scripts).toContain("ADSENSE_ACTIVE && ads");
+    expect(scripts).toContain("(ADSENSE_ACTIVE || stagingCmpProbe) && (");
+    expect(scripts).toContain('window.location.hostname === "staging.unclejetlag.com"');
+    expect(scripts).not.toContain("ADSENSE_ACTIVE && ads");
     expect(scripts).toContain("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
   });
   it("loads no executable Drive script from the layout", () => {
@@ -74,11 +76,48 @@ describe("AdSense is off for this release (certified CMP planned for Phase 3B)",
     const cfg = await import("@/components/monetization/ads-config");
     expect(cfg.ADSENSE_CLIENT).toBe("ca-pub-0000000000000000");
     expect(cfg.ADSENSE_RELEASE_ENABLED).toBe(false);
+    expect(cfg.ADSENSE_CMP_VERIFIED).toBe(false);
+    expect(cfg.ADSENSE_SLOTS_ENABLED).toBe(false);
     expect(cfg.ADSENSE_ACTIVE).toBe(false);
     vi.unstubAllEnvs();
   });
   it("gates every AdSense request on ADSENSE_ACTIVE (script and ad slots)", () => {
     expect(read("src/components/monetization/ThirdPartyScripts.tsx")).not.toMatch(/\{ADSENSE_CLIENT &&/);
-    expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && consent?.ads);");
+    expect(read("src/components/monetization/AdSlot.tsx")).toContain("const live = Boolean(ADSENSE_ACTIVE && ADSENSE_SLOTS_ENABLED);");
+  });
+});
+
+describe("Phase 3B: certified Google consent remains independent", () => {
+  it("does not derive Google advertising Consent Mode grants from affiliate ads preference", () => {
+    const provider = read("src/components/consent/ConsentProvider.tsx");
+    const bridge = provider.slice(provider.indexOf("function applyToGoogle("), provider.indexOf("export function ConsentProvider("));
+    expect(bridge).toContain('analytics_storage: c.analytics ? "granted" : "denied"');
+    expect(bridge).not.toMatch(/ad_storage\s*:\s*c\.ads|ad_user_data\s*:\s*c\.ads|ad_personalization\s*:\s*c\.ads/);
+    const defaults = provider.slice(provider.indexOf("export const consentDefaultsScript"));
+    for (const signal of ["ad_storage", "ad_user_data", "ad_personalization"]) {
+      expect(defaults).toContain(signal + ":'denied'");
+    }
+  });
+
+  it("keeps the footer preference control and consent-open event wired together", () => {
+    expect(read("src/components/layout/Footer.tsx")).toContain("<CookieSettingsButton");
+    expect(read("src/components/consent/CookieBanner.tsx")).toContain('new Event("uj:open-consent")');
+    expect(read("src/components/consent/ConsentProvider.tsx")).toContain('window.addEventListener("uj:open-consent", open)');
+  });
+});
+
+
+describe("Phase 3B release guardrails", () => {
+  it("does not mistake affiliate acceptance for certified Google advertising consent", () => {
+    const banner = read("src/components/consent/CookieBanner.tsx");
+    expect(banner).toContain("Accept site preferences");
+    expect(banner).toContain("does not grant Google AdSense consent");
+    expect(banner).toContain("Google advertising privacy choices");
+  });
+  it("requires independent CMP verification before AdSense can activate", () => {
+    const config = read("src/components/monetization/ads-config.ts");
+    expect(config).toContain("ADSENSE_CMP_VERIFIED = false");
+    expect(config).toContain("ADSENSE_RELEASE_ENABLED && ADSENSE_CMP_VERIFIED");
+    expect(config).toContain("ADSENSE_SLOTS_ENABLED = false");
   });
 });
