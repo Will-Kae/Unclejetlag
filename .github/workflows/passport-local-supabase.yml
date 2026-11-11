@@ -1,0 +1,37 @@
+name: Passport local Supabase PostgREST integration
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Initialize disposable local Supabase configuration
+        run: supabase init
+      - name: Start disposable local Supabase stack and apply migrations
+        run: supabase start
+      - name: Verify local PostgREST service-role boundary
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/passport-supabase-local.env
+          set -a
+          source /tmp/passport-supabase-local.env
+          set +a
+          export SUPABASE_URL="$API_URL"
+          export SUPABASE_ANON_KEY="$ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          bash tests/passport/local-postgrest-smoke.sh
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup || true

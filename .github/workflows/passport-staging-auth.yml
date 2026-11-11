@@ -1,0 +1,40 @@
+name: Passport staging authentication smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: passport-staging-auth
+  cancel-in-progress: false
+
+jobs:
+  auth-smoke:
+    name: Staging-only authorization matrix
+    runs-on: ubuntu-latest
+    environment: passport-staging
+    timeout-minutes: 10
+    env:
+      PASSPORT_STAGING_URL: ${{ secrets.PASSPORT_STAGING_URL }}
+      PASSPORT_RESEARCHER_TOKEN: ${{ secrets.PASSPORT_RESEARCHER_TOKEN }}
+      PASSPORT_REVIEWER_TOKEN: ${{ secrets.PASSPORT_REVIEWER_TOKEN }}
+      PASSPORT_ADMIN_TOKEN: ${{ secrets.PASSPORT_ADMIN_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Confirm staging credentials are configured
+        shell: bash
+        run: |
+          for name in PASSPORT_STAGING_URL PASSPORT_RESEARCHER_TOKEN PASSPORT_REVIEWER_TOKEN PASSPORT_ADMIN_TOKEN VERCEL_AUTOMATION_BYPASS_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required protected staging secret: $name"
+              exit 1
+            fi
+          done
+      - name: Verify private API authorization (read only)
+        run: node scripts/passport-auth-smoke.mjs

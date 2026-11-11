@@ -54,3 +54,46 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  passport-db:
+    name: Isolated passport PostgreSQL security tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: passport_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d passport_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: local_ci_only
+      PGDATABASE: passport_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap disposable PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/ci-bootstrap.sql
+      - name: Apply staged passport migrations
+        run: |
+          set -euo pipefail
+          for file in supabase/migrations/*passport*.sql; do
+            echo "Applying $file"
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - name: Assert schema and privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/structural-security.sql
+      - name: Test evidence transaction lifecycle
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/transactional-security.sql
+      - name: Assert audit failure atomic rollback
+        run: psql -v ON_ERROR_STOP=1 -f tests/passport/sql/audit-rollback.sql
+      - name: Reject concurrent duplicate approvals
+        run: bash tests/passport/concurrent-review.sh
