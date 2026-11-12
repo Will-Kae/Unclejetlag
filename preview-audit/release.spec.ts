@@ -128,13 +128,29 @@ for (const width of [375, 390, 768]) for (const path of paths) {
       }
       await banner.getByRole("button", { name: "Essential only", exact: true }).click();
       if (path === "/") {
-        for (const name of ["Book a flight", "Book a hotel", "Book a car"]) {
+        for (const [name, provider] of [
+          ["Book a flight", providers[0]],
+          ["Book a hotel", providers[1]],
+          ["Book a car", providers[2]],
+        ] as const) {
           await page.getByRole("tab", { name, exact: true }).click();
-          await page.getByRole("button", { name: /^Load / }).click();
+          const panel = page.getByRole("tabpanel", { name, exact: true });
+          const review = panel.getByRole("button", { name: "Review this choice", exact: true });
+          if (await review.isVisible()) await review.click();
+          const activate = panel.getByRole("button", { name: provider.button, exact: true });
+          await expect(activate).toBeVisible({ timeout: 15000 });
+          await activate.click();
           await page.waitForTimeout(2500);
           await info.attach(`${width}-${name}`, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
         }
-      } else await page.getByRole("button", { name: /^Load / }).click();
+      } else {
+        const provider = providers.find(p => p.path === path)!;
+        const review = page.getByRole("button", { name: "Review this choice", exact: true });
+        if (await review.isVisible()) await review.click();
+        const activate = page.getByRole("button", { name: provider.button, exact: true });
+        await expect(activate).toBeVisible({ timeout: 15000 });
+        await activate.click();
+      }
       await exercise(page);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(2);
       await info.attach("live-layout", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
