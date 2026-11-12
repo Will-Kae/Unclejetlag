@@ -120,6 +120,28 @@ def prepare_isolated_fonts(target):
     print("PASS: four self-hosted fonts prepared inside isolated app only", flush=True)
 
 
+
+def add_isolated_logout_diagnostics(target):
+    """Expose only origin comparison booleans in the disposable build."""
+    route = target / "src/app/passport-index/research-admin/logout/route.ts"
+    text = route.read_text()
+    original = 'headers: { "Cache-Control": "no-store" }'
+    replacement = '''headers: {
+      "Cache-Control": "no-store",
+      "X-Local-Origin-Present": String(Boolean(origin)),
+      "X-Local-Origin-Null": String(origin === "null"),
+      "X-Local-Origin-Matches": String(origin === expectedOrigin),
+      "X-Local-Request-Https": String(new URL(request.url).protocol === "https:"),
+      "X-Local-Host-Matches": String(origin !== null && origin !== "null" && (() => {
+        try { return new URL(origin).host === new URL(request.url).host; }
+        catch { return false; }
+      })()),
+    }'''
+    if text.count(original) != 1:
+        raise Failure("Logout diagnostic anchor differs; isolated route not modified")
+    route.write_text(text.replace(original, replacement))
+
+
 def setup_profiles(db, users):
     if db.psql("SELECT current_database();", database=PASSPORT) != PASSPORT:
         raise Failure("Wrong passport fixture database")
@@ -268,6 +290,7 @@ def exercise_browser(opener_unused, auth_base, secret, db):
             project.mkdir()
             copy_tracked_project(project)
             prepare_isolated_fonts(project)
+            add_isolated_logout_diagnostics(project)
             cert, key = folder / "cert.pem", folder / "key.pem"
             config = folder / "tls.cnf"
             config.write_text("[req]\nprompt=no\ndistinguished_name=dn\nx509_extensions=v3\n"
