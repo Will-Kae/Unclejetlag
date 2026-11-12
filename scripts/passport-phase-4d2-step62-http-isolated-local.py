@@ -1,0 +1,742 @@
+#!/usr/bin/env python3
+"""Step 62: isolated, temporary PostgREST HTTP deny-by-default smoke test.
+
+Creates a disposable clone of the local passport test DB, launches a separate
+PostgREST container bound to 127.0.0.1 on a random port, performs unauthenticated
+HTTP checks, then removes both. Never touches the existing API configuration.
+Does not validate signed JWTs or approval flows.
+"""
+import json
+import base64
+import hashlib
+import hmac
+import secrets
+import re
+import http.client
+import os
+import subprocess
+import tempfile
+import time
+import uuid
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import Request, build_opener, ProxyHandler
+
+REST = "supabase_rest_unclejetlag-passport-staging"
+DB_CONTAINER = "supabase_db_unclejetlag-passport-staging"
+SOURCE = "passport_concurrency_test"
+SUFFIX = uuid.uuid4().hex[:10]
+CLONE = "passport_http_" + SUFFIX
+EPHEMERAL = "passport-http-test-" + SUFFIX
+
+def call(args, *, input=None, check=True, timeout=35):
+    p = subprocess.run(args, input=input, text=True, capture_output=True, timeout=timeout)
+    if check and p.returncode:
+        raise RuntimeError(f"Command failed: {args[:3]}: {p.stderr.strip()}")
+    return p
+
+def inspect(name):
+    result = json.loads(call(["docker", "inspect", name]).stdout)
+    if len(result) != 1 or result[0].get("Name") != "/" + name:
+        raise RuntimeError("Unexpected local container identity")
+    return result[0]
+
+def psql(sql, database="postgres"):
+    return call(["docker", "exec", "-i", DB_CONTAINER, "psql", "-X", "-qAt",
+                 "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", database],
+                input=sql).stdout.strip()
+
+def replace_database(uri, database):
+    parsed = urlsplit(uri)
+    if parsed.scheme not in ("postgres", "postgresql") or not parsed.hostname:
+        raise RuntimeError("STOP: unsupported PostgREST database URI format")
+    if parsed.path not in ("/postgres", "postgres"):
+        raise RuntimeError("STOP: source PostgREST must target the local postgres DB")
+    return urlunsplit((parsed.scheme, parsed.netloc, "/" + database,
+                       parsed.query, parsed.fragment)), parsed.hostname
+
+def diagnose_config_prerequisites(env):
+    """Read-only checks of allowlisted configuration in the disposable clone."""
+    if psql("SELECT current_database();", database=CLONE) != CLONE:
+        raise RuntimeError("STOP: diagnostic database identity mismatch")
+    settings = [
+        (key.lower().removeprefix("pgrst_"), env[key])
+        for key in ("PGRST_DB_SCHEMAS", "PGRST_DB_EXTRA_SEARCH_PATH",
+                    "PGRST_DB_PRE_CONFIG", "PGRST_DB_PRE_REQUEST")
+        if key in env
+    ]
+    # Role-level settings can override environment configuration. Never select
+    # jwt_secret, connection strings, arbitrary GUC values, or function bodies.
+    rows = psql("""
+        SELECT split_part(item, '=', 1),
+               substr(item, strpos(item, '=') + 1)
+        FROM pg_db_role_setting s
+        CROSS JOIN LATERAL unnest(s.setconfig) item
+        WHERE s.setrole IN (0, (SELECT oid FROM pg_roles WHERE rolname='authenticator'))
+          AND s.setdatabase IN (0, (SELECT oid FROM pg_database WHERE datname=current_database()))
+          AND split_part(item, '=', 1) IN
+            ('pgrst.db_schemas', 'pgrst.db_extra_search_path',
+             'pgrst.db_pre_config', 'pgrst.db_pre_request');
+    """, database=CLONE)
+    for row in rows.splitlines():
+        key, separator, value = row.partition("|")
+        if separator:
+            settings.append((key.removeprefix("pgrst."), value))
+    for key, value in settings:
+        if key in ("db_schemas", "db_extra_search_path"):
+            for name in value.split(","):
+                name = name.strip()
+                if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}", name):
+                    print("PREREQUISITE:", key, "non-simple schema name withheld")
+                    continue
+                # Identifier allowlist above makes this fixed SQL literal safe.
+                result = psql(
+                    "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='" +
+                    name + "');", database=CLONE)
+                print("PREREQUISITE:", key, "schema", name, "exists:", result)
+        elif key in ("db_pre_config", "db_pre_request"):
+            if not value:
+                print("PREREQUISITE:", key, "unset")
+                continue
+            if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}\.[a-zA-Z_][a-zA-Z0-9_]{0,62}", value):
+                print("PREREQUISITE:", key, "non-simple function name withheld")
+                continue
+            schema, function = value.split(".")
+            result = psql(
+                "SELECT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n "
+                "ON n.oid=p.pronamespace WHERE n.nspname='" + schema +
+                "' AND p.proname='" + function + "' AND p.pronargs=0);",
+                database=CLONE)
+            print("PREREQUISITE:", key, "function", value, "exists:", result)
+
+
+def local_test_jwt(secret, subject, expires):
+    """Synthetic token for the disposable API only; never print tokens or keys."""
+    def encode(value):
+        return base64.urlsafe_b64encode(value).rstrip(b"=")
+    header = encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    claims = encode(json.dumps({
+        "role": "authenticated", "sub": subject, "aud": "authenticated",
+        "exp": expires,
+    }).encode())
+    unsigned = header + b"." + claims
+    signature = encode(hmac.new(secret.encode(), unsigned, hashlib.sha256).digest())
+    return (unsigned + b"." + signature).decode()
+
+def check_signed_denials(opener, base, secret):
+    """JWT verification and blanket privilege denial, NOT ownership-policy tests."""
+    subject = str(uuid.uuid4())
+    now = int(time.time())
+    tokens = [
+        ("wrong-signature", local_test_jwt(secrets.token_hex(32), subject, now + 300), 401),
+        ("expired", local_test_jwt(secret, subject, now - 120), 401),
+        ("valid", local_test_jwt(secret, subject, now + 300), 403),
+    ]
+    for label, token, expected in tokens:
+        resources = ("passport_evidence_submissions", "passport_verification_reviews",
+                     "passport_research_profiles") if label == "valid" else ("passport_research_profiles",)
+        for resource in resources:
+            request = Request(base + "/" + resource + "?select=*",
+                              headers={"Authorization": "Bearer " + token})
+            try:
+                with opener.open(request, timeout=5) as response:
+                    raise AssertionError("FAIL: signed-token denial expected; HTTP " + str(response.status))
+            except HTTPError as exc:
+                if exc.code != expected:
+                    raise AssertionError("FAIL: " + label + " expected HTTP " +
+                                         str(expected) + ", received " + str(exc.code)) from None
+                if label == "valid":
+                    # Require PostgreSQL insufficient_privilege, not an arbitrary
+                    # 403. Never display response bodies or database messages.
+                    try:
+                        body = json.loads(exc.read(8192))
+                    except (ValueError, TypeError):
+                        raise AssertionError("FAIL: expected JSON permission error") from None
+                    if not isinstance(body, dict) or body.get("code") != "42501":
+                        raise AssertionError("FAIL: valid JWT did not reach expected database privilege denial")
+                print("PASS:", label, "JWT GET", resource, "rejected (HTTP " + str(exc.code) + ")")
+    print("PASS: synthetic signed-JWT denial smoke test")
+    print("NOT TESTED: Supabase Auth issuance/sessions, ownership RLS, RPC, approval or publication")
+
+
+def check_rpc_unavailable(opener, base, secret):
+    """Require catalog EXECUTE denial before sending a synthetic HTTP request."""
+    signature = "public.passport_review_submission_staging(uuid,integer,public.passport_review_decision,text,uuid)"
+    result = psql(
+        "SELECT json_build_object('exists', to_regprocedure('" + signature +
+        "') IS NOT NULL, 'denied', NOT EXISTS (SELECT 1 FROM "
+        "unnest(ARRAY['anon','authenticated','service_role']) r "
+        "WHERE has_function_privilege(r, to_regprocedure('" + signature +
+        "'), 'EXECUTE')));", database=CLONE)
+    try:
+        facts = json.loads(result)
+    except (ValueError, TypeError):
+        raise AssertionError("STOP: RPC privilege preflight unreadable") from None
+    if facts.get("exists") is not True or facts.get("denied") is not True:
+        raise AssertionError("STOP: expected RPC absent or client EXECUTE enabled; HTTP invocation skipped")
+    print("PASS: review RPC exists; EXECUTE denied to anon/authenticated/service_role")
+    payload = json.dumps({
+        "p_submission_id": str(uuid.uuid4()), "p_expected_revision": 1,
+        "p_decision": "reject", "p_rationale": "Disposable denial test only",
+        "p_request_id": str(uuid.uuid4()),
+    }).encode()
+    for label, token in (("anonymous", None), ("authenticated", local_test_jwt(
+            secret, str(uuid.uuid4()), int(time.time()) + 300))):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = "Bearer " + token
+        request = Request(base + "/rpc/passport_review_submission_staging",
+                          data=payload, headers=headers, method="POST")
+        try:
+            with opener.open(request, timeout=5) as response:
+                raise AssertionError("FAIL: disabled review RPC returned HTTP " + str(response.status))
+        except HTTPError as exc:
+            try:
+                body = json.loads(exc.read(8192))
+            except (ValueError, TypeError):
+                raise AssertionError("FAIL: RPC denial response is not JSON") from None
+            code = body.get("code") if isinstance(body, dict) else None
+            expected = 403 if token else 401
+            if exc.code == expected and code == "42501":
+                print("PASS:", label, "review RPC rejected by database privilege check")
+            elif exc.code == 404 and code == "PGRST202":
+                print("PASS:", label, "review RPC not exposed in schema cache")
+                print("SCOPE: HTTP hiding verified; EXECUTE denial verified separately by catalog")
+            else:
+                raise AssertionError("FAIL: unexpected review RPC denial status/code") from None
+
+
+def prepare_profile_rls_fixture():
+    """Candidate column-read grant ONLY in clone; preserve the existing policy."""
+    if psql("SELECT current_database();", database=CLONE) != CLONE:
+        raise RuntimeError("STOP: profile fixture database identity mismatch")
+    checks = psql("""
+        SELECT json_build_object(
+          'rls', (SELECT relrowsecurity FROM pg_class
+                  WHERE oid='public.passport_research_profiles'::regclass),
+          'bypass', (SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname='authenticated'),
+          'policies', (SELECT count(*) FROM pg_policies
+             WHERE schemaname='public' AND tablename='passport_research_profiles'),
+          'self_read', EXISTS(SELECT 1 FROM pg_policies
+             WHERE schemaname='public' AND tablename='passport_research_profiles'
+               AND policyname='passport_active_profile_self_read'
+               AND cmd='SELECT' AND roles=ARRAY['authenticated']::name[]),
+          'member', pg_has_role('authenticator','authenticated','MEMBER'),
+          'writes', has_any_column_privilege('authenticated','public.passport_research_profiles','INSERT,UPDATE')
+              OR has_table_privilege('authenticated','public.passport_research_profiles','DELETE'));
+
+    """, database=CLONE)
+    facts = json.loads(checks)
+    if not (facts.get("rls") is True and facts.get("bypass") is False
+            and facts.get("policies") == 1 and facts.get("self_read") is True
+            and facts.get("member") is True and facts.get("writes") is False):
+        raise RuntimeError("STOP: expected single self-read policy/RLS/role baseline missing; policy not changed")
+    ids = [str(uuid.uuid4()) for _ in range(4)]
+    # Only fresh UUIDs generated here are interpolated. Never accept fixture IDs
+    # from HTTP or disable foreign keys/triggers to insert fixtures.
+    user_table = psql("SELECT to_regclass('auth.users') IS NOT NULL;", database=CLONE)
+    setup = "BEGIN;\n"
+    if user_table == "t":
+        setup += "INSERT INTO auth.users(id) VALUES " + ",".join(
+            "('" + subject + "')" for subject in ids[:3]) + ";\n"
+    setup += (
+        "INSERT INTO public.passport_research_profiles(user_id,role,active) VALUES "
+        "('" + ids[0] + "','researcher',true),"
+        "('" + ids[1] + "','reviewer',true),"
+        "('" + ids[2] + "','researcher',false);\n"
+        "GRANT USAGE ON SCHEMA public TO authenticated;\n"
+        "GRANT SELECT(user_id,role,active) ON public.passport_research_profiles TO authenticated;\n"
+        "COMMIT;"
+    )
+    psql(setup, database=CLONE)
+    # Positive fixture control runs as postgres; HTTP tests must also prove
+    # each active subject can read their own row through the existing policy.
+    count = psql("SELECT count(*) FROM public.passport_research_profiles WHERE user_id IN (" +
+                 ",".join("'" + x + "'" for x in ids[:3]) + ");", database=CLONE)
+    if count != "3":
+        raise AssertionError("STOP: profile fixtures incomplete")
+    print("FIXTURE: two active and one inactive profile in disposable clone")
+    print("CANDIDATE ONLY: authenticated schema USAGE and three-column profile SELECT")
+    print("UNCHANGED: existing RLS policy, review RPC grants, source database and live services")
+    return ids
+
+def check_profile_rls(opener, base, secret, ids):
+    a, b, inactive, absent = ids
+    path = "/passport_research_profiles?select=user_id,role,active"
+    tokens = {subject: local_test_jwt(secret, subject, int(time.time()) + 300) for subject in ids}
+    def read(subject, suffix=""):
+        token = tokens[subject]
+        request = Request(base + path + suffix, headers={"Authorization": "Bearer " + token})
+        try:
+            with opener.open(request, timeout=5) as response:
+                if response.status != 200:
+                    raise AssertionError("FAIL: profile read expected HTTP 200")
+                rows = json.loads(response.read(65536))
+        except HTTPError as exc:
+            raise AssertionError("FAIL: profile policy request returned HTTP " + str(exc.code)) from None
+        if not isinstance(rows, list):
+            raise AssertionError("FAIL: expected profile row array")
+        return rows
+    def expect_rows(label, subject, expected, suffix=""):
+        if read(subject, suffix) != expected:
+            raise AssertionError("FAIL: " + label + "; response content withheld")
+        print("PASS:", label)
+    row_a = [{"user_id": a, "role": "researcher", "active": True}]
+    row_b = [{"user_id": b, "role": "reviewer", "active": True}]
+    # Unfiltered positive reads ensure the caller cannot enumerate other rows.
+    expect_rows("active A reads exactly own profile", a, row_a)
+    expect_rows("active B reads exactly own profile", b, row_b)
+    expect_rows("A cannot read B by explicit user_id filter", a, [], "&user_id=eq." + b)
+    expect_rows("B cannot read A by explicit user_id filter", b, [], "&user_id=eq." + a)
+    expect_rows("inactive identity sees no profiles", inactive, [])
+    expect_rows("identity without profile sees no profiles", absent, [])
+    request = Request(base + path)
+    try:
+        with opener.open(request, timeout=5):
+            raise AssertionError("FAIL: anonymous profile read unexpectedly succeeded")
+    except HTTPError as exc:
+        if exc.code != 401:
+            raise AssertionError("FAIL: anonymous profile read expected HTTP 401") from None
+    print("PASS: anonymous profile read denied")
+    # Test immediate database-state change with the same subject/token identity.
+    psql("UPDATE public.passport_research_profiles SET active=false WHERE user_id='" + a + "';",
+         database=CLONE)
+    expect_rows("profile deactivation removes read access", a, [])
+    check_rpc_unavailable(opener, base, secret)
+    print("PASS: existing profile RLS with candidate clone-only column grants")
+    print("NOT TESTED: production grants, real Supabase Auth/login/logout, review internals or publication")
+
+
+def main():
+    if os.getenv("ALLOW_LOCAL_DISPOSABLE_DB") != "yes":
+        raise SystemExit("Requires ALLOW_LOCAL_DISPOSABLE_DB=yes")
+    rest = inspect(REST)
+    db = inspect(DB_CONTAINER)
+    rest_networks = rest["NetworkSettings"]["Networks"]
+    db_networks = db["NetworkSettings"]["Networks"]
+    common = sorted(set(rest_networks) & set(db_networks))
+    if len(common) != 1:
+        raise RuntimeError("STOP: expected exactly one shared local Docker network")
+    network = common[0]
+    env = dict(entry.split("=", 1) for entry in rest["Config"]["Env"] if "=" in entry)
+    uri = env.get("PGRST_DB_URI", "")
+    new_uri, host = replace_database(uri, CLONE)
+    allowed_hosts = {DB_CONTAINER, db["Name"].lstrip("/")}
+    allowed_hosts.update(db_networks[network].get("Aliases") or [])
+    if host not in allowed_hosts:
+        raise RuntimeError("STOP: PostgREST DB hostname does not identify the expected local DB container")
+    if env.get("PGRST_DB_ANON_ROLE") != "anon":
+        raise RuntimeError("STOP: unexpected anonymous role")
+    if "public" not in env.get("PGRST_DB_SCHEMAS", "").split(","):
+        raise RuntimeError("STOP: public schema not exposed by local PostgREST")
+    image = rest["Config"]["Image"]
+    created = False
+    launched = False
+    try:
+        psql(f'CREATE DATABASE "{CLONE}" TEMPLATE "{SOURCE}";')
+        created = True
+        print("PASS: disposable database clone created", flush=True)
+        signed_smoke = os.getenv("ALLOW_LOCAL_SIGNED_JWT_SMOKE") == "yes"
+        profile_rls = os.getenv("ALLOW_LOCAL_PROFILE_RLS") == "yes"
+        test_secret = secrets.token_hex(32) if signed_smoke or profile_rls else None
+        experiment = os.getenv("ALLOW_LOCAL_SCHEMA_USAGE_EXPERIMENT") == "yes"
+        search_experiment = os.getenv("ALLOW_LOCAL_SEARCH_PATH_EXPERIMENT") == "yes"
+        if profile_rls and (signed_smoke or experiment or search_experiment):
+            raise RuntimeError("STOP: profile RLS must run separately from other modes")
+        profile_ids = prepare_profile_rls_fixture() if profile_rls else None
+        if signed_smoke and (experiment or search_experiment):
+            raise RuntimeError("STOP: signed JWT smoke cannot combine with readiness experiments")
+        if signed_smoke:
+            membership = psql("SELECT pg_has_role('authenticator', 'authenticated', 'MEMBER');", database=CLONE)
+            if membership != "t":
+                raise RuntimeError("STOP: authenticator cannot assume authenticated; no grants changed")
+        if experiment and search_experiment:
+            raise RuntimeError("STOP: run one readiness experiment at a time")
+        if experiment:
+            # The schema belongs to this disposable database. Roles remain
+            # cluster-wide and are NEVER modified. This is not a staging grant.
+            if psql("SELECT current_database();", database=CLONE) != CLONE:
+                raise RuntimeError("STOP: disposable database identity mismatch")
+            if psql("SELECT has_schema_privilege('authenticator', 'public', 'USAGE');",
+                    database=CLONE) != "f":
+                raise RuntimeError("STOP: expected deny-by-default baseline missing")
+            psql("GRANT USAGE ON SCHEMA public TO authenticator;", database=CLONE)
+            if psql("SELECT has_schema_privilege('authenticator', 'public', 'USAGE');",
+                    database=CLONE) != "t":
+                raise RuntimeError("STOP: clone-only schema grant verification failed")
+            print("EXPERIMENT: disposable clone authenticator public USAGE enabled")
+            print("EXPERIMENT: no role membership, anon grant, or source database changes")
+
+        # Never print the connection string, JWT secret, or temporary env file.
+        with tempfile.TemporaryDirectory(prefix="passport-http-") as folder:
+            path = Path(folder) / "postgrest.env"
+            safe = {k: v for k, v in env.items() if k.startswith("PGRST_")}
+            safe["PGRST_DB_URI"] = new_uri
+            if signed_smoke or profile_rls:
+                safe["PGRST_JWT_SECRET"] = test_secret
+                safe["PGRST_JWT_SECRET_IS_BASE64"] = "false"
+                safe["PGRST_JWT_AUD"] = "authenticated"
+                safe["PGRST_JWT_ROLE_CLAIM_KEY"] = ".role"
+                print("CONFIG: synthetic JWT key for disposable API only; no real Auth changes")
+            # Prevent PostgREST from silently using a different schema.
+            safe["PGRST_DB_SCHEMAS"] = "public"
+            # The isolated passport clone has no extensions schema. Do not
+            # inherit the full Supabase service search path into this test API.
+            # This changes only the disposable container, never database grants.
+            safe["PGRST_DB_EXTRA_SEARCH_PATH"] = "public"
+            print("CONFIG: disposable API schemas and extra search path are public-only")
+            if search_experiment:
+                # Override only this disposable API container configuration.
+                # Do not create schemas, grant privileges, or change DB settings.
+                safe["PGRST_DB_EXTRA_SEARCH_PATH"] = "public"
+                print("EXPERIMENT: temporary API extra search path restricted to public")
+                print("EXPERIMENT: no database grants or existing service changes")
+            # Container port publishing targets 3000: explicitly bind the API
+            # to 0.0.0.0:3000 inside this disposable container only.
+            safe["PGRST_SERVER_HOST"] = "0.0.0.0"
+            safe["PGRST_SERVER_PORT"] = "3000"
+            path.write_text("".join(f"{k}={v}\n" for k, v in safe.items()))
+            path.chmod(0o600)
+            call(["docker", "run", "-d", "--rm", "--name", EPHEMERAL,
+                  "--network", network, "-p", "127.0.0.1::3000",
+                  "--env-file", str(path), image])
+            launched = True
+        port_line = call(["docker", "port", EPHEMERAL, "3000/tcp"]).stdout.strip()
+        if len(port_line.splitlines()) != 1 or not port_line.startswith("127.0.0.1:"):
+            raise RuntimeError("STOP: ephemeral API must bind exclusively to loopback")
+        port = int(port_line.rsplit(":", 1)[1])
+        base = f"http://127.0.0.1:{port}"
+        opener = build_opener(ProxyHandler({}))  # Bypass system proxies for loopback only.
+        ready = False
+        last_issue = "none"
+        for _ in range(30):
+            try:
+                with opener.open(base + "/", timeout=2) as response:
+                    ready = response.status < 500
+                    break
+            except HTTPError as exc:
+                if exc.code < 500:
+                    ready = True
+                    break
+            except (URLError, http.client.RemoteDisconnected, ConnectionResetError,
+                    ConnectionAbortedError, TimeoutError, OSError) as exc:
+                last_issue = type(exc).__name__
+            time.sleep(0.5)
+        if not ready:
+            state = inspect(EPHEMERAL)["State"]
+            status = state.get("Status", "unknown")
+            # Docker logs may contain connection information: display only an
+            # allowlisted, non-sensitive diagnosis instead of raw logs.
+            print(f"DIAGNOSTIC: temporary service status={status}; "
+                  f"last connection error={last_issue}")
+            logs_result = call(["docker", "logs", "--tail", "120", EPHEMERAL], check=False)
+            # Never output raw logs: they can contain credentials and connection strings.
+            logs = logs_result.stdout + logs_result.stderr
+            diagnose_config_prerequisites(safe)
+            # Classify actual error-level events, not benign startup messages
+            # such as "schema cache loaded". Never print raw logs.
+            error_lines = [
+                line for line in logs.splitlines()
+                if re.search(r"\b(error|fatal|critical|panic)\b", line, re.I)
+            ]
+            signatures = {
+                "database connection refused": r"connection refused|could not connect to server",
+                "database authentication failed": r"password authentication failed|authentication failed",
+                "database missing": r"database .+ does not exist",
+                "role missing": r"role .+ does not exist",
+                "schema cache load error": r"failed to load.*schema cache|schema cache.*(failed|error)",
+                "configuration parsing error": r"failed to parse|invalid configuration|unexpected parameter",
+                "database connection timeout": r"connection timed out|timeout expired",
+                "database host not found": r"could not translate host name|name or service not known",
+            }
+            matches = [label for label, pattern in signatures.items()
+                       if any(re.search(pattern, line, re.IGNORECASE)
+                              for line in error_lines)]
+            print("DIAGNOSTIC: startup error categories:",
+                  ", ".join(matches) if matches else "none classified")
+            print("DIAGNOSTIC: error-level log entries:", len(error_lines))
+            # Read-only server-side evidence from the disposable database.
+            # Never print connection strings, role secrets, or query text.
+            session_count = psql(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = '" + CLONE + "';"
+            )
+            print("DIAGNOSTIC: disposable database connections:", session_count)
+            # Only group sessions by database role and state. Avoid SQL text,
+            # client addresses, secrets, and application-specific identifiers.
+            roles = psql(
+                "SELECT usename, count(*) FROM pg_stat_activity WHERE datname = '" +
+                CLONE + "' GROUP BY usename ORDER BY usename;"
+            )
+            print("DIAGNOSTIC: clone sessions by database role:",
+                  roles.replace("\\n", "; ") if roles else "(none)")
+            markers = {
+                "schema_cache_loaded": r"schema cache (loaded|reloaded|built)",
+                "schema_cache_retry": r"retrying|retry in",
+                "database_connectivity_notice": r"connection to the database",
+            }
+            for label, pattern in markers.items():
+                print("DIAGNOSTIC:", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+            local_connect = psql(
+                "SELECT has_database_privilege('authenticator', current_database(), 'CONNECT');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator CONNECT grant:", local_connect)
+            # Local-only, read-only role and schema visibility probes.
+            # Do not print SQL bodies, connection strings or credentials.
+            role_flags = psql(
+                "SELECT rolcanlogin, rolinherit FROM pg_roles WHERE rolname = 'authenticator';",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator login/inherit flags:",
+                  role_flags or "(role absent)")
+            schema_access = psql(
+                "SELECT has_schema_privilege('authenticator', 'public', 'USAGE'), "
+                "has_schema_privilege('anon', 'public', 'USAGE');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema USAGE authenticator/anon:",
+                  schema_access)
+            role_switch = psql(
+                "SELECT pg_has_role('authenticator', 'anon', 'MEMBER');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: authenticator membership in anon:", role_switch)
+            # Evaluate schema cache prerequisites without changing grants.
+            # This mirrors essential checks as the DB login role, using only
+            # read-only SET ROLE in a disposable session.
+            grants = psql(
+                "SELECT has_schema_privilege('authenticator', 'public', 'USAGE'), "
+                "has_schema_privilege('anon', 'public', 'USAGE'), "
+                "has_database_privilege('anon', current_database(), 'CONNECT');",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema and anon DB privileges:", grants)
+
+            # Evaluate schema existence, namespace ownership and read-only
+            # catalog visibility in the disposable clone. No grant changes.
+            schema_catalog = psql(
+                "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='public'), "
+                "has_schema_privilege('postgres', 'public', 'USAGE'), "
+                "EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='public' "
+                "AND nspowner=(SELECT oid FROM pg_roles WHERE rolname='authenticator'));",
+                database=CLONE
+            )
+            print("DIAGNOSTIC: public schema exists/postgres USAGE/authenticator owner:",
+                  schema_catalog)
+            config_signals = {
+                "missing_schema": r"schema .{0,70} does not exist|schema .{0,70} not found",
+                "schema_cache_query_failure": r"(failed|error).{0,70}(schema cache|schema-cache)",
+                "database_query_failure": r"(sqlstate|postgresql error|failed to run query)",
+                "role_or_grant_issue": r"(permission denied|must be member of role|insufficient privilege)",
+            }
+            for label, pattern in config_signals.items():
+                print("DIAGNOSTIC: schema failure category", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+            # Extract SQLSTATE only when explicitly labeled in logs.
+            # Never emit raw log lines, schema names, query text or secrets.
+            sqlstates = sorted(set(re.findall(
+                r"(?i)\\b(?:SQLSTATE|sql_state|sqlstate_code)\\s*[:= ]\\s*[\"']?([0-9A-Z]{5})\\b",
+                logs
+            )))
+            print("DIAGNOSTIC: explicit SQLSTATE codes:",
+                  ",".join(sqlstates) if sqlstates else "not present")
+            # Fixed-category diagnostics avoid reproducing sensitive errors.
+            failure_signals = {
+                "undefined_schema_3F000": r"\\b3F000\\b",
+                "insufficient_privilege_42501": r"\\b42501\\b",
+                "undefined_table_42P01": r"\\b42P01\\b",
+                "undefined_function_42883": r"\\b42883\\b",
+                "undefined_column_42703": r"\\b42703\\b",
+                "invalid_schema_name": r"invalid schema name",
+                "schema_not_exposed": r"schema.{0,80}(not exposed|not in the exposed)",
+                "schema_cache_recovery": r"retrying|retry in|schema cache.*recover",
+            }
+            for label, pattern in failure_signals.items():
+                print("DIAGNOSTIC: failure signature", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+            # Classify structured PostgREST log messages without displaying
+            # free-form message text, database identifiers, or credentials.
+            structured_events = []
+            for line in logs.splitlines():
+                try:
+                    event = json.loads(line)
+                except (ValueError, TypeError):
+                    continue
+                if not isinstance(event, dict):
+                    continue
+                structured_events.append(event)
+            print("DIAGNOSTIC: structured log event count:", len(structured_events))
+            for field in ("code", "sqlstate"):
+                codes = sorted({
+                    str(event[field]).upper()
+                    for event in structured_events
+                    if isinstance(event.get(field), str)
+                    and re.fullmatch(r"[0-9A-Z]{5}", event[field].upper())
+                })
+                print("DIAGNOSTIC: structured", field, "codes:",
+                      ",".join(codes) if codes else "none")
+            # These are classification booleans only, not raw PostgREST logs.
+            detail_patterns = {
+                "missing_public_schema_explicit": r"schema ['\\\"]?public['\\\"]? (does not exist|not found)",
+                "missing_nonpublic_schema": r"schema ['\\\"]?(?!public\\b)[a-z_]+['\\\"]? (does not exist|not found)",
+                "missing_catalog_relation": r"(relation|table) .{0,80}(does not exist|not found)",
+                "cache_retry_due_to_connection": r"schema cache.{0,150}connection|connection.{0,150}schema cache",
+                "cache_retry_due_to_schema": r"schema cache.{0,150}schema|schema.{0,150}schema cache",
+            }
+            for label, pattern in detail_patterns.items():
+                print("DIAGNOSTIC: cache detail category", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+            print("DIAGNOSTIC: schema cache messages present:",
+                  bool(re.search(r"schema cache", logs, re.IGNORECASE)))
+            print("DIAGNOSTIC: permissions-related log signal:",
+                  bool(re.search(r"permission denied|insufficient privilege|42501",
+                                 logs, re.IGNORECASE)))
+            print("DIAGNOSTIC: role-switch log signal:",
+                  bool(re.search(r"set role|cannot set role|role.*not permitted",
+                                 logs, re.IGNORECASE)))
+
+            # Classify only fixed, non-sensitive startup signals.
+            # No raw logs, exception bodies, connection URIs, or SQL are emitted.
+            startup_signals = {
+                "schema_cache_loading": r"loading schema cache|schema cache.*loading",
+                "schema_cache_loaded": r"schema cache (loaded|reloaded|built)",
+                "schema_cache_failed": r"schema cache.*(fail|error)|failed.*schema cache",
+                "db_connection_established": r"connection (established|successful)|connected to database",
+                "db_connection_lost": r"connection (lost|terminated|closed)",
+                "prepared_statement_error": r"prepared statement.*(error|fail|does not exist)",
+                "db_schema_config_error": r"schema.*(not found|does not exist|invalid)",
+                "retry_delay": r"retrying in [0-9]+",
+            }
+            for label, pattern in startup_signals.items():
+                print("DIAGNOSTIC: startup signal", label,
+                      bool(re.search(pattern, logs, re.IGNORECASE)))
+
+
+
+            database_exists = psql("SELECT current_database();", database=CLONE)
+            print("DIAGNOSTIC: disposable clone identity verified:",
+                  database_exists == CLONE)
+
+            print("DIAGNOSTIC: container exit code:", state.get("ExitCode", "unknown"))
+            # Safe port/network metadata only; never print docker inspect environment.
+            net = inspect(EPHEMERAL)["NetworkSettings"]
+            ports = net.get("Ports", {}).get("3000/tcp") or []
+            print("DIAGNOSTIC: published port mappings:",
+                  len(ports), "loopback_only:",
+                  all(p.get("HostIp") in ("127.0.0.1", "::1") for p in ports))
+            print("DIAGNOSTIC: shared Docker network attached:",
+                  network in net.get("Networks", {}))
+            cfg = inspect(EPHEMERAL)["Config"]
+            exposed = sorted((cfg.get("ExposedPorts") or {}).keys())
+            print("DIAGNOSTIC: declared container exposed ports:", exposed)
+            print("DIAGNOSTIC: PostgREST server host override present:",
+                  "PGRST_SERVER_HOST" in safe)
+            print("DIAGNOSTIC: PostgREST server port override:",
+                  safe.get("PGRST_SERVER_PORT", "(default)"))
+            print("DIAGNOSTIC: Docker port forwarding may be healthy even when "
+                  "PostgREST does not listen on its published container port.")
+            # Docker-internal TCP probe: connect directly to the disposable
+            # PostgREST container from the existing local database container.
+            # Python is available in Supabase's PostgreSQL image only if present;
+            # use bash /dev/tcp when available, without network downloads.
+            probe = call([
+                "docker", "exec", DB_CONTAINER, "bash", "-c",
+                "timeout 3 bash -c 'echo > /dev/tcp/" + EPHEMERAL + "/3000'"
+            ], check=False, timeout=8)
+            print("DIAGNOSTIC: internal Docker TCP port 3000:",
+                  "reachable" if probe.returncode == 0 else "unreachable or probe unavailable")
+            print("DIAGNOSTIC: localhost HTTP still disconnected despite direct port mapping")
+            # Inspect the HTTP status line from inside the Docker network using
+            # bash's /dev/tcp feature; no Python or additional packages needed.
+            # Never print headers, bodies, credentials, or raw errors.
+            internal_http = call([
+                "docker", "exec", DB_CONTAINER, "bash", "-c",
+                "exec 3<>/dev/tcp/" + EPHEMERAL + "/3000 || exit 11; "
+                "printf 'GET / HTTP/1.0\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; "
+                "IFS= read -r -t 4 status_line <&3 || exit 12; "
+                "case \"$status_line\" in HTTP/*) "
+                "printf '%s\\n' \"$status_line\" | cut -d' ' -f2 ;; "
+                "*) exit 13 ;; esac"
+            ], check=False, timeout=8)
+            # A status line can include carriage return, extra whitespace,
+            # or a valid HTTP status code not present in the old allowlist.
+            raw_status = internal_http.stdout.strip()
+            status_match = re.search(r"\b([1-5][0-9]{2})\b", raw_status)
+            status = status_match.group(1) if status_match else None
+            if internal_http.returncode == 0 and status is not None:
+                print("DIAGNOSTIC: internal Docker HTTP status:", status)
+            else:
+                # stdout may be blank, include a truncated/non-HTTP status line,
+                # or contain only a carriage return; report shape, not content.
+                print("DIAGNOSTIC: internal HTTP stdout shape:",
+                      "empty" if not raw_status else
+                      "nonempty_without_http_status",
+                      "length_bucket:",
+                      "0" if not raw_status else
+                      "1-8" if len(raw_status) <= 8 else
+                      "9-64" if len(raw_status) <= 64 else "65+")
+                print("DIAGNOSTIC: internal Docker HTTP:",
+                      {11: "TCP connection failed", 12: "no HTTP status line received",
+                       13: "non-HTTP response"}.get(
+                           internal_http.returncode, "unclassified probe failure"))
+                print("DIAGNOSTIC: internal HTTP probe exit code:",
+                      internal_http.returncode)
+                print("DIAGNOSTIC: probe stderr category:",
+                      "bash command missing" if internal_http.returncode == 127
+                      else "shell or I/O error" if internal_http.returncode in (1, 2)
+                      else "timeout" if internal_http.returncode == 124
+                      else "unclassified (raw stderr withheld)")
+            print("DIAGNOSTIC: internal HTTP readiness is not an authorization assertion")
+            print("DIAGNOSTIC: raw logs withheld (may contain credentials)")
+            if search_experiment:
+                print("EXPERIMENT: public-only extra search path did not restore HTTP readiness")
+            if experiment:
+                print("EXPERIMENT: schema USAGE alone did not restore HTTP readiness")
+            raise RuntimeError("Temporary PostgREST did not become ready; "
+                               "no HTTP authorization checks executed")
+        if search_experiment:
+            print("EXPERIMENT: temporary PostgREST became HTTP-ready with public-only extra search path")
+            print("NOT TESTED: authorization; readiness alone is not a security pass")
+            return
+        if experiment:
+            print("EXPERIMENT: temporary PostgREST became HTTP-ready after clone-only schema grant")
+            print("NOT TESTED: authorization; this experiment cannot establish safe grants")
+            return
+        if profile_rls:
+            check_profile_rls(opener, base, test_secret, profile_ids)
+            return
+        print("PASS: isolated PostgREST started on loopback (system proxies bypassed)", flush=True)
+        # No bearer token and no API key: deny-by-default expected.
+        for resource in ("passport_evidence_submissions", "passport_verification_reviews",
+                         "passport_research_profiles"):
+            request = Request(base + "/" + resource + "?select=*", method="GET")
+            try:
+                with opener.open(request, timeout=5) as response:
+                    raise AssertionError(f"FAIL: anonymous GET unexpectedly returned {response.status}: {resource}")
+            except HTTPError as exc:
+                if exc.code not in (401, 403):
+                    raise AssertionError(f"FAIL: unexpected anonymous HTTP {exc.code} for {resource}")
+                print(f"PASS: anonymous GET {resource} rejected (HTTP {exc.code})")
+        print("PASS: isolated anonymous HTTP denial smoke test")
+        if signed_smoke:
+            check_signed_denials(opener, base, test_secret)
+            check_rpc_unavailable(opener, base, test_secret)
+            print("NOT TESTED: RPC internals, real Auth sessions, ownership RLS, approval or publication")
+        else:
+            print("NOT TESTED: signed JWT, authenticated RLS, PostgREST RPC, approval or publication")
+    finally:
+        if launched:
+            call(["docker", "rm", "-f", EPHEMERAL], check=False)
+            print("PASS: temporary PostgREST removed")
+        if created:
+            psql(f'DROP DATABASE "{CLONE}" WITH (FORCE);')
+            print("PASS: disposable database clone removed")
+
+if __name__ == "__main__":
+    main()
