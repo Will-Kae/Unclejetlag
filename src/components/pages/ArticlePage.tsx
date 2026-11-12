@@ -7,7 +7,7 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { MdxContent } from "@/lib/content/mdx";
 import { getArticle, getArticlesBySection, getRelatedArticles, isIndexable, toSummary, type Article } from "@/lib/content";
 import { sections, type SectionKey } from "@/data/taxonomy";
-import { getAuthor } from "@/data/authors";
+import { bylineName, getAuthor } from "@/data/authors";
 import { articleLd, buildMetadata } from "@/lib/seo";
 import { routes } from "@/lib/routes";
 
@@ -30,7 +30,7 @@ export function articleMetadata(section: SectionKey, slug: string): Metadata {
     image: a.featuredImage?.src,
     publishedTime: a.publishedDate,
     modifiedTime: a.updatedDate,
-    authors: [getAuthor(a.author).name],
+    authors: [bylineName(getAuthor(a.author))],
     tags: a.tags,
     noindex: !isIndexable(a),
   });

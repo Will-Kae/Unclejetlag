@@ -68,7 +68,7 @@ export function ArticleShell(p: ArticleShellProps) {
               <div className="flex items-center gap-3">
                 <AuthorAvatar className="h-10 w-10" />
                 <div className="text-sm leading-tight">
-                  <p>By <Link href={routes.author(p.author.slug)} rel="author" className="font-semibold text-ink hover:text-jet-ink">{p.author.name}</Link></p>
+                  <p>By <Link href={routes.author(p.author.slug)} rel="author" className="text-ink hover:text-jet-ink"><span className="font-semibold">{p.author.name}</span>{p.author.legalName ? ` (${p.author.legalName})` : null}</Link></p>
                   <p className="mt-0.5 text-muted">
                     Published <time dateTime={p.publishedDate}>{formatDate(p.publishedDate)}</time>
                     <span aria-hidden="true"> · </span>

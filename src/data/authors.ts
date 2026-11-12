@@ -37,3 +37,8 @@ export const authors: Record<string, Author> = {
 export function getAuthor(slug: string): Author {
   return authors[slug] ?? authors["uncle-jetlag"];
 }
+
+/** Visible byline: pen name first, real name in brackets, e.g. "Uncle Jetlag (Willard Munyaradzi Kachere)". */
+export function bylineName(a: Author): string {
+  return a.legalName ? `${a.name} (${a.legalName})` : a.name;
+}
