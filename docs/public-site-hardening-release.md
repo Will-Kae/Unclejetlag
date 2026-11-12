@@ -56,3 +56,32 @@ No assertions, route behavior, content, data or other baselines were changed.
 Rerun e2e/routes.spec.ts to verify the fixture correction. Remaining browser
 checks need not be repeated without further runtime changes.
 Preview deployment verification and final release review remain pending.
+
+
+## Authenticated preview audit and vendor finding, 12 November 2026
+
+User-reported browser checks targeted deployment dpl_2H57AjdgaeT7aH16HC9hmmoaxeRd
+at application commit f9a207de4ba08b93bda5c1d33deb716c000869da.
+Subsequent release-branch commits changed the audit harness only.
+
+Vercel Authentication initially prevented application access. Those timeouts
+and the apparent no-consent pass are not application verification evidence.
+After origin-scoped local OIDC authentication, 22 preview scenarios passed
+across targeted runs: no-consent/Essential Only across five pages, four
+individual provider activations, Accept All/withdrawal with AdSense remaining
+off, and 15 live mobile layouts at 375/390/768 pixels.
+
+The final DiscoverCars scenario reached its provider-health assertion:
+the selected Johannesburg search opened www.discovercars.com/search/,
+displayed offers, and retained a_aid=unclejetlag. These functional assertions
+passed. The scenario still FAILED because widget.discovercars.com/gtmgtg/
+raised a MutationObserver TypeError ("parameter 1 is not of type Node").
+The supplied stack identifies vendor-hosted code, not our application source.
+Functional success does not prove the vendor error has no other effects.
+
+Do not report the preview suite as 23/23 passing. Do not suppress the error
+or modify the vendor script. Proposed release disposition: document as a known
+vendor issue, retain the failing provider-health assertion, and monitor the
+existing direct-link fallback. No vendor report has been sent. A release with
+this known issue requires an explicit recorded disposition; otherwise keep
+the release pending. All governance write gates remain disabled.
