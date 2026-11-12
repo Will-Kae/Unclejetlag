@@ -34,3 +34,25 @@ Do not run its SQL candidates as part of this release.
 If a release fails, restore the recorded previous production deployment after
 checking its current availability. Vercel rollback can alter automatic domain
 assignment, so verify the production alias after rollback.
+
+## Local regression checkpoint, 12 November 2026
+
+User-supplied terminal output on the initial release branch reports:
+431 unit tests passing, four intentional baseline-writer skips; typecheck
+successful; 70/70 photos prepared; production build generated 445 pages;
+npm audit zero findings; browser suite 106 passed, one skipped, two failed.
+
+The two browser failures are reviewed fixture drift inherited from main.
+Seven sitemap additions correspond exactly to three existing verified article
+entries and four passport profiles gaining their first verified record.
+The latter follow the existing scorePassport > 0 sitemap rule and
+scorePassport === 0 noindex rule. docs/passport-audit-2026-11-12.md records the
+four Saudi eVisa records already merged on main. This release does not alter
+their claims or independently re-verify them.
+
+The sitemap fixture now includes exactly those seven paths (219 to 226).
+The noindex fixture removes exactly the four passport paths (189 to 185).
+No assertions, route behavior, content, data or other baselines were changed.
+Rerun e2e/routes.spec.ts to verify the fixture correction. Remaining browser
+checks need not be repeated without further runtime changes.
+Preview deployment verification and final release review remain pending.
