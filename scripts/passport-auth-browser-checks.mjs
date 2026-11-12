@@ -94,14 +94,24 @@ try {
     "Rejected logout revoked the Auth session");
   console.log("PASS: origin-less and cross-origin logout requests are refused without revoking session");
 
-  stage = "browser sign-out and Auth revocation";
+  stage = "open administration page for sign-out";
   await page.goto(cfg.base + ROOT);
   const essential = page.getByRole("button", { name: /essential only/i });
   if (await essential.isVisible()) await essential.click();
+  stage = "submit browser sign-out";
+  const logoutResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname === ROOT + "/logout" && response.request().method() === "POST");
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  const logout = await logoutResponse;
+  console.log("SCOPE: browser logout HTTP status " + logout.status());
+  check(logout.status() === 303, "Browser logout did not confirm revocation");
+  stage = "sign-out redirect to login";
   await atLogin();
+  stage = "sign-out cookie removal";
   check(!(await cookie()), "Logout left the research cookie present");
+  stage = "Auth rejects access token after browser sign-out";
   const oldToken = await context.request.get(cfg.base + "/auth/v1/user", { headers: authHeaders });
+  console.log("SCOPE: post-logout Auth user HTTP status " + oldToken.status());
   check([401, 403].includes(oldToken.status()), "Old token still accepted by isolated Auth after app logout");
   console.log("PASS: application sign-out clears cookie and isolated Auth refuses the old access token");
 
