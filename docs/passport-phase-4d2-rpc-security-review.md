@@ -309,3 +309,52 @@ isolated Auth-service pass and mocked application tests are separate evidence.
 Step 62 and the editorial/source/atomic transaction release gates remain OPEN.
 PR #21 stays draft; no merge, production deployment, approval activation or
 publication is authorized by these browser results.
+
+
+## Isolated authenticated browser checkpoint — 12 November 2026
+
+Evidence: user-supplied Mac terminal output at `6e70f25`. The logout unit suite
+reported **11/11 passing**, followed by a complete successful run of
+`ALLOW_LOCAL_AUTHENTICATED_BROWSER=yes python3 scripts/passport-phase-4d2-step62-browser-isolated-local.py`.
+
+The production-mode application was built in a disposable tracked-file copy,
+served over loopback HTTPS, and connected to separate disposable Auth and
+passport-profile databases/APIs. This is local candidate evidence, not a
+production or gateway configuration audit.
+
+Reported passing coverage:
+- Anonymous and forged-cookie protected workspace denial.
+- Wrong-password, inactive-profile and missing-profile application login denial,
+  without a research session cookie.
+- Real application login with HttpOnly, Secure, SameSite Strict, path-limited
+  session cookie and bounded expiry.
+- Signed-in access to the research workspace and evidence case.
+- Missing/cross-origin logout rejection without cookie changes or Auth revocation.
+- Browser form logout returned HTTP 303, removed the cookie, and the isolated
+  Auth /user endpoint rejected the old access token with HTTP 403.
+- Admin, workspace and case pages redirected to login after logout.
+- Temporary build, TLS material, private logs, profile API/database and Auth
+  container/database were all reported removed.
+
+The build originally omitted generated local fonts. The harness now prepares
+the four fonts from installed dependencies inside the disposable copy only.
+The browser subsequently exposed a logout origin mismatch: Next supplied a
+different request URL authority despite HTTPS and a valid browser Origin.
+The route now compares Origin with the request Host and request URL scheme,
+ignores forwarded-host overrides, and redirects to the same validated origin.
+Regression tests cover the internal-URL/external-Host case and scheme, port,
+null-origin and forwarded-host mismatches. Temporary route instrumentation was
+removed before this successful run.
+
+This supersedes earlier statements that authenticated browser integration was
+unverified, only for the isolated configuration and assertions listed above.
+It does not establish production grants, real deployment proxy behavior,
+gateway API-key enforcement, editorial RPC internals, approval/publication,
+trusted-source verification, or atomic audit/idempotency/concurrency guarantees.
+The prior full-suite, typecheck, build and public-browser checkpoints retain
+their original commit scope; they were not rerun by this command.
+
+Step 62 remains OPEN. PR #21 remains draft. Next work is the editorial review
+RPC transaction and authorization audit in disposable local infrastructure.
+Approvals and publication remain disabled; no production migration, merge or
+deployment is authorized.
