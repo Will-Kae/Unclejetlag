@@ -91,14 +91,16 @@ for (const provider of providers) {
   });
 }
 
-test("Accept All enables ads; withdrawal blocks new optional requests after reload", async ({ page, context }, info) => {
+test("Accept All enables Drive while AdSense stays off; withdrawal blocks optional requests", async ({ page, context }, info) => {
   const evidence = await capture(context, info);
   try {
     await page.goto("/");
     await page.getByRole("button", { name: "Accept all", exact: true }).click();
     await exercise(page);
     await expect.poll(() => evidence.requests.some(r => r.host === "emrldtp.cc")).toBe(true);
-    await expect.poll(() => evidence.requests.some(r => r.host === "pagead2.googlesyndication.com")).toBe(true);
+    // AdSense is deliberately disabled by ADSENSE_RELEASE_ENABLED for this release.
+    expect(evidence.requests.filter(r => /(^|\\.)(googlesyndication\\.com|doubleclick\\.net|googleadservices\\.com)$/.test(r.host))).toEqual([]);
+    await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
     await page.getByRole("button", { name: "Cookie settings", exact: true }).last().click();
     // Record the reload itself, not only requests that arrive afterwards.
     const start = evidence.requests.length;
