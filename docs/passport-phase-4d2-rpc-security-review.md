@@ -358,3 +358,40 @@ Step 62 remains OPEN. PR #21 remains draft. Next work is the editorial review
 RPC transaction and authorization audit in disposable local infrastructure.
 Approvals and publication remain disabled; no production migration, merge or
 deployment is authorized.
+
+
+## Disabled RPC body checkpoint — 12 November 2026
+
+Evidence: user-supplied Mac terminal output at `4f59092`, running
+`ALLOW_LOCAL_DISPOSABLE_DB=yes python3 scripts/passport-phase-4d2-step62-rpc-body-isolated-local.py`.
+All reported assertions passed and the disposable database was removed.
+
+The harness loaded the repository's five-argument idempotent prototype only
+inside a verified disposable clone. Client EXECUTE remained denied for anon,
+authenticated and service_role. Calls exercised the body through owner-level
+SQL with transaction-local simulated identity, not a real client-role or
+JWT/PostgREST entrypoint.
+
+Reported passing assertions:
+- Missing identity, self-review, inactive reviewer, researcher role, stale
+  revision and short rationale rejected with the expected error.
+- Approval remained unconditionally disabled.
+- Rejected operations left the selected submission row and total review/audit
+  counts unchanged.
+- A reject transition incremented the revision once and produced exactly one
+  review and one correlated editorial audit.
+- An identical request returned the same review ID without another transition,
+  review or audit. Changed-payload reuse of the request ID was rejected.
+- A deliberately failing audit INSERT caused the RPC's preceding review INSERT
+  and submission transition to roll back.
+
+Successful test transactions were rolled back, and the entire clone was then
+dropped. No source database changes, client grants or approval enablement were
+performed.
+
+These results do not establish the real role/session boundary, defense against
+service-role impersonation, concurrent request/replay behavior, higher isolation
+levels, same-reviewer rereview semantics, immutable client audit access,
+verified source provenance, approval or publication. Next verification should
+cover concurrent calls and request-key collisions in a disposable clone while
+client EXECUTE stays denied. Step 62 remains OPEN and PR #21 stays draft.
