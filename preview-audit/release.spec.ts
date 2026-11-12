@@ -1,6 +1,25 @@
 /** Real-provider audit, opt-in only. Each Playwright test gets a fresh isolated context. */
 import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 
+// Scope the short-lived Vercel credential to this exact preview origin.
+// Tracing is disabled in the config so authenticated request headers are not saved.
+test.beforeEach(async ({ context, page }) => {
+  const expectedOrigin = new URL(process.env.PREVIEW_AUDIT_URL!).origin;
+  const token = process.env.VERCEL_OIDC_TOKEN;
+  if (!token) throw new Error("Local Vercel authentication is required");
+  await context.route("**/*", async route => {
+    const headers = { ...route.request().headers() };
+    delete headers["x-vercel-trusted-oidc-idp-token"];
+    if (new URL(route.request().url()).origin === expectedOrigin) {
+      headers["x-vercel-trusted-oidc-idp-token"] = token;
+    }
+    await route.continue({ headers });
+  });
+  await page.goto("/");
+  expect(new URL(page.url()).origin, "Preview access blocked before application audit").toBe(expectedOrigin);
+  await expect(page.getByRole("dialog", { name: "Cookies, briefly." })).toBeVisible({ timeout: 15000 });
+});
+
 const paths = ["/", "/guides/topics/flights", "/guides/topics/hotels", "/guides/topics/car-rentals", "/insurance"];
 const providers = [
   { path: paths[1], button: "Allow and load flight search", host: "tpwidg.com" },
@@ -13,7 +32,6 @@ const optionalHosts = /(^|\.)(emrldtp\.cc|tpwidg\.com|discovercars\.com|expediag
 async function capture(context: BrowserContext, info: TestInfo) {
   const requests: { url: string; host: string; type: string; time: number }[] = [];
   const errors: string[] = [];
-  await context.tracing.group(`deployment ${process.env.PREVIEW_AUDIT_COMMIT}`);
   context.on("request", request => {
     const url = new URL(request.url());
     requests.push({ url: request.url(), host: url.hostname, type: request.resourceType(), time: Date.now() });
