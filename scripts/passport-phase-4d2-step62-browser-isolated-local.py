@@ -101,6 +101,25 @@ def copy_tracked_project(target):
     shutil.copytree(public, target / "public", dirs_exist_ok=True)
 
 
+
+def prepare_isolated_fonts(target):
+    """Generate only the isolated app's fonts from installed dependencies."""
+    fonts = {
+        "@fontsource-variable/fraunces/files/fraunces-latin-standard-normal.woff2": "fraunces-standard-normal.woff2",
+        "@fontsource-variable/fraunces/files/fraunces-latin-standard-italic.woff2": "fraunces-standard-italic.woff2",
+        "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2": "inter-wght-normal.woff2",
+        "@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2": "jetbrains-mono-wght-normal.woff2",
+    }
+    sources = [(ROOT / "node_modules" / source, name) for source, name in fonts.items()]
+    if any(not source.is_file() or source.stat().st_size == 0 for source, _ in sources):
+        raise Failure("Installed font dependencies missing or empty; run npm ci --include=dev")
+    output = target / "src/app/fonts"
+    output.mkdir(parents=True, exist_ok=True)
+    for source, name in sources:
+        shutil.copyfile(source, output / name)
+    print("PASS: four self-hosted fonts prepared inside isolated app only", flush=True)
+
+
 def setup_profiles(db, users):
     if db.psql("SELECT current_database();", database=PASSPORT) != PASSPORT:
         raise Failure("Wrong passport fixture database")
@@ -248,6 +267,7 @@ def exercise_browser(opener_unused, auth_base, secret, db):
             project = folder / "app"
             project.mkdir()
             copy_tracked_project(project)
+            prepare_isolated_fonts(project)
             cert, key = folder / "cert.pem", folder / "key.pem"
             config = folder / "tls.cnf"
             config.write_text("[req]\nprompt=no\ndistinguished_name=dn\nx509_extensions=v3\n"
