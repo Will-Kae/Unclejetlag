@@ -395,3 +395,32 @@ levels, same-reviewer rereview semantics, immutable client audit access,
 verified source provenance, approval or publication. Next verification should
 cover concurrent calls and request-key collisions in a disposable clone while
 client EXECUTE stays denied. Step 62 remains OPEN and PR #21 stays draft.
+
+
+## Disabled RPC concurrency checkpoint — 12 November 2026
+
+Evidence: user-supplied Mac output at `4d8cf72`, running
+`ALLOW_LOCAL_DISPOSABLE_DB=yes python3 scripts/passport-phase-4d2-step62-rpc-races-isolated-local.py`.
+All three READ COMMITTED scenarios passed. Each used a fresh disposable clone,
+loaded the disabled five-argument prototype, verified denied client EXECUTE,
+and observed the second database session blocked by the first through
+pg_blocking_pids before releasing the held transaction.
+
+- Identical concurrent retry: stable review ID and exactly one transition,
+  review and audit.
+- Competing decisions on the same submitted revision: first transition committed,
+  competing call rejected as stale; exactly one review and audit.
+- Same request ID across distinct submissions: unique-key rejection for the
+  losing transaction, no change to its submission, and one total review/audit
+  added by the winning transaction.
+
+All three disposable databases were reported removed. These are local
+owner-level SQL identity simulations, not client-role or signed-JWT entrypoint
+tests. Cross-submission collision handling is verified as rejection, not a
+stable replay result or a user-facing error contract.
+
+Higher isolation levels, role/session enforcement, service-role impersonation
+defenses, rereview semantics, source verification and approval/publication
+remain open. No production changes or new client grants followed from this
+checkpoint. The public-site release remains separate; PR #21 stays draft and
+Step 62 stays OPEN.
