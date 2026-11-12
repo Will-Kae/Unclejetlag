@@ -175,8 +175,9 @@ test("DiscoverCars selected Johannesburg search preserves attribution and record
     await frame.getByRole("button", { name: "Search now", exact: true }).click();
     const result = await popup;
     await result.waitForURL(/https:\/\/www\.discovercars\.com\/search\//);
-    await expect(result.getByText(/\d+ offers found/)).toBeVisible();
     expect(new URL(result.url()).searchParams.get("a_aid")).toBe("unclejetlag");
+    // Live inventory can render after navigation and the default 5s assertion.
+    await expect(result.getByText(/\d+ offers found/)).toBeVisible({ timeout: 30000 });
     await info.attach("results-url", { body: result.url(), contentType: "text/plain" });
     expect.soft(evidence.errors.filter(e => /isRTL|MutationObserver/.test(e)), "provider errors remain release findings, not silently suppressed").toEqual([]);
   } finally { await evidence.save(); }
