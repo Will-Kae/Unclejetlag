@@ -2,15 +2,19 @@
 import fs from "node:fs";
 import https from "node:https";
 import http from "node:http";
-import next from "next";
+import { getRequestHandlers } from "next/dist/server/lib/start-server.js";
 
 const cfg = JSON.parse(fs.readFileSync(0, "utf8"));
 for (const port of [cfg.port, cfg.authPort, cfg.restPort]) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error("Invalid local test port");
 }
-const app = next({ dev: false, dir: cfg.appDir, hostname: "127.0.0.1", port: cfg.port });
-await app.prepare();
-const handle = app.getRequestHandler();
+// The pinned Next custom-server wrapper omits experimentalHttpsServer when
+// initializing its router. Use the same initializer with TLS explicitly set,
+// so route Request URLs retain HTTPS for exact-origin CSRF validation.
+const { requestHandler: handle } = await getRequestHandlers({
+  dir: cfg.appDir, hostname: "127.0.0.1", port: cfg.port,
+  isDev: false, onDevServerCleanup: undefined, experimentalHttpsServer: true,
+});
 const server = https.createServer({
   cert: fs.readFileSync(cfg.cert), key: fs.readFileSync(cfg.key),
 }, (req, res) => {
