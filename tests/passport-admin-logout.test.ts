@@ -74,6 +74,24 @@ describe("research logout route", () => {
     }
     expect(fetch).not.toHaveBeenCalled();
   });
+  it("uses the incoming host with an internal render-server URL", async () => {
+    const response = await POST(new Request("https://127.0.0.1:41001/passport-index/research-admin/logout", {
+      method: "POST", headers: { host: "127.0.0.1:42002", origin: "https://127.0.0.1:42002" },
+    }));
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://127.0.0.1:42002/passport-index/research-admin/login");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("rejects scheme, port, null-origin and forwarded-host mismatches", async () => {
+    for (const origin of ["http://app.example", "https://app.example:444", "null", "https://other.example"]) {
+      const response = await POST(new Request("https://internal.example/passport-index/research-admin/logout", {
+        method: "POST", headers: { host: "app.example", origin, "x-forwarded-host": "other.example" },
+      }));
+      expect(response.status).toBe(403);
+      expect(response.headers.get("set-cookie")).toBeNull();
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("revokes Auth and expires the exact secure cookie before redirecting", async () => {
     vi.stubEnv("NODE_ENV", "production");
     const response = await POST(request());
