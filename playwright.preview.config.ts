@@ -7,12 +7,14 @@ if (url.protocol !== "https:" || !url.hostname.endsWith(".vercel.app")) {
   throw new Error("Preview audit requires an HTTPS vercel.app URL; production domains are rejected.");
 }
 if (!process.env.PREVIEW_AUDIT_COMMIT) throw new Error("Set PREVIEW_AUDIT_COMMIT after confirming the deployment commit.");
+if (!process.env.VERCEL_OIDC_TOKEN) throw new Error("Run this audit through vercel env run to supply local Vercel authentication.");
 export default defineConfig({
+  maxFailures: 1,
   testDir: "preview-audit",
   timeout: 90_000,
   workers: 1,
   retries: 0,
   reporter: [["list"], ["html", { outputFolder: "preview-audit-report", open: "never" }]],
-  use: { baseURL, trace: "on", screenshot: "on", serviceWorkers: "block" },
+  use: { baseURL, trace: "off", screenshot: "on", serviceWorkers: "block" },
   outputDir: "preview-audit-results",
 });

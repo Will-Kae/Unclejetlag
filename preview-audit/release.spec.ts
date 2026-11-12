@@ -1,6 +1,25 @@
 /** Real-provider audit, opt-in only. Each Playwright test gets a fresh isolated context. */
 import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 
+// Scope the short-lived Vercel credential to this exact preview origin.
+// Tracing is disabled in the config so authenticated request headers are not saved.
+test.beforeEach(async ({ context, page }) => {
+  const expectedOrigin = new URL(process.env.PREVIEW_AUDIT_URL!).origin;
+  const token = process.env.VERCEL_OIDC_TOKEN;
+  if (!token) throw new Error("Local Vercel authentication is required");
+  await context.route("**/*", async route => {
+    const headers = { ...route.request().headers() };
+    delete headers["x-vercel-trusted-oidc-idp-token"];
+    if (new URL(route.request().url()).origin === expectedOrigin) {
+      headers["x-vercel-trusted-oidc-idp-token"] = token;
+    }
+    await route.continue({ headers });
+  });
+  await page.goto("/");
+  expect(new URL(page.url()).origin, "Preview access blocked before application audit").toBe(expectedOrigin);
+  await expect(page.getByRole("dialog", { name: "Cookies, briefly." })).toBeVisible({ timeout: 15000 });
+});
+
 const paths = ["/", "/guides/topics/flights", "/guides/topics/hotels", "/guides/topics/car-rentals", "/insurance"];
 const providers = [
   { path: paths[1], button: "Allow and load flight search", host: "tpwidg.com" },
@@ -13,7 +32,6 @@ const optionalHosts = /(^|\.)(emrldtp\.cc|tpwidg\.com|discovercars\.com|expediag
 async function capture(context: BrowserContext, info: TestInfo) {
   const requests: { url: string; host: string; type: string; time: number }[] = [];
   const errors: string[] = [];
-  await context.tracing.group(`deployment ${process.env.PREVIEW_AUDIT_COMMIT}`);
   context.on("request", request => {
     const url = new URL(request.url());
     requests.push({ url: request.url(), host: url.hostname, type: request.resourceType(), time: Date.now() });
@@ -73,14 +91,16 @@ for (const provider of providers) {
   });
 }
 
-test("Accept All enables ads; withdrawal blocks new optional requests after reload", async ({ page, context }, info) => {
+test("Accept All enables Drive while AdSense stays off; withdrawal blocks optional requests", async ({ page, context }, info) => {
   const evidence = await capture(context, info);
   try {
     await page.goto("/");
     await page.getByRole("button", { name: "Accept all", exact: true }).click();
     await exercise(page);
     await expect.poll(() => evidence.requests.some(r => r.host === "emrldtp.cc")).toBe(true);
-    await expect.poll(() => evidence.requests.some(r => r.host === "pagead2.googlesyndication.com")).toBe(true);
+    // AdSense is deliberately disabled by ADSENSE_RELEASE_ENABLED for this release.
+    expect(evidence.requests.filter(r => /(^|\\.)(googlesyndication\\.com|doubleclick\\.net|googleadservices\\.com)$/.test(r.host))).toEqual([]);
+    await expect(page.locator('script[src*="pagead2.googlesyndication.com"]')).toHaveCount(0);
     await page.getByRole("button", { name: "Cookie settings", exact: true }).last().click();
     // Record the reload itself, not only requests that arrive afterwards.
     const start = evidence.requests.length;
@@ -108,13 +128,29 @@ for (const width of [375, 390, 768]) for (const path of paths) {
       }
       await banner.getByRole("button", { name: "Essential only", exact: true }).click();
       if (path === "/") {
-        for (const name of ["Book a flight", "Book a hotel", "Book a car"]) {
+        for (const [name, provider] of [
+          ["Book a flight", providers[0]],
+          ["Book a hotel", providers[1]],
+          ["Book a car", providers[2]],
+        ] as const) {
           await page.getByRole("tab", { name, exact: true }).click();
-          await page.getByRole("button", { name: /^Load / }).click();
+          const panel = page.getByRole("tabpanel", { name, exact: true });
+          const review = panel.getByRole("button", { name: "Review this choice", exact: true });
+          if (await review.isVisible()) await review.click();
+          const activate = panel.getByRole("button", { name: provider.button, exact: true });
+          await expect(activate).toBeVisible({ timeout: 15000 });
+          await activate.click();
           await page.waitForTimeout(2500);
           await info.attach(`${width}-${name}`, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
         }
-      } else await page.getByRole("button", { name: /^Load / }).click();
+      } else {
+        const provider = providers.find(p => p.path === path)!;
+        const review = page.getByRole("button", { name: "Review this choice", exact: true });
+        if (await review.isVisible()) await review.click();
+        const activate = page.getByRole("button", { name: provider.button, exact: true });
+        await expect(activate).toBeVisible({ timeout: 15000 });
+        await activate.click();
+      }
       await exercise(page);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(2);
       await info.attach("live-layout", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
@@ -139,8 +175,9 @@ test("DiscoverCars selected Johannesburg search preserves attribution and record
     await frame.getByRole("button", { name: "Search now", exact: true }).click();
     const result = await popup;
     await result.waitForURL(/https:\/\/www\.discovercars\.com\/search\//);
-    await expect(result.getByText(/\d+ offers found/)).toBeVisible();
     expect(new URL(result.url()).searchParams.get("a_aid")).toBe("unclejetlag");
+    // Live inventory can render after navigation and the default 5s assertion.
+    await expect(result.getByText(/\d+ offers found/)).toBeVisible({ timeout: 30000 });
     await info.attach("results-url", { body: result.url(), contentType: "text/plain" });
     expect.soft(evidence.errors.filter(e => /isRTL|MutationObserver/.test(e)), "provider errors remain release findings, not silently suppressed").toEqual([]);
   } finally { await evidence.save(); }

@@ -1,16 +1,33 @@
 import { NextResponse } from "next/server";
-import { RESEARCH_COOKIE } from "@/lib/passport/admin-auth.server";
+import { cookies } from "next/headers";
+import { RESEARCH_COOKIE, researchConfig } from "@/lib/passport/admin-auth.server";
+import { revokeResearchSession } from "@/lib/passport/admin-logout.server";
 
 /** Reject cross-origin and origin-less logout POSTs to prevent forced sign-outs. */
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const expectedOrigin = new URL(request.url).origin;
+  // Next may supply an internal render-server authority in request.url.
+  // Compare against Host, never an Origin-derived or forwarded-host authority.
+  const requestUrl = new URL(request.url);
+  const host = request.headers.get("host") ?? requestUrl.host;
+  if (!/^[a-zA-Z0-9.[\]:-]+$/.test(host)) {
+    return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+  const expectedOrigin = requestUrl.protocol + "//" + host;
   if (!origin || origin !== expectedOrigin) {
     return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
   }
 
-  const response = NextResponse.redirect(new URL("/passport-index/research-admin/login", request.url), 303);
-  // Expire the cookie at the exact path used during sign-in. Deleting at "/" leaves it intact.
+  const token = (await cookies()).get(RESEARCH_COOKIE)?.value ?? null;
+  const revoked = await revokeResearchSession(token, researchConfig());
+  const response = revoked
+    ? NextResponse.redirect(new URL("/passport-index/research-admin/login", expectedOrigin), 303)
+    : new NextResponse(
+        "Signed out on this browser. Server session revocation could not be confirmed.",
+        { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+      );
+  // Clear the browser cookie even when Auth is unavailable. A 503 explicitly
+  // distinguishes local sign-out from confirmed server-session revocation.
   response.cookies.set(RESEARCH_COOKIE, "", {
     path: "/passport-index/research-admin",
     httpOnly: true,
