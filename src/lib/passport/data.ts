@@ -14,7 +14,7 @@ export const SPRINT_1_PASSPORTS = ["ZA", "ZW", "BW", "NA", "ZM", "MW", "MZ", "LS
  * Dataset manifest. `asOf` is the date publication eligibility is evaluated at, so scores and rankings
  * are reproducible for a given dataset version. Bump both whenever records change.
  */
-export const DATASET = { version: "2026.10-s2", asOf: "2026-10-10", methodology: "0.1" } as const;
+export const DATASET = { version: "2026.11-u1", asOf: "2026-11-12", methodology: "0.1" } as const;
 
 const C = "2026-10-10";
 const C2 = "2026-10-10";
@@ -43,6 +43,7 @@ export const sources: Source[] = [
   { id: "tz-hc-namibia", title: "Visa information", publisher: "High Commission of the United Republic of Tanzania, Windhoek", url: "https://www.na.tzembassy.go.tz/services/category/visa-information", type: "embassy", authorityJurisdiction: "TZ", checked: C2, note: "No date shown on the lists." },
   { id: "na-mha-2025", title: "Fact sheet: operationalisation of visa reciprocity (visa on arrival), from 1 April 2025", publisher: "Ministry of Home Affairs, Immigration, Safety and Security (Namibia)", url: "https://www.na.emb-japan.go.jp/files/100807710.pdf", type: "government", authorityJurisdiction: "NA", hostedBy: "Embassy of Japan in Namibia", sourceUpdated: "2025-04-01", checked: C2, note: "Ministry fact sheet republished by the Embassy of Japan in Namibia." },
   { id: "sc-ics", title: "Visiting Seychelles", publisher: "Immigration and Civil Status (Seychelles)", url: "https://ics.gov.sc/visa-and-travel/visiting-seychelles", type: "government", authorityJurisdiction: "SC", checked: C2 },
+  { id: "sa-evisa-terms", title: "Saudi eVisa: terms and conditions (permitted countries and eVisa validity)", publisher: "Ministry of Tourism (Saudi Arabia)", url: "https://visa.visitsaudi.com/Home/TermsConditions", type: "official-portal", authorityJurisdiction: "SA", checked: "2026-11-12", note: "No publication or effective date is shown for the addition of Bosnia and Herzegovina, Serbia, Mexico and North Macedonia to the permitted countries list; recorded from the date we read it." },
 ];
 
 type Spec = { cat: AccessCategory; days?: number; cond?: string; ev: string; conf?: "high" | "medium"; from?: string; basis?: EvidenceBasis };
@@ -123,6 +124,8 @@ export const ruleRecords: AccessRule[] = [
   ...group(["NA"], "na-mha-2025", Object.fromEntries(["UG","RW","GH"].map((p) => [p, { cat: "visa-on-arrival" as const, from: "2025-04-01", ev: "Named for visa on arrival from 1 April 2025", conf: "medium" as const }]))),
   // Seychelles
   ...group(["SC"], "sc-ics", all({ cat: "eta", cond: "No visa needed. Complete the online travel authorisation at seychelles.govtas.com before travel; a visitor's permit is issued on arrival. Return ticket and funds required.", ev: "\"a visa is not required to enter Seychelles\"; online portal before arrival" })),
+  // Saudi Arabia: tourist eVisa, four passports added to the permitted countries list (read 12 Nov 2026)
+  ...group(["SA"], "sa-evisa-terms", Object.fromEntries(["MX", "BA", "RS", "MK"].map((p) => [p, { cat: "evisa" as const, cond: "Tourist eVisa applied for online before travel. Valid for one year from issue, multiple entries unless the eVisa states otherwise; maximum stay 3 months per the terms. Holding an eVisa does not guarantee entry.", ev: "Listed under \"Permitted Countries\" for the tourist eVisa" }]))),
   // Individual briefs (see /visas)
   { passport: "ZW", destination: "GE", category: "evisa", maxStayDays: 30, conditions: "Holders of a valid visa or residence permit from a country on Georgia's official list can enter visa-free for 90 days in any 180.", evidence: "Zimbabwe is not on Georgia's visa-free list; e-visa via evisa.gov.ge", evidenceBasis: "absent-from-list", sourceId: "ge-evisa", additionalSourceIds: ["ge-visa-permit-list"], verification: "verified", confidence: "high" },
   { passport: "NG", destination: "AE", category: "visa-required", conditions: "Visit visa issued before travel through a UAE sponsor (hotel, licensed tourism company, airline or resident relative).", evidence: "Single-entry tourist visa issued through a UAE sponsor", sourceId: "ae-gdrfa-tourist", verification: "verified", confidence: "medium" },

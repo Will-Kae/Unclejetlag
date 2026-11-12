@@ -399,8 +399,9 @@ describe("isolation from the public site", () => {
     expect(offenders).toEqual([]);
     expect(fs.readFileSync(path.join(ROOT, "src/lib/passport/index.ts"), "utf8")).not.toMatch(/monitor\//);
   });
-  it("keeps the published dataset exactly as Phase 2A left it", () => {
-    expect(rules).toHaveLength(640);
+  it("keeps the published dataset exactly as the last approved data change left it", () => {
+    // 644 = 640 Phase 2A records + 4 Saudi eVisa records approved 12 Nov 2026 (docs/passport-audit-2026-11-12.md).
+    expect(rules).toHaveLength(644);
     expect(sha256(JSON.stringify(ruleRecords))).toBe(sha256(JSON.stringify(rules)));
   });
 });

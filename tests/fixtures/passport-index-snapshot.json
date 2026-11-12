@@ -8,13 +8,13 @@
   "required": 180
  },
  "datasetStats": {
-  "verifiedPairs": 640,
+  "verifiedPairs": 644,
   "possiblePairs": 39402,
-  "passportsWithData": 15,
-  "destinationsWithData": 46,
-  "sources": 23,
-  "lastChecked": "2026-10-10",
-  "datasetVersion": "2026.10-s2"
+  "passportsWithData": 19,
+  "destinationsWithData": 47,
+  "sources": 24,
+  "lastChecked": "2026-11-12",
+  "datasetVersion": "2026.11-u1"
  },
  "scores": [
   {
@@ -462,17 +462,17 @@
    "passport": "BA",
    "methodology": "0.1",
    "universe": 198,
-   "verified": 0,
-   "coverage": 0,
+   "verified": 1,
+   "coverage": 0.005050505050505051,
    "counts": {
     "visa-free": 0,
     "visa-on-arrival": 0,
     "eta": 0,
-    "evisa": 0,
+    "evisa": 1,
     "visa-required": 0,
     "conditional": 0,
     "restricted": 0,
-    "unknown": 198
+    "unknown": 197
    },
    "noAdvanceVisaVerified": 0,
    "mobilityScore": null,
@@ -2373,17 +2373,17 @@
    "passport": "MX",
    "methodology": "0.1",
    "universe": 198,
-   "verified": 0,
-   "coverage": 0,
+   "verified": 1,
+   "coverage": 0.005050505050505051,
    "counts": {
     "visa-free": 0,
     "visa-on-arrival": 0,
     "eta": 0,
-    "evisa": 0,
+    "evisa": 1,
     "visa-required": 0,
     "conditional": 0,
     "restricted": 0,
-    "unknown": 198
+    "unknown": 197
    },
    "noAdvanceVisaVerified": 0,
    "mobilityScore": null,
@@ -2751,17 +2751,17 @@
    "passport": "MK",
    "methodology": "0.1",
    "universe": 198,
-   "verified": 0,
-   "coverage": 0,
+   "verified": 1,
+   "coverage": 0.005050505050505051,
    "counts": {
     "visa-free": 0,
     "visa-on-arrival": 0,
     "eta": 0,
-    "evisa": 0,
+    "evisa": 1,
     "visa-required": 0,
     "conditional": 0,
     "restricted": 0,
-    "unknown": 198
+    "unknown": 197
    },
    "noAdvanceVisaVerified": 0,
    "mobilityScore": null,
@@ -3213,17 +3213,17 @@
    "passport": "RS",
    "methodology": "0.1",
    "universe": 198,
-   "verified": 0,
-   "coverage": 0,
+   "verified": 1,
+   "coverage": 0.005050505050505051,
    "counts": {
     "visa-free": 0,
     "visa-on-arrival": 0,
     "eta": 0,
-    "evisa": 0,
+    "evisa": 1,
     "visa-required": 0,
     "conditional": 0,
     "restricted": 0,
-    "unknown": 198
+    "unknown": 197
    },
    "noAdvanceVisaVerified": 0,
    "mobilityScore": null,
@@ -4198,6 +4198,9 @@
   }
  ],
  "access": {
+  "BA": {
+   "SA": "evisa"
+  },
   "BW": {
    "AT": "visa-required",
    "BE": "visa-required",
@@ -4467,6 +4470,9 @@
    "ZM": "visa-free",
    "ZW": "visa-free"
   },
+  "MX": {
+   "SA": "evisa"
+  },
   "MZ": {
    "AT": "visa-required",
    "BE": "visa-required",
@@ -4602,6 +4608,9 @@
    "ZM": "evisa",
    "ZW": "evisa"
   },
+  "MK": {
+   "SA": "evisa"
+  },
   "RW": {
    "AT": "visa-required",
    "BE": "visa-required",
@@ -4646,6 +4655,9 @@
    "US": "visa-required",
    "ZM": "visa-on-arrival",
    "ZW": "visa-on-arrival"
+  },
+  "RS": {
+   "SA": "evisa"
   },
   "ZA": {
    "AT": "visa-required",

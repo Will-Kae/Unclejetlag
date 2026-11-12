@@ -22,6 +22,12 @@ export const verificationProcesses: Record<string, { label: string; description:
       "African destinations (Zambia, Zimbabwe, Kenya, Rwanda, Uganda, Botswana, Tanzania, Seychelles, part of Namibia), read in the browser on official sites by the same AI-assisted process. One researcher; no second reviewer.",
     independentReview: false,
   },
+  "uj-official-update-2026-11-12": {
+    label: "Official-source update (12 Nov 2026)",
+    description:
+      "Founder-requested update. Saudi Arabia's official eVisa terms (visa.visitsaudi.com) opened and read in the browser; the permitted countries list and eVisa validity clauses were recorded. AI-assisted by Claude; one researcher; no second reviewer. Audit: docs/passport-audit-2026-11-12.md.",
+    independentReview: false,
+  },
 };
 
 /**
@@ -31,6 +37,7 @@ export const verificationProcesses: Record<string, { label: string; description:
  */
 export const sourceLedger: Record<string, { addedIn: string; addedOn: string; process: keyof typeof verificationProcesses }> = Object.fromEntries([
   ...["za-dirco-exempt", "eu-2018-1806", "gb-visa-nationals", "ie-visa-list", "us-vwp", "us-suspension-2026", "ca-entry", "ge-visa-permit-list", "ge-evisa", "ae-gdrfa-tourist"].map((id) => [id, { addedIn: "5860cd4", addedOn: "2026-10-10", process: "uj-research-sprint-1" }]),
+  ["sa-evisa-terms", { addedIn: "passport/2026-11-12-saudi-evisa", addedOn: "2026-11-12", process: "uj-official-update-2026-11-12" }],
   ...["zm-no-visa", "zm-voa", "zm-prior", "zw-cat-a", "zw-cat-b", "zw-cat-c", "ke-eta-exempt", "rw-visa-general", "ug-exempt", "bw-embassy-us", "tz-hc-namibia", "na-mha-2025", "sc-ics"].map((id) => [id, { addedIn: "15e3c1b", addedOn: "2026-10-10", process: "uj-research-sprint-2" }]),
 ]);
 

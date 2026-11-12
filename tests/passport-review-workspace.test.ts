@@ -394,9 +394,9 @@ describe("protection against unintended data mutation", () => {
   });
 
   it("leaves published data and the ranking gate unchanged", () => {
-    expect(DATASET.version).toBe("2026.10-s2");
-    expect(ruleRecords).toHaveLength(640);
-    expect(rules).toHaveLength(640);
+    expect(DATASET.version).toBe("2026.11-u1");
+    expect(ruleRecords).toHaveLength(644);
+    expect(rules).toHaveLength(644);
     expect(ws.overview.rankingPublished).toBe(false);
   });
 
@@ -543,7 +543,7 @@ describe("evidence status is derived from evidence, not from plan membership", (
     for (const c of ws.cases.filter((x) => x.published.length === 0)) expect(["published", "re-verification"]).not.toContain(c.status);
     const byPair = new Map(rules.map((r) => [`${r.passport}>${r.destination}`, r.category]));
     for (const c of ws.cases) for (const p of c.published) expect(p.category).toBe(byPair.get(`${c.passport}>${c.destination}`));
-    expect(rules).toHaveLength(640);
+    expect(rules).toHaveLength(644);
   });
 
   it("never fabricates source dates", () => {

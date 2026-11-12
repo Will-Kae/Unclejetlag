@@ -159,7 +159,7 @@ describe("dates and freshness", () => {
   });
   it("records a source update date only where the source shows one", () => {
     const withoutDate = sources.filter((s) => !s.sourceUpdated).map((s) => s.id);
-    expect(withoutDate).toHaveLength(13);
+    expect(withoutDate).toHaveLength(14);
     for (const s of sources) if (s.sourceUpdated) expect(isIsoDate(s.sourceUpdated)).toBe(true);
   });
 });
@@ -196,9 +196,10 @@ describe("verification-state transitions", () => {
 });
 
 describe("publication eligibility", () => {
-  it("publishes all 640 current records, unchanged and in order", () => {
-    expect(ruleRecords).toHaveLength(640);
-    expect(rules).toHaveLength(640);
+  it("publishes all 644 current records, unchanged and in order", () => {
+    // 644 = 640 Phase 2A records + 4 Saudi eVisa records approved 12 Nov 2026 (docs/passport-audit-2026-11-12.md).
+    expect(ruleRecords).toHaveLength(644);
+    expect(rules).toHaveLength(644);
     rules.forEach((r, i) => expect(r).toBe(ruleRecords[i]));
   });
   it("keeps unverified, disputed and withdrawn records out of published data", () => {
@@ -277,7 +278,7 @@ describe("coverage report", () => {
     const { verified, disputed, pending, unknown } = rep.totals;
     expect(verified + rep.totals["review-due"] + disputed + pending + unknown).toBe(199 * 198);
     for (const p of rep.passports) expect(p.verified + p["review-due"] + p.disputed + p.pending + p.unknown).toBe(198);
-    expect(rep.pairs).toHaveLength(640);
+    expect(rep.pairs).toHaveLength(644);
   });
   it("never claims complete worldwide coverage", () => {
     expect(rep.claims.completeWorldwideCoverage).toBe(false);
@@ -285,9 +286,9 @@ describe("coverage report", () => {
     expect(rep.ranking.published).toBe(false);
   });
   it("reports with the real counts from the dataset", () => {
-    expect(rep.totals).toMatchObject({ verified: 640, "review-due": 0, disputed: 0, pending: 0, published: 640, records: 640 });
-    expect(rep.passports.filter((p) => p.verified > 0)).toHaveLength(15);
-    expect(rep.destinations.filter((d) => d.verified > 0)).toHaveLength(46);
+    expect(rep.totals).toMatchObject({ verified: 644, "review-due": 0, disputed: 0, pending: 0, published: 644, records: 644 });
+    expect(rep.passports.filter((p) => p.verified > 0)).toHaveLength(19);
+    expect(rep.destinations.filter((d) => d.verified > 0)).toHaveLength(47);
     expect(rep.nextReviewDue).toBe("2027-03-23");
   });
 });
@@ -303,8 +304,8 @@ describe("provenance records", () => {
       expect(isIsoDate(rec.dateChecked)).toBe(true);
       expect(rec.revisions.length).toBeGreaterThanOrEqual(1);
       expect(rec.revisions[0]).toMatchObject({ revision: 1, action: "created" });
-      expect(["5860cd4", "15e3c1b"]).toContain(rec.revisions[0].ref);
-      expect(rec.process).toMatch(/^uj-research-sprint-[12]$/);
+      expect(["5860cd4", "15e3c1b", "passport/2026-11-12-saudi-evisa"]).toContain(rec.revisions[0].ref);
+      expect(rec.process).toMatch(/^(uj-research-sprint-[12]|uj-official-update-2026-11-12)$/);
     }
   });
   it("is honest that no rule has had an independent second review yet", () => {

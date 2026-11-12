@@ -35,9 +35,10 @@ describe("Phase 4C.3 research package", () => {
   });
 
   it("does not change published data, scores or the dataset version", () => {
-    expect(DATASET.version).toBe("2026.10-s2");
-    expect(ruleRecords).toHaveLength(640);
-    expect(rules).toHaveLength(640);
+    expect(DATASET.version).toBe("2026.11-u1");
+    // 644 = 640 Phase 2A records + 4 Saudi eVisa records approved 12 Nov 2026 (docs/passport-audit-2026-11-12.md).
+    expect(ruleRecords).toHaveLength(644);
+    expect(rules).toHaveLength(644);
     const ids = new Set(publishedSources.map((s) => s.id));
     for (const s of researchPackage.sources) expect(ids.has(s.id)).toBe(false);
   });
