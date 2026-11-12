@@ -104,6 +104,13 @@ try {
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const logout = await logoutResponse;
   console.log("SCOPE: browser logout HTTP status " + logout.status());
+  if (logout.status() === 403) {
+    const headers = await logout.allHeaders();
+    for (const key of ["x-local-origin-present", "x-local-origin-null", "x-local-origin-matches",
+      "x-local-request-https", "x-local-host-matches"]) {
+      console.log("SCOPE: " + key + " " + (["true", "false"].includes(headers[key]) ? headers[key] : "unavailable"));
+    }
+  }
   check(logout.status() === 303, "Browser logout did not confirm revocation");
   stage = "sign-out redirect to login";
   await atLogin();
